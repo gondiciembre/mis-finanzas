@@ -425,24 +425,29 @@ function yearStats(y){const rows=S.y[y]||[],o={byCat:{},byRow:[],inc:0,incG:0,co
 const ms=n=>{const a=Math.abs(n);return (n<0?'−':'')+'$ '+(a>=1e6?(a/1e6).toFixed(1).replace('.',',')+' M':a>=1e3?Math.round(a/1e3)+' k':Math.round(a))};
 function vsPrev(cur,prev){if(!prev)return'';const d=(cur/prev-1)*100;return `<span class="${d>0?'dn':'up'}" title="vs. año anterior">${pct(d)}</span>`}
 /* ---------- crédito UVA ---------- */
-const LOAN_DEF={name:'Hipotecario BNA UVA',uva0:59225.53,cap0:127462493.14,tna:6,n:360,f0:'2026-10-21',first:'2026-12-10',rent:'Alquiler Depto PACHECO',costs:['Credito Hipotecario NACION','Seguros Banco Nación x Credito']};
-const loan=()=>{if(!S.loan)S.loan=JSON.parse(JSON.stringify(LOAN_DEF));return S.loan};
+const LOAN_DEF={name:'Hipotecario BNA UVA',uva0:59225.53,cap0:127462493.14,tna:6,n:360,fee:4,feeY:7,f0:'2026-10-21',first:'2026-12-10',rent:'Alquiler Depto PACHECO',costs:['Credito Hipotecario NACION','Seguros Banco Nación x Credito']};
+const loan=()=>{if(!S.loan)S.loan=JSON.parse(JSON.stringify(LOAN_DEF));if(S.loan.fee===undefined){S.loan.fee=4;S.loan.feeY=7}return S.loan};
 let LD=null;try{LD=JSON.parse(localStorage.getItem('fin-loan')||'null')}catch(e){}
 let LDrun=false;
-async function loanFetch(force){if(LDrun)return;if(!force&&LD&&Date.now()-LD.ts<6*3600e3)return;LDrun=true;
- try{const [u,m]=await Promise.all([fetch('https://api.argentinadatos.com/v1/finanzas/indices/uva',{cache:'no-store'}).then(r=>r.json()),fetch('https://api.argentinadatos.com/v1/cotizaciones/dolares/bolsa',{cache:'no-store'}).then(r=>r.json())]);
-  const um={};u.forEach(x=>um[x.fecha]=x.valor);const past=u.filter(x=>x.fecha<=TODAY);const uh=past[past.length-1];
-  const from=addY(TODAY,-5),ser=[];let k=0;m.forEach(x=>{if(x.fecha<from||!um[x.fecha]||!x.venta)return;if(k++%5==0||x.fecha>=addY(TODAY,0).slice(0,8))ser.push([x.fecha,um[x.fecha],x.compra||x.venta])});
-  const lm=m[m.length-1];if(ser.length&&ser[ser.length-1][0]!=lm.fecha&&um[lm.fecha])ser.push([lm.fecha,um[lm.fecha],lm.compra||lm.venta]);
-  LD={ts:Date.now(),uva:uh.valor,uvaF:uh.fecha,mepC:lm.compra||lm.venta,mepF:lm.fecha,ser};try{localStorage.setItem('fin-loan',JSON.stringify(LD))}catch(e){}}
- catch(e){toast('No pude traer la UVA: '+(e.message||e))}
+async function loanFetch(force){if(LDrun)return;if(!force&&LD&&LD.v==2&&Date.now()-LD.ts<20*60e3)return;LDrun=true;
+ try{const AD='https://api.argentinadatos.com/v1/',g=u=>fetch(AD+u,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()});
+  const [u,m,bl]=await Promise.all([g('finanzas/indices/uva'),g('cotizaciones/dolares/bolsa'),g('cotizaciones/dolares/blue')]);
+  const um={},bm={};u.forEach(x=>um[x.fecha]=x.valor);bl.forEach(x=>bm[x.fecha]=x.compra||x.venta);const past=u.filter(x=>x.fecha<=TODAY);const uh=past[past.length-1];
+  const from=addY(TODAY,-5),ser=[];let k=0,lb=null;m.forEach((x,i)=>{if(bm[x.fecha])lb=bm[x.fecha];if(x.fecha<from||!um[x.fecha]||!x.venta)return;if(k++%3==0||i==m.length-1)ser.push([x.fecha,um[x.fecha],x.compra||x.venta,bm[x.fecha]||lb])});
+  const lm=m[m.length-1],lbx=bl[bl.length-1];
+  LD={v:2,ts:Date.now(),uva:uh.valor,uvaF:uh.fecha,mepC:lm.compra||lm.venta,mepF:lm.fecha,blueC:lbx.compra||lbx.venta,ser};try{localStorage.setItem('fin-loan',JSON.stringify(LD))}catch(e){}}
+ catch(e){toast('No pude traer UVA / dólar: '+(e.message||e))}
  LDrun=false;if(S&&sec=='g'&&tab=='uva')render()}
+let LRATE='mep',loanTimer=null,loanSig='';
+function loanLoop(){clearInterval(loanTimer);loanTimer=setInterval(async()=>{if(document.visibilityState!='visible'||!S||sec!='g'||tab!='uva'||$('#ov').innerHTML)return;
+ const before=JSON.stringify([DOL&&DOL.t&&DOL.t.bolsa,DOL&&DOL.t&&DOL.t.blue,LD&&LD.uva]);await dolFetch();await loanFetch(false);
+ if(JSON.stringify([DOL&&DOL.t&&DOL.t.bolsa,DOL&&DOL.t&&DOL.t.blue,LD&&LD.uva])!=before)render()},60000)}
 function loanMath(L,uva){const r=L.tna/1200,n=L.n,P=L.uva0,c=P*r/(1-Math.pow(1+r,-n));
  let k=0;const d0=new Date(L.first+'T12:00:00');for(let i=0;i<n;i++){const d=new Date(d0);d.setMonth(d0.getMonth()+i);if(d.toISOString().slice(0,10)<=TODAY)k++;else break}
  const g=Math.pow(1+r,k),bal=P*g-c*(g-1)/r,intRest=c*(n-k)-bal;
  return{r,c,k,bal,intRest,cA:c*uva,balA:bal*uva}}
 const rowVals=(y,name)=>{const x=(S.y[y]||[]).find(z=>z.n==name);return x?x.a.map(v=>v||0):Array(12).fill(0)};
-function vLoan(){const L=loan();if(!LD)loanFetch(false);const uva=LD?LD.uva:L.cap0/L.uva0,M=loanMath(L,uva);
+function vLoan(){const L=loan();loanFetch(false);if(!loanTimer)loanLoop();if((!DOL||Date.now()-DOL.ts>60e3)&&Date.now()-(window.__dolTry||0)>60e3){window.__dolTry=Date.now();setTimeout(()=>dolFetch().then(()=>{if(tab=='uva'&&!$('#ov').innerHTML)render()}),0)}const uva=LD?LD.uva:L.cap0/L.uva0,M=loanMath(L,uva);
  const mepC=(DOL&&DOL.t&&DOL.t.bolsa&&DOL.t.bolsa.c)||(LD&&LD.mepC)||mepE(),f2=n=>n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
  const val=(y,m,n)=>{const x=(S.y[y]||[]).find(z=>z.n==n);return x&&x.a[m]||0};
  const lastOf=n=>{let past=0,fut=0;Object.keys(S.y).sort().forEach(y=>{for(let m=0;m<12;m++){const v=val(y,m,n);if(!v)continue;if(y+'-'+String(m+1).padStart(2,'0')<=TODAY.slice(0,7))past=v;else if(!fut)fut=v}});return past||fut};
@@ -466,31 +471,44 @@ function vLoan(){const L=loan();if(!LD)loanFetch(false);const uva=LD?LD.uva:L.ca
   tip:i=>({t:P[i].full,r:[['var(--c3)','Alquiler'+(P[i].re?' (est.)':''),money(rent[i])],['var(--c2)','Cuota + seguro'+(P[i].ce?' (est.)':''),money(cost[i])],['',rent[i]-cost[i]>=0?'Sobra':'Falta',money(Math.abs(rent[i]-cost[i]))],['','Cobertura',cost[i]?pc0(rent[i]/cost[i]*100):'—']]})})}${legend([['var(--c3)','Alquiler'],['var(--c2)','Cuota + seguro']])}
   <p class="note">Los meses que no cargaste en Gastos se estiman con el último alquiler y la cuota a la UVA de hoy. La cuota sube con la UVA; si el alquiler se ajusta por un índice parecido, la cobertura se mantiene.</p></div>`;
  // saldo y cancelación
- const balU=M.balA/mepC;h+=`<div class="sec"><div class="sh"><h2>¿Conviene cancelar?</h2><span class="m">saldo medido en dólares MEP</span></div>
+ const blueC=(DOL&&DOL.t&&DOL.t.blue&&DOL.t.blue.c)||(LD&&LD.blueC)||0,feeEnd=addY(L.f0,L.feeY||0),feeOn=(L.fee||0)>0&&TODAY<feeEnd,feeK=1+(feeOn?L.fee/100:0),payA=M.balA*feeK;
+ const tm=DOL&&DOL.t&&DOL.t.bolsa&&DOL.t.bolsa.f?new Date(DOL.t.bolsa.f).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false}):'';
+ h+=`<div class="sec"><div class="sh"><h2>¿Conviene cancelar?</h2><span class="m">UVA ${f2(uva)} · MEP ${f2(mepC)} · Blue ${blueC?f2(blueC):'—'}${tm?' · '+tm:''}</span></div>
  <div class="grid g3"><div class="card kpi"><div class="k">Saldo en UVA</div><div class="v">${nfu.format(Math.round(M.bal))}</div><div class="s">${M.k} de ${L.n} cuotas pagadas</div></div>
-  <div class="card kpi"><div class="k">Saldo en pesos</div><div class="v">${ms(M.balA)}</div><div class="s">${money(M.balA)}</div></div>
-  <div class="card kpi"><div class="k">Para cancelar hoy</div><div class="v">${usd(balU)}</div><div class="s">MEP compra ${f2(mepC)}</div></div></div>`;
- if(LD&&LD.ser&&LD.ser.length>20){const s=LD.ser,vU=s.map(x=>M.bal*x[1]/x[2]),cur=balU,sorted=[...vU].sort((a,b)=>a-b),pctl=sorted.filter(v=>v<=cur).length/sorted.length*100,mn=sorted[0],mx=sorted[sorted.length-1],avg=vU.reduce((a,b)=>a+b,0)/vU.length;
-  const lvl=pctl<=33?['up','Momento favorable','La deuda medida en dólares está barata comparada con los últimos 5 años: el dólar está caro frente a la UVA. Si tenés dólares, cancelar ahora rinde más que el promedio.']:pctl>=67?['dn','Momento desfavorable','La deuda medida en dólares está cara: el dólar está barato frente a la UVA. Cancelar con dólares hoy cuesta más que el promedio de los últimos 5 años; conviene esperar si podés.']:['nt','Momento neutro','La deuda medida en dólares está en la zona media de los últimos 5 años.'];
-  h+=`<div class="card" style="margin-top:12px"><div class="k" style="font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mut);display:flex;justify-content:space-between"><span>Indicador de cancelación</span><span class="pill ${lvl[0]}">${lvl[1]}</span></div>
-   <div class="gauge"><i style="left:${Math.min(98,Math.max(2,pctl))}%"></i></div><div class="gl3"><span>Barato<br><b>${usd(mn)}</b></span><span>Promedio<br><b>${usd(avg)}</b></span><span>Caro<br><b>${usd(mx)}</b></span></div>
-   <p class="note" style="margin-top:10px">${lvl[2]} Hoy cancelar cuesta ${usd(cur)}, más caro que el ${pc0(pctl)} de los días de los últimos 5 años.</p></div>`;
-  const step=Math.max(1,Math.floor(s.length/120)),idx=s.map((_,i)=>i).filter(i=>i%step==0||i==s.length-1),vv=idx.map(i=>vU[i]);
-  h+=`<div class="chart" style="margin-top:12px"><h3>Costo de cancelar tu saldo actual en dólares</h3><div class="cs">si lo hubieras cancelado en cada fecha · UVA ÷ MEP · 5 años</div>${lineChart({vals:vv,col:'var(--c1)',H:170,fy:q=>usdS(q).replace('US$ ',''),xl:[[0,fds(s[idx[0]][0])],[vv.length-1,'hoy']],aria:'Costo de cancelar en dólares',tips:i=>({t:fd(s[idx[i]][0]),r:[['var(--c1)','Cancelar costaría',usd(vv[i])],['','UVA',f2(s[idx[i]][1])],['','MEP',f2(s[idx[i]][2])]]})})}</div>`}
+  <div class="card kpi"><div class="k">Para cancelar en pesos</div><div class="v">${ms(payA)}</div><div class="s">${feeOn?'incluye '+String(L.fee).replace('.',',')+'% de comisión':'sin comisión'}</div></div>
+  <div class="card kpi"><div class="k">Comisión</div><div class="v">${feeOn?ms(payA-M.balA):'$ 0'}</div><div class="s">${feeOn?'hasta el '+fd(feeEnd):'ya no aplica'}</div></div></div>`;
+ const S5=LD&&LD.ser&&LD.ser.length>20?LD.ser:null,R={mep:{n:'MEP',c:mepC,j:2},blue:{n:'Blue',c:blueC,j:3}};
+ h+=`<div class="card" style="margin-top:12px"><div class="k" style="font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mut)">Indicador de cancelación · dólares que necesitás</div>`;
+ const st={};Object.entries(R).forEach(([key,r])=>{if(!r.c){h+=`<p class="note">Sin cotización ${r.n}.</p>`;return}
+  const cur=payA/r.c;let row=`<div style="margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font:700 15px var(--mono)">${r.n} <span class="mutc" style="font-weight:500;font-size:12px">compra ${f2(r.c)}</span></b>`;
+  if(S5){const vU=S5.filter(x=>x[r.j]).map(x=>M.bal*x[1]/x[r.j]),so=[...vU].sort((a,b)=>a-b),pctl=so.filter(v=>v<=cur).length/so.length*100,q33=so[Math.floor(so.length*.33)],avg=vU.reduce((a,b)=>a+b,0)/vU.length,fx=payA/q33;
+   const lv=pctl<=33?['up','Favorable']:pctl>=67?['dn','Desfavorable']:['nt','Neutro'];st[key]={pctl,fx,lv};
+   row+=`<span class="pill ${lv[0]}">${lv[1]}</span></div><div style="font:700 24px var(--mono);margin-top:6px">${usd(cur)}</div>
+   <div class="gauge"><i style="left:${Math.min(98,Math.max(2,pctl))}%"></i></div><div class="gl3"><span>Barato<br><b>${usd(so[0])}</b></span><span>Promedio<br><b>${usd(avg)}</b></span><span>Caro<br><b>${usd(so[so.length-1])}</b></span></div>
+   <div class="stat" style="margin-top:8px"><span>Más caro que el</span><b>${pc0(pctl)} de los días</b></div><div class="stat"><span>Zona favorable con ${r.n} desde</span><b>${money(fx)}</b></div></div>`}
+  else row+=`</div><div style="font:700 24px var(--mono);margin-top:6px">${usd(cur)}</div></div>`;
+  h+=row});
+ const best=mepC&&blueC?(mepC>=blueC?'MEP':'Blue'):'';
+ h+=`<p class="note">Compara cuántos dólares necesitás hoy para cancelar ${feeOn?'(saldo + '+String(L.fee).replace('.',',')+'% de comisión) ':''}contra lo que costaba tu saldo sin comisión cada día de los últimos 5 años. ${feeOn?'Por la comisión, el dólar tiene que estar un '+String(L.fee).replace('.',',')+'% más caro para que convenga lo mismo; desde el '+fd(feeEnd)+' se cancela sin comisión. ':''}${best?'Hoy te conviene vender tus dólares por '+best+' (pagan más pesos). ':''}Favorable = dentro del tercio más barato de esos 5 años.</p></div>`;
+ if(S5){const r=R[LRATE]||R.mep,s=S5.filter(x=>x[r.j]),vU=s.map(x=>M.bal*feeK*x[1]/x[r.j]),step=Math.max(1,Math.floor(s.length/120)),idx=s.map((_,i)=>i).filter(i=>i%step==0||i==s.length-1),vv=idx.map(i=>vU[i]);
+  if(r.c){vv.push(payA/r.c);idx.push(-1)}
+  h+=`<div class="chart" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div><h3>Costo de cancelar en dólares</h3><div class="cs">tu saldo actual${feeOn?' + comisión':''} en cada fecha · 5 años</div></div><div class="seg" style="flex:none;width:120px"><button data-lrate="mep" class="${LRATE=='mep'?'on':''}">MEP</button><button data-lrate="blue" class="${LRATE=='blue'?'on':''}">Blue</button></div></div>
+  ${lineChart({vals:vv,col:LRATE=='blue'?'var(--c2)':'var(--c1)',H:170,fy:q=>usdS(q).replace('US$ ',''),xl:[[0,fds(s[idx[0]][0])],[vv.length-1,'hoy']],aria:'Costo de cancelar en dólares',tips:i=>{const x=idx[i]<0?[TODAY,uva,r.c]:s[idx[i]];return{t:idx[i]<0?'Hoy':fd(x[0]),r:[[LRATE=='blue'?'var(--c2)':'var(--c1)','Cancelar costaría',usd(vv[i])],['','UVA',f2(x[1])],['',r.n,f2(x[r.j]||x[2])]]}}})}</div>`}
  const intA=M.intRest*uva;
  h+=`<div class="card" style="margin-top:12px"><div class="stat"><span>Intereses que faltan pagar</span><b>${nfu.format(Math.round(M.intRest))} UVA · ${ms(intA)}</b></div><div class="stat"><span>Costo del crédito</span><b>UVA + ${String(L.tna).replace('.',',')}% anual</b></div><div class="stat"><span>Renta de tu renta fija en USD</span><b>${(()=>{try{const F=flows(),i12=F.filter(f=>f.ty=='r'&&f.d<=addY(TODAY,1)).reduce((a,f)=>a+f.x,0),rf=port().by.rf.v;return rf?pc0(i12/rf*100):'—'}catch(e){return'—'}})()} anual</b></div>
-  <p class="note">Cancelar ahorra el ${String(L.tna).replace('.',',')}% real anual del crédito. Invertir esos dólares conviene solo si rinden más que eso y si el dólar acompaña la inflación. El indicador compara la deuda en dólares con su historia, no predice el futuro. Antes de cancelar, consultá al banco si cobra comisión por precancelación.</p></div></div>`;
+  <p class="note">Cancelar ahorra el ${String(L.tna).replace('.',',')}% real anual del crédito. Invertir esos dólares conviene solo si rinden más que eso y si el dólar acompaña la inflación. El indicador compara la deuda en dólares con su historia, no predice el futuro.</p></div></div>`;
  return h}
 function loanCfg(){const L=loan(),rows=(S.y[yr]||[]).map(x=>x.n);const opt=(v,ins)=>`<option value=""${!v?' selected':''}>—</option>`+rows.map(n=>`<option${n==v?' selected':''}>${esc(n)}</option>`).join('');
  mfn=null;$('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" style="max-height:88vh;overflow:auto"><h2>Datos del crédito</h2><div class="m">Según el detalle del préstamo del banco</div>
  <label for="ln0">Nombre</label><input class="inp" type="text" id="ln0" value="${esc(L.name)}">
  <div class="grid g2" style="gap:10px"><div><label for="ln1">Monto original en UVA</label><input class="inp" type="text" inputmode="decimal" id="ln1" value="${L.uva0}"></div><div><label for="ln2">TNA %</label><input class="inp" type="text" inputmode="decimal" id="ln2" value="${L.tna}"></div>
- <div><label for="ln3">Cantidad de cuotas</label><input class="inp" type="text" inputmode="numeric" id="ln3" value="${L.n}"></div><div><label for="ln4">Primera cuota</label><input class="inp" type="date" id="ln4" value="${L.first}"></div></div>
+ <div><label for="ln3">Cantidad de cuotas</label><input class="inp" type="text" inputmode="numeric" id="ln3" value="${L.n}"></div><div><label for="ln8">Comisión cancelación %</label><input class="inp" type="text" inputmode="decimal" id="ln8" value="${L.fee||0}"></div><div><label for="ln9">Comisión hasta el año</label><input class="inp" type="text" inputmode="numeric" id="ln9" value="${L.feeY||0}"></div>
+ <div><label for="ln4">Primera cuota</label><input class="inp" type="date" id="ln4" value="${L.first}"></div></div>
  <label for="ln5">Ingreso que lo paga (de tus gastos)</label><select class="inp" id="ln5">${opt(L.rent)}</select>
  <label for="ln6">Cuota del crédito</label><select class="inp" id="ln6">${opt(L.costs[0])}</select>
  <label for="ln7">Seguro</label><select class="inp" id="ln7">${opt(L.costs[1])}</select>
  <div class="btns"><button data-close="1">Cancelar</button><button class="pr" data-loansave="1">Guardar</button></div></div></div>`}
-function loanSave(){const L=loan(),v=id=>$(id).value;L.name=v('#ln0').trim()||L.name;L.uva0=parse(v('#ln1'))||L.uva0;L.tna=parse(v('#ln2'))||L.tna;L.n=Math.round(parse(v('#ln3')))||L.n;if(/^\d{4}-\d{2}-\d{2}$/.test(v('#ln4')))L.first=v('#ln4');L.rent=v('#ln5');L.costs=[v('#ln6'),v('#ln7')].filter(Boolean);closeSheet();save();render()}
+function loanSave(){const L=loan(),v=id=>$(id).value;L.name=v('#ln0').trim()||L.name;L.uva0=parse(v('#ln1'))||L.uva0;L.tna=parse(v('#ln2'))||L.tna;L.n=Math.round(parse(v('#ln3')))||L.n;L.fee=parse(v('#ln8'));L.feeY=Math.round(parse(v('#ln9')));if(/^\d{4}-\d{2}-\d{2}$/.test(v('#ln4')))L.first=v('#ln4');L.rent=v('#ln5');L.costs=[v('#ln6'),v('#ln7')].filter(Boolean);closeSheet();save();render()}
 
 function vGA(){const ys=Object.keys(S.y).filter(y=>yearStats(y).tot>0).sort();const Y=yr,st=yearStats(Y),pv=S.y[Y-1]?yearStats(Y-1):null,P=pv&&pv.tot?pv:null;
  const L=cats(),gC=L.filter(c=>c.t=='g'),iC=L.filter(c=>c.t=='i'||c.t=='u'),rate=st.incG?(st.incG-st.cons)/st.incG*100:0,mAvg=st.cons/12;
@@ -1167,7 +1185,7 @@ function render(){
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'});
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave]');if(!t)return;{const q=t.dataset;if(!S&&!(q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate]');if(!t)return;{const q=t.dataset;if(!S&&!(q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -1193,8 +1211,9 @@ document.addEventListener('click',e=>{
  if(d.rsued!==undefined)return addRsu(d.rsued);
  if(d.rsudel!==undefined){if(!t.dataset.arm){t.dataset.arm=1;t.textContent='Tocá de nuevo para eliminar';return}S.inv.rsu.g.splice(+d.rsudel,1);closeSheet();save();return render()}
  if(d.cats)return openCats();
- if(d.loanref){loanFetch(true);toast('Actualizando UVA y MEP…');return}
+ if(d.loanref){dolFetch().then(()=>loanFetch(true));toast('Actualizando UVA y MEP…');return}
  if(d.loancfg)return loanCfg();
+ if(d.lrate){LRATE=d.lrate;return render()}
  if(d.loansave)return loanSave();
  if(d.catsave)return saveCats();
  if(d.catdel)return delCat(d.catdel,t);
@@ -1229,7 +1248,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261121150030';
+const BUILD='20261121151111';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
