@@ -435,13 +435,24 @@ async function loanFetch(force){if(LDrun)return;if(!force&&LD&&LD.v==2&&Date.now
   const um={},bm={};u.forEach(x=>um[x.fecha]=x.valor);bl.forEach(x=>bm[x.fecha]=x.compra||x.venta);const past=u.filter(x=>x.fecha<=TODAY);const uh=past[past.length-1];
   const from=addY(TODAY,-5),ser=[];let k=0,lb=null;m.forEach((x,i)=>{if(bm[x.fecha])lb=bm[x.fecha];if(x.fecha<from||!um[x.fecha]||!x.venta)return;if(k++%3==0||i==m.length-1)ser.push([x.fecha,um[x.fecha],x.compra||x.venta,bm[x.fecha]||lb])});
   const lm=m[m.length-1],lbx=bl[bl.length-1];
-  LD={v:2,ts:Date.now(),uva:uh.valor,uvaF:uh.fecha,mepC:lm.compra||lm.venta,mepF:lm.fecha,blueC:lbx.compra||lbx.venta,ser};try{localStorage.setItem('fin-loan',JSON.stringify(LD))}catch(e){}}
+  LD={v:2,ts:Date.now(),uva:uh.valor,uvaF:uh.fecha,mepC:lm.compra||lm.venta,mepF:lm.fecha,blueC:lbx.compra||lbx.venta,ser};try{localStorage.setItem('fin-loan',JSON.stringify(LD))}catch(e){}
+  if(loanAuto()&&S&&sec=='g'&&tab!='uva')render()}
  catch(e){toast('No pude traer UVA / dólar: '+(e.message||e))}
  LDrun=false;if(S&&sec=='g'&&tab=='uva')render()}
 let LRATE='mep',loanTimer=null,loanSig='';
 function loanLoop(){clearInterval(loanTimer);loanTimer=setInterval(async()=>{if(document.visibilityState!='visible'||!S||sec!='g'||tab!='uva'||$('#ov').innerHTML)return;
  const before=JSON.stringify([DOL&&DOL.t&&DOL.t.bolsa,DOL&&DOL.t&&DOL.t.blue,LD&&LD.uva]);await dolFetch();await loanFetch(false);
  if(JSON.stringify([DOL&&DOL.t&&DOL.t.bolsa,DOL&&DOL.t&&DOL.t.blue,LD&&LD.uva])!=before)render()},60000)}
+/* cuota del hipotecario calculada con la UVA en vivo (meses no pagados desde autoFrom) */
+const f2u=n=>n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+function loanAuto(){if(!S||!S.y||!LD||!LD.uva)return false;const L=loan();if(L.auto===false)return false;const from=L.autoFrom||'2027-01',name=L.costs[0];if(!name)return false;
+ const r=L.tna/1200,c=L.uva0*r/(1-Math.pow(1+r,-L.n)),q=Math.round(c*LD.uva),d0=new Date(L.first+'T12:00:00'),last=new Date(d0);last.setMonth(d0.getMonth()+L.n-1);
+ const lastK=last.getFullYear()+'-'+String(last.getMonth()+1).padStart(2,'0'),firstK=L.first.slice(0,7);let ch=false;
+ Object.keys(S.y).forEach(y=>{if(+y<+from.slice(0,4))return;let x=S.y[y].find(z=>z.n==name);
+  if(!x){const tpl=Object.values(S.y).map(R=>R.find(z=>z.n==name)).find(Boolean);if(!tpl)return;x={s:tpl.s,n:name,a:Array(12).fill(0),p:Array(12).fill(false)};if(tpl.c)x.c=tpl.c;S.y[y].push(x);ch=true}
+  for(let m=0;m<12;m++){const k=y+'-'+String(m+1).padStart(2,'0');if(k<from||x.p[m])continue;const v=k<firstK||k>lastK?0:q;if((x.a[m]||0)!=v){x.a[m]=v;ch=true}}
+  x.uva=1});
+ if(ch)save();return ch}
 function loanMath(L,uva){const r=L.tna/1200,n=L.n,P=L.uva0,c=P*r/(1-Math.pow(1+r,-n));
  let k=0;const d0=new Date(L.first+'T12:00:00');for(let i=0;i<n;i++){const d=new Date(d0);d.setMonth(d0.getMonth()+i);if(d.toISOString().slice(0,10)<=TODAY)k++;else break}
  const g=Math.pow(1+r,k),bal=P*g-c*(g-1)/r,intRest=c*(n-k)-bal;
@@ -504,11 +515,12 @@ function loanCfg(){const L=loan(),rows=(S.y[yr]||[]).map(x=>x.n);const opt=(v,in
  <div class="grid g2" style="gap:10px"><div><label for="ln1">Monto original en UVA</label><input class="inp" type="text" inputmode="decimal" id="ln1" value="${L.uva0}"></div><div><label for="ln2">TNA %</label><input class="inp" type="text" inputmode="decimal" id="ln2" value="${L.tna}"></div>
  <div><label for="ln3">Cantidad de cuotas</label><input class="inp" type="text" inputmode="numeric" id="ln3" value="${L.n}"></div><div><label for="ln8">Comisión cancelación %</label><input class="inp" type="text" inputmode="decimal" id="ln8" value="${L.fee||0}"></div><div><label for="ln9">Comisión hasta el año</label><input class="inp" type="text" inputmode="numeric" id="ln9" value="${L.feeY||0}"></div>
  <div><label for="ln4">Primera cuota</label><input class="inp" type="date" id="ln4" value="${L.first}"></div></div>
+ <label style="display:flex;gap:10px;align-items:center;margin-top:14px"><input type="checkbox" id="lnA" ${L.auto===false?'':'checked'}> Calcular la cuota en Gastos con la UVA en vivo desde <input class="inp" type="month" id="lnF" value="${L.autoFrom||'2027-01'}" style="width:auto;margin:0"></label>
  <label for="ln5">Ingreso que lo paga (de tus gastos)</label><select class="inp" id="ln5">${opt(L.rent)}</select>
  <label for="ln6">Cuota del crédito</label><select class="inp" id="ln6">${opt(L.costs[0])}</select>
  <label for="ln7">Seguro</label><select class="inp" id="ln7">${opt(L.costs[1])}</select>
  <div class="btns"><button data-close="1">Cancelar</button><button class="pr" data-loansave="1">Guardar</button></div></div></div>`}
-function loanSave(){const L=loan(),v=id=>$(id).value;L.name=v('#ln0').trim()||L.name;L.uva0=parse(v('#ln1'))||L.uva0;L.tna=parse(v('#ln2'))||L.tna;L.n=Math.round(parse(v('#ln3')))||L.n;L.fee=parse(v('#ln8'));L.feeY=Math.round(parse(v('#ln9')));if(/^\d{4}-\d{2}-\d{2}$/.test(v('#ln4')))L.first=v('#ln4');L.rent=v('#ln5');L.costs=[v('#ln6'),v('#ln7')].filter(Boolean);closeSheet();save();render()}
+function loanSave(){const L=loan(),v=id=>$(id).value;L.name=v('#ln0').trim()||L.name;L.uva0=parse(v('#ln1'))||L.uva0;L.tna=parse(v('#ln2'))||L.tna;L.n=Math.round(parse(v('#ln3')))||L.n;L.fee=parse(v('#ln8'));L.auto=$('#lnA').checked;if(/^\d{4}-\d{2}$/.test(v('#lnF')))L.autoFrom=v('#lnF');L.feeY=Math.round(parse(v('#ln9')));if(/^\d{4}-\d{2}-\d{2}$/.test(v('#ln4')))L.first=v('#ln4');L.rent=v('#ln5');L.costs=[v('#ln6'),v('#ln7')].filter(Boolean);closeSheet();loanAuto();save();render()}
 
 function vGA(){const ys=Object.keys(S.y).filter(y=>yearStats(y).tot>0).sort();const Y=yr,st=yearStats(Y),pv=S.y[Y-1]?yearStats(Y-1):null,P=pv&&pv.tot?pv:null;
  const L=cats(),gC=L.filter(c=>c.t=='g'),iC=L.filter(c=>c.t=='i'||c.t=='u'),rate=st.incG?(st.incG-st.cons)/st.incG*100:0,mAvg=st.cons/12;
@@ -562,7 +574,7 @@ function vMes(){
   if(!rs.length&&k=='ot')continue;
   h+=`<div class="sec"><div class="sh"><h2><span class="tag" style="--ac:${SAC[k]}">${k.toUpperCase()}</span>${SEC[k]}</h2><span class="m">${money(dn)} / ${money(sum)}</span></div><div class="list">`;
   for(const [x,i] of rs){const a=x.a[mo]||0,d=x.p[mo],lab=k=='in'?['Cobrado','Estimado']:['Pagado','Estimado'];
-   h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${d?lab[0]:lab[1]}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
+   h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${d?lab[0]:x.uva&&!d&&x.a[mo]&&LD?'Estimado · '+f2u(LD.uva)+' UVA en vivo':lab[1]}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
   h+=`<button class="add" data-add="${k}">+ Agregar</button></div></div>`}
  return h}
 function vAnio(){
@@ -854,9 +866,10 @@ async function loadRemote(){
   SYNC='db';
   if(RT)SB.removeChannel(RT);
   RT=SB.channel('docs-'+SESSION.user.id).on('postgres_changes',{event:'*',schema:'public',table:'docs',filter:'user_id=eq.'+SESSION.user.id},p=>{const r=p.new;if(!r||!r.data)return;
-   if(r.id=='ledger'&&(r.data.u||0)>(S&&S.u||0)){S=r.data;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}render()}
+   if(r.id=='ledger'&&(r.data.u||0)>(S&&S.u||0)){S=r.data;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}loanAuto();render()}
    if(r.id=='history'&&r.data.pts){HIST.pts=Object.assign({},HIST.pts,r.data.pts);render()}}).subscribe();
  }catch(e){SYNC='err';SYNCERR=e.message||String(e)}
+ loanAuto();loanFetch(false);
  stRender();render()}
 
 /* pantallas de configuración, ingreso y cuenta */
@@ -1166,7 +1179,7 @@ const grpOf=s=>Object.keys(GRP).find(k=>GRP[k].includes(s))||'i';
 let lastSub={};try{lastSub=JSON.parse(localStorage.getItem('fin-sub')||'{}')}catch(e){}
 const TT={g:['Finanzas personales','Mis gastos'],i:['Inversiones','Cartera'],a:['Inversiones','Análisis de cartera'],c:['Inversiones','Cobros futuros'],r:['Compensación','RSU ExxonMobil'],e:['Inversiones','Notas estructuradas'],m:['Mercados','Monitor global'],d:['Mercados','Dólar · arbitraje']};
 function stRender(){const e=$('#st');if(!e)return;const mm={db:['ok','Sincronizado'],local:['bad','Sin sesión · datos de este dispositivo'],err:['bad','Error al sincronizar'],wait:['','Conectando…']}[SB?(SESSION?SYNC:'local'):'local']||['',''];e.className='stx '+mm[0];const lv=LIVE.st=='run'?' · actualizando precios…':LIVE.st=='ok'?' · en vivo '+hhmm(LIVE.at):LIVE.st=='err'?' · sin conexión al mercado':Q&&Q.ts?' · precios '+hhmm(Q.ts):'';e.lastChild.textContent=(!SB?'Sin configurar':mm[1]+(SYNC=='err'&&SYNCERR?' ('+SYNCERR+')':''))+lv;e.title=SYNCERR||''}
-function render(){
+function render(){if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
  $('#eb').textContent=TT[sec][0];$('#ht').textContent=TT[sec][1];stRender();
  const g=sec=='g';$('#yrw').hidden=!g;$('#tabs').hidden=!g;$('#mch').hidden=true;
  const gr=grpOf(sec);document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.grp==gr));
@@ -1248,7 +1261,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261121151111';
+const BUILD='20261121151908';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
