@@ -512,8 +512,7 @@ function sheet(i,m,k){
 function updPrev(){const el=$('#prev');if(!el||!sh)return;const x=sh.i>=0?R()[sh.i]:null,isIn=(x?x.s:sh.k)=='in',m=sh.m,v=parse($('#sa').value),old=x?(x.a[m]||0):0,oldPaid=x?!!x.p[m]:false,paid=$('#sd').checked,sg=isIn?1:-1;
  const t=tot(m),r0=t.i-t.e,r1=r0+sg*(v-old),b0=bal(m).real,bNow=b0-sg*(oldPaid?old:0),b1=bNow+sg*v,bAfter=paid?b1:bNow;
  const cl=n=>n<0?'neg':'pos',arrow=(a,b)=>a===b?`<b class="${cl(b)}">${money(b)}</b>`:`<span class="mutc">${money(a)}</span> → <b class="${cl(b)}">${money(b)}</b>`;
- el.innerHTML=`<div class="pr1"><span>Resto de ${MESL[m].toLowerCase()}</span><span>${arrow(r0,r1)}</span></div>
- <div class="pr1"><span>En el banco ${paid?'después de '+(isIn?'cobrarlo':'pagarlo'):'hoy'}</span><span>${arrow(b0,bAfter)}</span></div>
+ el.innerHTML=`<div class="pr1"><span>En el banco ${paid?'después de '+(isIn?'cobrarlo':'pagarlo'):'hoy'}</span><span>${arrow(b0,bAfter)}</span></div>
  ${!paid&&v?`<div class="pr1 s"><span>Si lo ${isIn?'cobrás':'pagás'} ahora</span><span><b class="${cl(b1)}">${money(b1)}</b></span></div>`:''}
  ${!isIn&&!paid&&v&&b1<0?`<div class="prw">No te alcanza con lo que tenés en el banco: faltan ${money(-b1)}.</div>`:''}`}
 document.addEventListener('input',e=>{if(e.target&&e.target.id=='sa')updPrev()});
@@ -1155,7 +1154,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261121143147';
+const BUILD='20261121143408';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
