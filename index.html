@@ -254,7 +254,11 @@ button.li:hover{background:var(--panel2)}
 .chips{display:flex;gap:6px;overflow-x:auto;padding:2px 1px 10px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;padding:7px 13px;border-radius:8px;border:1px solid var(--line2);font:600 13px var(--mono);color:var(--mut);position:relative}
-.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.chip{background:linear-gradient(90deg,var(--up-s) var(--p,0%),transparent var(--p,0%));display:inline-flex;align-items:center;gap:4px;transition:background .3s}
+.chip.done{border-color:color-mix(in srgb,var(--up) 55%,transparent);color:var(--up);background:var(--up-s)}
+.chip.on{background:linear-gradient(90deg,var(--acc) var(--p,0%),color-mix(in srgb,var(--acc) 62%,transparent) var(--p,0%));border-color:var(--acc);color:#fff}
+#ypr{padding:2px 1px 2px}.yprl{display:flex;justify-content:space-between;gap:10px;font:500 11.5px var(--mono);color:var(--mut)}.yprl b{color:var(--fg)}
+.yprb{height:6px;border-radius:3px;margin-top:6px;background:rgba(127,140,170,.16);overflow:hidden;box-shadow:inset 0 1px 1px rgba(0,0,0,.12)}.yprb i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--c3),var(--up));transition:width .5s}
 .chip.cur::after{content:"";position:absolute;top:4px;right:4px;width:5px;height:5px;border-radius:3px;background:var(--up)}
 
 /* charts */
@@ -387,7 +391,7 @@ header{background:var(--glassF);-webkit-backdrop-filter:blur(24px) saturate(170%
  <div class="stx" id="st"><i></i><span>Conectando…</span></div>
  <div class="seg" id="sub" hidden></div>
  <div class="seg" id="tabs"><button data-tab="mes">Mes</button><button data-tab="anio">Año</button><button data-tab="flujo">Análisis</button><button data-tab="uva">Crédito</button><button data-tab="alq">Alquiler</button></div>
- <div class="chips" id="mch" hidden style="padding:10px 1px 0"></div>
+ <div class="chips" id="mch" hidden style="padding:10px 1px 0"></div><div id="ypr" hidden></div>
 </header>
 <main id="app"></main>
 </div>
@@ -665,7 +669,9 @@ function vGA(){const ys=Object.keys(S.y).filter(y=>yearStats(y).tot>0).sort();co
 
 function vMes(){
  const t=tot(mo),b=bal(mo),net=t.i-t.e,m=mepE();
- $('#mch').innerHTML=MES.map((x,i)=>`<button class="chip${i==mo?' on':''}${i==now.getMonth()&&yr==now.getFullYear()?' cur':''}" data-mo="${i}">${x}</button>`).join('');
+ {let dn=0,nn=0,full=0;const pc=MES.map((_,i)=>{const T=tot(i);dn+=T.n-T.pend;nn+=T.n;const v=T.n?(T.n-T.pend)/T.n:0;if(T.n&&!T.pend)full++;return v});
+ $('#mch').innerHTML=MES.map((x,i)=>{const v=pc[i],c=v>=1;return `<button class="chip${i==mo?' on':''}${i==now.getMonth()&&yr==now.getFullYear()?' cur':''}${c?' done':''}" style="--p:${Math.round(v*100)}%" data-mo="${i}" aria-label="${MESL[i]}: ${Math.round(v*100)}% completo">${c?'<svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}${x}</button>`}).join('');
+ const yp=nn?dn/nn*100:0,yb=$('#ypr');if(yb)yb.innerHTML=`<div class="yprl"><span>${yr} · <b>${Math.round(yp)}%</b> completado</span><span>${full} de 12 meses cerrados</span></div><div class="yprb" role="progressbar" aria-valuenow="${Math.round(yp)}" aria-valuemin="0" aria-valuemax="100" aria-label="Año completado"><i style="width:${yp}%"></i></div>`}
  let h='';
  h+=`<div class="hero"><div class="k" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Resto del mes · ${MESL[mo]}</span><span class="pill ${t.pend?'wr':'up'}">${t.pend?t.pend+' pendiente'+(t.pend>1?'s':''):'Al día'}</span></div><div class="big ${b.real<0?'neg':''}">${money(b.real)}</div><div class="s">≈ ${usd(b.real/m)} · acumulado de lo pagado y cobrado desde enero</div></div>`;
  h+=`<div class="grid g2" style="margin-top:12px">
@@ -1285,7 +1291,7 @@ function stRender(){const e=$('#st');if(!e)return;const mm={db:['ok','Sincroniza
 function drawEye(){const b=$('#hidev');if(!b)return;b.setAttribute('aria-pressed',HIDE);b.classList.toggle('on',HIDE);b.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>${HIDE?'<path d="M4 4l16 16"/>':''}</svg>`}
 function render(){drawEye();if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
  $('#eb').textContent=TT[sec][0];$('#ht').textContent=TT[sec][1];stRender();
- const g=sec=='g';$('#yrw').hidden=!g;$('#tabs').hidden=!g;$('#mch').hidden=true;
+ const g=sec=='g';$('#yrw').hidden=!g;$('#tabs').hidden=!g;$('#mch').hidden=$('#ypr').hidden=true;
  const gr=grpOf(sec);document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.grp==gr));
  {const sb=$('#sub'),L=GRP[gr];sb.hidden=L.length<2||!S||!SESSION;sb.innerHTML=L.length<2?'':L.map(s=>`<button data-sec="${s}" class="${s==sec?'on':''}">${SUBL[s]}</button>`).join('')}
  $('#tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.tab==tab));
@@ -1298,7 +1304,7 @@ function render(){drawEye();if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
  if(!S.y[yr])ensure(yr);
  $('#py').disabled=!S.y[yr-1];
  app.innerHTML=g?(tab=='mes'?vMes():tab=='anio'?vAnio():tab=='uva'?vLoan():tab=='alq'?vRent():vGA()):sec=='i'?vInv():sec=='a'?vAna():sec=='c'?vCash():sec=='r'?vRsu():sec=='m'?vMon():sec=='d'?vDol():vEst();
- $('#mch').hidden=!(g&&tab=='mes'&&S&&SESSION);
+ $('#mch').hidden=$('#ypr').hidden=!(g&&tab=='mes'&&S&&SESSION);
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'});
 }
 document.addEventListener('click',e=>{
@@ -1370,7 +1376,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261121173327';
+const BUILD='20261121173822';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
