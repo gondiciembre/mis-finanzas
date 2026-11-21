@@ -341,7 +341,7 @@ button.fm:hover{background:var(--panel2)}
  </div>
  <div class="stx" id="st"><i></i><span>Conectando…</span></div>
  <div class="seg" id="sub" hidden></div>
- <div class="seg" id="tabs"><button data-tab="mes">Mes</button><button data-tab="anio">Año</button><button data-tab="flujo">Análisis</button><button data-tab="uva">Crédito UVA</button></div>
+ <div class="seg" id="tabs"><button data-tab="mes">Mes</button><button data-tab="anio">Año</button><button data-tab="flujo">Análisis</button><button data-tab="uva">Crédito</button><button data-tab="alq">Alquiler</button></div>
  <div class="chips" id="mch" hidden style="padding:10px 1px 0"></div>
 </header>
 <main id="app"></main>
@@ -445,14 +445,30 @@ function loanLoop(){clearInterval(loanTimer);loanTimer=setInterval(async()=>{if(
  if(JSON.stringify([DOL&&DOL.t&&DOL.t.bolsa,DOL&&DOL.t&&DOL.t.blue,LD&&LD.uva])!=before)render()},60000)}
 /* cuota del hipotecario calculada con la UVA en vivo (meses no pagados desde autoFrom) */
 const f2u=n=>n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
-function loanAuto(){if(!S||!S.y||!LD||!LD.uva)return false;const L=loan();if(L.auto===false)return false;const from=L.autoFrom||'2027-01',name=L.costs[0];if(!name)return false;
- const r=L.tna/1200,c=L.uva0*r/(1-Math.pow(1+r,-L.n)),q=Math.round(c*LD.uva),d0=new Date(L.first+'T12:00:00'),last=new Date(d0);last.setMonth(d0.getMonth()+L.n-1);
- const lastK=last.getFullYear()+'-'+String(last.getMonth()+1).padStart(2,'0'),firstK=L.first.slice(0,7);let ch=false;
- Object.keys(S.y).forEach(y=>{if(+y<+from.slice(0,4))return;let x=S.y[y].find(z=>z.n==name);
-  if(!x){const tpl=Object.values(S.y).map(R=>R.find(z=>z.n==name)).find(Boolean);if(!tpl)return;x={s:tpl.s,n:name,a:Array(12).fill(0),p:Array(12).fill(false)};if(tpl.c)x.c=tpl.c;S.y[y].push(x);ch=true}
-  for(let m=0;m<12;m++){const k=y+'-'+String(m+1).padStart(2,'0');if(k<from||x.p[m])continue;const v=k<firstK||k>lastK?0:q;if((x.a[m]||0)!=v){x.a[m]=v;ch=true}}
-  x.uva=1});
- if(ch)save();return ch}
+/* ---------- proyección: inflación estimada, contratos de alquiler ---------- */
+const ymK=(y,m)=>y+'-'+String(m+1).padStart(2,'0');
+const mAdd=(k,n)=>{const y=+k.slice(0,4),m=+k.slice(5,7)-1+n;return ymK(y+Math.floor(m/12),((m%12)+12)%12)};
+const mDiff=(a,b)=>(+b.slice(0,4)-+a.slice(0,4))*12+(+b.slice(5,7)-+a.slice(5,7));
+const mLab2=(k,i)=>i==0||k.slice(5,7)=='01'?MES[+k.slice(5,7)-1]+" '"+k.slice(2,4):MES[+k.slice(5,7)-1];
+const mLab=k=>MES[+k.slice(5,7)-1]+" '"+k.slice(2,4),mFull=k=>MESL[+k.slice(5,7)-1]+' '+k.slice(0,4);
+const NOWK=TODAY.slice(0,7);
+const infl=()=>(S&&S.infl!=null?S.infl:2)/100;
+const grow=k=>Math.pow(1+infl(),Math.max(0,mDiff(NOWK,k)));
+const pcs=n=>String(Math.round(n*10)/10).replace('.',',')+'%';
+function rentAt(C,k){if(k<C.start||(C.end&&k>C.end))return 0;const ev=C.every||3;let b=C.amt,b0=C.start;if(C.cur&&C.curF&&C.curF<=k&&C.curF>=C.start){b=C.cur;b0=C.curF}
+ return b*Math.pow(1+infl(),ev*Math.floor(mDiff(b0,k)/ev))}
+const contractFor=(name,k)=>(S.rents||[]).find(C=>C.name==name&&k>=C.start&&(!C.end||k<=C.end));
+function rowIn(y,name,tplDef){let x=S.y[y].find(z=>z.n==name);if(x)return[x,false];const tpl=Object.values(S.y).map(R=>R.find(z=>z.n==name)).find(Boolean)||tplDef;if(!tpl)return[null,false];
+ x={s:tpl.s,n:name,a:Array(12).fill(0),p:Array(12).fill(false)};if(tpl.c)x.c=tpl.c;S.y[y].push(x);return[x,true]}
+function rentAuto(){let ch=false;(S.rents||[]).forEach(C=>{if(!C.name||!C.start||!C.amt)return;Object.keys(S.y).forEach(y=>{for(let m=0;m<12;m++){const k=ymK(+y,m);if(k<NOWK||k<C.start||(C.end&&k>C.end))continue;
+  const [x,nw]=rowIn(y,C.name,{s:'in',c:'ren'});if(!x)return;if(nw)ch=true;x.alq=1;if(x.p[m])continue;const v=Math.round(rentAt(C,k));if((x.a[m]||0)!=v){x.a[m]=v;ch=true}}})});return ch}
+function loanAutoQ(){if(!LD||!LD.uva)return false;const L=loan();if(L.auto===false)return false;const from=L.autoFrom||'2027-01',name=L.costs[0];if(!name)return false;
+ const r=L.tna/1200,c=L.uva0*r/(1-Math.pow(1+r,-L.n)),d0=new Date(L.first+'T12:00:00'),last=new Date(d0);last.setMonth(d0.getMonth()+L.n-1);
+ const lastK=ymK(last.getFullYear(),last.getMonth()),firstK=L.first.slice(0,7);let ch=false;
+ Object.keys(S.y).forEach(y=>{if(+y<+from.slice(0,4))return;const [x,nw]=rowIn(y,name);if(!x)return;if(nw)ch=true;
+  for(let m=0;m<12;m++){const k=ymK(+y,m);if(k<from||x.p[m])continue;const v=k<firstK||k>lastK?0:Math.round(c*LD.uva*grow(k));if((x.a[m]||0)!=v){x.a[m]=v;ch=true}}
+  x.uva=1});return ch}
+function loanAuto(){if(!S||!S.y)return false;let ch=false;try{ch=rentAuto()}catch(e){}try{ch=loanAutoQ()||ch}catch(e){}if(ch)save();return ch}
 function loanMath(L,uva){const r=L.tna/1200,n=L.n,P=L.uva0,c=P*r/(1-Math.pow(1+r,-n));
  let k=0;const d0=new Date(L.first+'T12:00:00');for(let i=0;i<n;i++){const d=new Date(d0);d.setMonth(d0.getMonth()+i);if(d.toISOString().slice(0,10)<=TODAY)k++;else break}
  const g=Math.pow(1+r,k),bal=P*g-c*(g-1)/r,intRest=c*(n-k)-bal;
@@ -463,24 +479,30 @@ function vLoan(){const L=loan();loanFetch(false);if(!loanTimer)loanLoop();if((!D
  const val=(y,m,n)=>{const x=(S.y[y]||[]).find(z=>z.n==n);return x&&x.a[m]||0};
  const lastOf=n=>{let past=0,fut=0;Object.keys(S.y).sort().forEach(y=>{for(let m=0;m<12;m++){const v=val(y,m,n);if(!v)continue;if(y+'-'+String(m+1).padStart(2,'0')<=TODAY.slice(0,7))past=v;else if(!fut)fut=v}});return past||fut};
  const lastR=lastOf(L.rent),lastI=L.costs[1]?lastOf(L.costs[1]):0;
- const s0=L.first>TODAY?L.first:TODAY;let y0=+s0.slice(0,4),m0=+s0.slice(5,7)-1;const P=[];
- for(let i=0;i<12;i++){const y=y0+Math.floor((m0+i)/12),m=(m0+i)%12,r=val(y,m,L.rent),c=L.costs.reduce((a,n)=>a+val(y,m,n),0),cu=val(y,m,L.costs[0]),se=val(y,m,L.costs[1]||'');
-  P.push({lab:MES[m]+(m==0||i==0?" '"+String(y).slice(2):''),full:MESL[m]+' '+y,r:r||lastR,re:!r,c:(cu||M.cA)+(se||lastI),ce:!cu})}
+ const s0=(L.first>TODAY?L.first:TODAY).slice(0,7),HZ=S.lh||24,P=[],CON=(S.rents||[]).filter(C=>C.name==L.rent);
+ const paid=(k,n)=>{const x=(S.y[k.slice(0,4)]||[]).find(z=>z.n==n),m=+k.slice(5,7)-1;return x&&x.p[m]&&x.a[m]?x.a[m]:0};
+ for(let i=0;i<HZ;i++){const k=mAdd(s0,i),C=contractFor(L.rent,k),rp=paid(k,L.rent),cp_=paid(k,L.costs[0]),ip=L.costs[1]?paid(k,L.costs[1]):0;
+  const r=rp||(C?rentAt(C,k):CON.length?0:(val(+k.slice(0,4),+k.slice(5,7)-1,L.rent)||lastR)),cu=cp_||M.c*uva*grow(k),se=ip||lastI*grow(k);
+  P.push({k,lab:mLab(k),full:mFull(k),r,re:!rp,cu,se,c:cu+se,ce:!cp_,C})}
  const rent=P.map(p=>p.r),cost=P.map(p=>p.c),rT=rent.reduce((a,b)=>a+b,0),cT=cost.reduce((a,b)=>a+b,0);
- const rentM=P[0].r,ins=lastI,cuotaHoy=M.cA+ins,cov=cuotaHoy?rentM/cuotaHoy*100:0,dif=rentM-cuotaHoy;
- let h=`<div class="hrow2" style="margin-top:0;margin-bottom:12px"><span class="pill ${LD?'up':'nt'}">${LD?'UVA '+f2(LD.uva)+' · '+fds(LD.uvaF):'Cargando UVA…'}</span><button class="btn" data-loanref="1">↻ Actualizar</button><button class="btn" data-loancfg="1">Datos del crédito</button></div>`;
+ const rentM=P[0].r,ins=P[0].se,cuotaHoy=M.cA+lastI,cov=cuotaHoy?(rentM||lastR)/cuotaHoy*100:0,dif=(rentM||lastR)-cuotaHoy;
+ let h=`<div class="hrow2" style="margin-top:0;margin-bottom:12px"><span class="pill ${LD?'up':'nt'}">${LD?'UVA '+f2(LD.uva)+' · '+fds(LD.uvaF):'Cargando UVA…'}</span><button class="btn" data-loanref="1">↻ Actualizar</button><button class="btn" data-loancfg="1">Datos del crédito</button><button class="btn" data-tab="alq">Contratos de alquiler</button></div>`;
  h+=`<div class="hero"><div class="k">Con la UVA de hoy · ${esc(L.name)}</div><div class="big ${dif<0?'neg':'pos'}">${dif>=0?'+':'−'}${money(Math.abs(dif)).replace('-','')}</div><div class="s">te ${dif>=0?'sobran':'faltan'} por mes · el alquiler cubre <b style="color:var(--fg)">${pc0(cov)}</b></div>
-  <div class="stat" style="margin-top:14px"><span>${esc(L.rent)}</span><b>${money(rentM)}</b></div>
+  <div class="stat" style="margin-top:14px"><span>${esc(L.rent)}</span><b>${money(rentM||lastR)}</b></div>
   <div class="stat"><span>Cuota ${f2(M.c)} UVA × ${f2(uva)}</span><b>${money(M.cA)}</b></div>
-  <div class="stat"><span>Seguro</span><b>${money(ins)}</b></div></div>`;
+  <div class="stat"><span>Seguro</span><b>${money(lastI)}</b></div></div>`;
+ h+=inflCard(true);
+ const dT=rT-cT,minCov=Math.min(...P.map(p=>p.c?p.r/p.c*100:999));
  h+=`<div class="grid g3" style="margin-top:12px">
-  <div class="card kpi"><div class="k">Cobertura 12 meses</div><div class="v">${cT?pc0(rT/cT*100):'—'}</div><div class="s">alquiler ÷ cuota + seguro</div></div>
-  <div class="card kpi"><div class="k">${rT-cT>=0?'Sobrante':'Faltante'} 12 meses</div><div class="v ${rT-cT<0?'neg':'pos'}">${ms(rT-cT)}</div><div class="s">${MES[+s0.slice(5,7)-1]} '${s0.slice(2,4)} a ${P[11].lab.split(' ')[0]} · ${money(rT-cT)}</div></div>
-  <div class="card kpi"><div class="k">Cuota + seguro 12 meses</div><div class="v">${ms(cT)}</div><div class="s">alquiler ${ms(rT)}</div></div></div>`;
- const opR=P.map(p=>p.re?.4:1),opC=P.map(p=>p.ce?.4:1);
- h+=`<div class="chart" style="margin-top:12px"><h3>Alquiler contra cuota + seguro</h3><div class="cs">próximos 12 meses · ARS · tenue = estimado</div>${barChart({cats:P.map(p=>p.lab),series:[{n:'Alquiler',col:'var(--c3)',vals:rent,opi:opR},{n:'Cuota + seguro',col:'var(--c2)',vals:cost,opi:opC}],fy:short,H:170,aria:'Alquiler contra cuota y seguro',
-  tip:i=>({t:P[i].full,r:[['var(--c3)','Alquiler'+(P[i].re?' (est.)':''),money(rent[i])],['var(--c2)','Cuota + seguro'+(P[i].ce?' (est.)':''),money(cost[i])],['',rent[i]-cost[i]>=0?'Sobra':'Falta',money(Math.abs(rent[i]-cost[i]))],['','Cobertura',cost[i]?pc0(rent[i]/cost[i]*100):'—']]})})}${legend([['var(--c3)','Alquiler'],['var(--c2)','Cuota + seguro']])}
-  <p class="note">Los meses que no cargaste en Gastos se estiman con el último alquiler y la cuota a la UVA de hoy. La cuota sube con la UVA; si el alquiler se ajusta por un índice parecido, la cobertura se mantiene.</p></div>`;
+  <div class="card kpi"><div class="k">Cobertura ${HZ} meses</div><div class="v">${cT?pc0(rT/cT*100):'—'}</div><div class="s">peor mes ${minCov<999?pc0(minCov):'—'}</div></div>
+  <div class="card kpi"><div class="k">${dT>=0?'Sobrante':'Faltante'} ${HZ} meses</div><div class="v ${dT<0?'neg':'pos'}">${ms(dT)}</div><div class="s">${P[0].lab} a ${P[HZ-1].lab} · ${money(dT)}</div></div>
+  <div class="card kpi"><div class="k">Cuota + seguro ${HZ} meses</div><div class="v">${ms(cT)}</div><div class="s">alquiler ${ms(rT)}</div></div></div>`;
+ const opR=P.map(p=>p.re?.45:1),opC=P.map(p=>p.ce?.45:1);
+ h+=`<div class="chart" style="margin-top:12px"><h3>Alquiler contra cuota + seguro</h3><div class="cs">${HZ} meses · ARS nominales · inflación ${pcs(infl()*100)} mensual · tenue = proyectado</div>${barChart({cats:P.map((p,i)=>mLab2(p.k,i)),series:[{n:'Alquiler',col:'var(--c3)',vals:rent,opi:opR},{n:'Cuota + seguro',col:'var(--c2)',vals:cost,opi:opC}],fy:short,H:180,minW:HZ>12?30:0,aria:'Alquiler contra cuota y seguro',
+  tip:i=>({t:P[i].full,r:[['var(--c3)','Alquiler'+(P[i].re?' (proy.)':''),money(rent[i])],['var(--c2)','Cuota'+(P[i].ce?' (proy.)':''),money(P[i].cu)],['','Seguro',money(P[i].se)],['',rent[i]-cost[i]>=0?'Sobra':'Falta',money(Math.abs(rent[i]-cost[i]))],['','Cobertura',cost[i]?pc0(rent[i]/cost[i]*100):'—']]})})}${legend([['var(--c3)','Alquiler'],['var(--c2)','Cuota + seguro']])}</div>`;
+ const cv=P.map(p=>p.c?p.r/p.c*100:0);
+ h+=`<div class="chart" style="margin-top:12px"><h3>Cobertura mes a mes</h3><div class="cs">alquiler ÷ (cuota + seguro) · sube con cada ajuste del alquiler y baja con la UVA</div>${lineChart({vals:cv,col:'var(--c3)',H:150,fy:q=>Math.round(q)+'%',xl:[[0,P[0].lab],[Math.floor((HZ-1)/2),P[Math.floor((HZ-1)/2)].lab],[HZ-1,P[HZ-1].lab]],aria:'Cobertura mensual',tips:i=>({t:P[i].full,r:[['var(--c3)','Cobertura',pc0(cv[i])],['','Sobra / falta',money(rent[i]-cost[i])]]})})}
+  <p class="note">${CON.length?`El alquiler sale de tus contratos: se ajusta cada ${CON[0].every||3} meses por la inflación estimada.`:'No cargaste el contrato de este alquiler: se usa el último monto de Gastos sin ajustes. Cargalo en <b>Contratos de alquiler</b>.'} La cuota es ${f2(M.c)} UVA (UVA + ${String(L.tna).replace('.',',')}%) y la UVA sube con la misma inflación. El seguro sube con la inflación. Los meses ya marcados como pagados o cobrados usan el monto real.</p></div>`;
  // saldo y cancelación
  const blueC=(DOL&&DOL.t&&DOL.t.blue&&DOL.t.blue.c)||(LD&&LD.blueC)||0,feeEnd=addY(L.f0,L.feeY||0),feeOn=(L.fee||0)>0&&TODAY<feeEnd,feeK=1+(feeOn?L.fee/100:0),payA=M.balA*feeK;
  const tm=DOL&&DOL.t&&DOL.t.bolsa&&DOL.t.bolsa.f?new Date(DOL.t.bolsa.f).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false}):'';
@@ -522,6 +544,40 @@ function loanCfg(){const L=loan(),rows=(S.y[yr]||[]).map(x=>x.n);const opt=(v,in
  <div class="btns"><button data-close="1">Cancelar</button><button class="pr" data-loansave="1">Guardar</button></div></div></div>`}
 function loanSave(){const L=loan(),v=id=>$(id).value;L.name=v('#ln0').trim()||L.name;L.uva0=parse(v('#ln1'))||L.uva0;L.tna=parse(v('#ln2'))||L.tna;L.n=Math.round(parse(v('#ln3')))||L.n;L.fee=parse(v('#ln8'));L.auto=$('#lnA').checked;if(/^\d{4}-\d{2}$/.test(v('#lnF')))L.autoFrom=v('#lnF');L.feeY=Math.round(parse(v('#ln9')));if(/^\d{4}-\d{2}-\d{2}$/.test(v('#ln4')))L.first=v('#ln4');L.rent=v('#ln5');L.costs=[v('#ln6'),v('#ln7')].filter(Boolean);closeSheet();loanAuto();save();render()}
 
+function inflCard(hz){const i=infl()*100,an=(Math.pow(1+infl(),12)-1)*100;
+ return `<div class="card" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><label for="infl" style="font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mut)">Inflación mensual estimada</label><b id="inflv" style="font:700 20px var(--mono)">${pcs(i)}</b></div>
+ <input type="range" id="infl" min="0" max="10" step="0.1" value="${i}" style="width:100%;margin:12px 0 4px;accent-color:var(--acc)" aria-describedby="infla"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span class="mutc" id="infla" style="font:500 12px var(--mono)">≈ ${pcs(an)} anual · escenario para cuota, UVA y alquileres</span>
+ ${hz?`<div class="seg" style="flex:none;width:170px">${[12,24,36].map(n=>`<button data-lh="${n}" class="${(S.lh||24)==n?'on':''}">${n} m</button>`).join('')}</div>`:''}</div></div>`}
+document.addEventListener('input',e=>{if(e.target&&e.target.id=='infl'){const v=+e.target.value;$('#inflv').textContent=pcs(v);$('#infla').firstChild&&($('#infla').textContent='≈ '+pcs((Math.pow(1+v/100,12)-1)*100)+' anual · escenario para cuota, UVA y alquileres')}});
+document.addEventListener('change',e=>{if(e.target&&e.target.id=='infl'&&S){S.infl=+e.target.value;loanAuto();save();const y=scrollY;render();scrollTo(0,y)}});
+function vRent(){const R=S.rents||[];let h=inflCard(false);
+ h+=`<div class="sec"><div class="sh"><h2>Contratos de alquiler</h2><span class="m">estiman el ingreso mensual en Gastos</span></div>`;
+ if(!R.length)h+=`<div class="card"><p class="note" style="margin-top:0">Cargá el inicio, el fin y el monto inicial de cada contrato. Desde el mes actual, la fila de ese alquiler en Gastos se completa sola con el monto ajustado cada 3 meses por la inflación estimada.</p></div>`;
+ R.forEach((C,i)=>{const cur=rentAt(C,NOWK)||0,ev=C.every||3,base=C.cur&&C.curF&&C.curF<=NOWK?C.curF:C.start;let nx=null;
+  if(C.start<=NOWK){const j=mDiff(base,NOWK),k=mAdd(base,ev*(Math.floor(j/ev)+1));if(!C.end||k<=C.end)nx=k}else nx=mAdd(C.start,ev);if(nx&&C.end&&nx>C.end)nx=null;
+  const left=C.end?Math.max(0,mDiff(C.start>NOWK?C.start:NOWK,C.end)+1):0,ks=[];if(C.end){for(let k=C.start;k<=C.end;k=mAdd(k,1))ks.push(k)}
+  const st=C.start>NOWK?['nt','Empieza '+mLab(C.start)]:C.end&&C.end<NOWK?['nt','Terminado']:['up','Vigente'];
+  h+=`<div class="card" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:15px">${esc(C.name)}</b><span class="pill ${st[0]}">${st[1]}</span></div>
+   <div class="mutc" style="font:500 12px var(--mono);margin-top:4px">${mFull(C.start)} → ${C.end?mFull(C.end):'sin fin'} · ajusta cada ${ev} meses</div>
+   <div class="stat" style="margin-top:10px"><span>Monto inicial</span><b>${money(C.amt)}</b></div><div class="stat"><span>Hoy (estimado)</span><b>${cur?money(cur):'—'}</b></div><div class="stat"><span>${C.start>NOWK?'Primer ajuste':'Próximo ajuste'}${nx?' · '+mLab(nx):''}</span><b>${nx?money(rentAt(C,nx))+' <span class="pos">+'+pc0((Math.pow(1+infl(),ev)-1)*100)+'</span>':'—'}</b></div>
+   ${ks.length>1?barChart({cats:ks.map(mLab2),series:[{n:'Alquiler',col:'var(--c3)',vals:ks.map(k=>rentAt(C,k)),opi:ks.map(k=>k<NOWK?.45:1)}],fy:short,H:140,minW:ks.length>12?30:0,aria:'Alquiler proyectado',tip:j=>({t:mFull(ks[j]),r:[['var(--c3)','Alquiler',money(rentAt(C,ks[j]))],['','vs. inicial','+'+pc0((rentAt(C,ks[j])/C.amt-1)*100)]]})}):''}
+   ${C.end?`<div class="stat"><span>Quedan ${left} meses · cobro total estimado</span><b>${ms(ks.filter(k=>k>=NOWK).reduce((a,k)=>a+rentAt(C,k),0))}</b></div>`:''}
+   <div class="hrow2"><button class="btn" data-rented="${i}">Editar</button></div></div>`});
+ h+=`<button class="add" data-rented="-1" style="margin-top:12px">+ Agregar contrato</button>
+ <p class="note">Los meses ya cobrados (en verde) en Gastos no se tocan. Si un ajuste real difiere, cargá el monto vigente y desde cuándo en el contrato: la proyección sigue desde ahí.</p></div>`;
+ return h}
+function rentEdit(i){const C=i>=0?S.rents[i]:{name:'',start:NOWK,end:mAdd(NOWK,23),amt:0,every:3},rows=[...new Set(Object.values(S.y).flat().filter(x=>x.s=='in').map(x=>x.n))];
+ mfn=null;$('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" style="max-height:88vh;overflow:auto"><h2>${i>=0?'Editar contrato':'Nuevo contrato'}</h2><div class="m">El monto se ajusta por la inflación estimada</div>
+ <label for="rc0">Ingreso en Gastos</label><input class="inp" type="text" id="rc0" list="rcl" value="${esc(C.name)}" placeholder="Alquiler Depto…"><datalist id="rcl">${rows.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+ <div class="grid g2" style="gap:10px"><div><label for="rc1">Inicio</label><input class="inp" type="month" id="rc1" value="${C.start}"></div><div><label for="rc2">Fin</label><input class="inp" type="month" id="rc2" value="${C.end||''}"></div>
+ <div><label for="rc3">Monto inicial</label><input class="inp" type="text" inputmode="decimal" id="rc3" value="${C.amt||''}"></div><div><label for="rc4">Ajusta cada (meses)</label><input class="inp" type="text" inputmode="numeric" id="rc4" value="${C.every||3}"></div>
+ <div><label for="rc5">Monto vigente (opcional)</label><input class="inp" type="text" inputmode="decimal" id="rc5" value="${C.cur||''}"></div><div><label for="rc6">Vigente desde</label><input class="inp" type="month" id="rc6" value="${C.curF||''}"></div></div>
+ <div class="btns">${i>=0?`<button data-rentdel="${i}" style="color:var(--dn)">Borrar</button>`:''}<button data-close="1">Cancelar</button><button class="pr" data-rentsave="${i}">Guardar</button></div></div></div>`}
+function rentSave(i){const v=id=>$(id).value.trim(),C={name:v('#rc0'),start:v('#rc1'),end:v('#rc2'),amt:parse(v('#rc3')),every:Math.max(1,Math.round(parse(v('#rc4')))||3)};
+ const cur=parse(v('#rc5')),cf=v('#rc6');if(cur&&/^\d{4}-\d{2}$/.test(cf)){C.cur=cur;C.curF=cf}
+ if(!C.name||!/^\d{4}-\d{2}$/.test(C.start)||!C.amt){toast('Completá el ingreso, el inicio y el monto inicial.');return}if(C.end&&C.end<C.start){toast('El fin tiene que ser posterior al inicio.');return}
+ S.rents=S.rents||[];if(i>=0)S.rents[i]=C;else S.rents.push(C);closeSheet();loanAuto();save();render();toast('Contrato guardado · Gastos actualizado')}
+function rentDel(i){if(rentDel.arm!==i){rentDel.arm=i;toast('Tocá Borrar de nuevo para confirmar');return}rentDel.arm=null;S.rents.splice(i,1);closeSheet();save();render()}
 function vGA(){const ys=Object.keys(S.y).filter(y=>yearStats(y).tot>0).sort();const Y=yr,st=yearStats(Y),pv=S.y[Y-1]?yearStats(Y-1):null,P=pv&&pv.tot?pv:null;
  const L=cats(),gC=L.filter(c=>c.t=='g'),iC=L.filter(c=>c.t=='i'||c.t=='u'),rate=st.incG?(st.incG-st.cons)/st.incG*100:0,mAvg=st.cons/12;
  let h=`<div class="hrow2" style="margin-top:0;margin-bottom:12px"><span class="pill nt">${Y} · ${pc0(st.tot?st.paid/st.tot*100:0)} ya pagado o cobrado</span><button class="btn" data-cats="1">Editar categorías</button></div>`;
@@ -574,7 +630,7 @@ function vMes(){
   if(!rs.length&&k=='ot')continue;
   h+=`<div class="sec"><div class="sh"><h2><span class="tag" style="--ac:${SAC[k]}">${k.toUpperCase()}</span>${SEC[k]}</h2><span class="m">${money(dn)} / ${money(sum)}</span></div><div class="list">`;
   for(const [x,i] of rs){const a=x.a[mo]||0,d=x.p[mo],lab=k=='in'?['Cobrado','Estimado']:['Pagado','Estimado'];
-   h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${d?lab[0]:x.uva&&!d&&x.a[mo]&&LD?'Estimado · '+f2u(LD.uva)+' UVA en vivo':lab[1]}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
+   h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${d?lab[0]:!d&&x.a[mo]&&x.uva&&LD?'Estimado · UVA en vivo + inflación':!d&&x.a[mo]&&x.alq&&contractFor(x.n,ymK(yr,mo))?'Estimado · contrato':lab[1]}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
   h+=`<button class="add" data-add="${k}">+ Agregar</button></div></div>`}
  return h}
 function vAnio(){
@@ -1193,12 +1249,12 @@ function render(){if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
  $('#yl').textContent=yr;
  if(!S.y[yr])ensure(yr);
  $('#py').disabled=!S.y[yr-1];
- app.innerHTML=g?(tab=='mes'?vMes():tab=='anio'?vAnio():tab=='uva'?vLoan():vGA()):sec=='i'?vInv():sec=='a'?vAna():sec=='c'?vCash():sec=='r'?vRsu():sec=='m'?vMon():sec=='d'?vDol():vEst();
+ app.innerHTML=g?(tab=='mes'?vMes():tab=='anio'?vAnio():tab=='uva'?vLoan():tab=='alq'?vRent():vGA()):sec=='i'?vInv():sec=='a'?vAna():sec=='c'?vCash():sec=='r'?vRsu():sec=='m'?vMon():sec=='d'?vDol():vEst();
  $('#mch').hidden=!(g&&tab=='mes'&&S&&SESSION);
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'});
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate]');if(!t)return;{const q=t.dataset;if(!S&&!(q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel]');if(!t)return;{const q=t.dataset;if(!S&&!(q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -1227,6 +1283,10 @@ document.addEventListener('click',e=>{
  if(d.loanref){dolFetch().then(()=>loanFetch(true));toast('Actualizando UVA y MEP…');return}
  if(d.loancfg)return loanCfg();
  if(d.lrate){LRATE=d.lrate;return render()}
+ if(d.lh){S.lh=+d.lh;save();return render()}
+ if(d.rented!==undefined)return rentEdit(+d.rented);
+ if(d.rentsave!==undefined)return rentSave(+d.rentsave);
+ if(d.rentdel!==undefined)return rentDel(+d.rentdel);
  if(d.loansave)return loanSave();
  if(d.catsave)return saveCats();
  if(d.catdel)return delCat(d.catdel,t);
@@ -1261,7 +1321,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261121151908';
+const BUILD='20261121153222';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
