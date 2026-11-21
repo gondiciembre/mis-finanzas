@@ -357,7 +357,9 @@ header{background:var(--glassF);-webkit-backdrop-filter:blur(24px) saturate(170%
  #nav button.on{background:var(--acc-s);box-shadow:inset 0 1px 0 var(--glt)}
  .toast{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 }
-@media(min-width:900px){#nav{border-right:1px solid var(--gl)}}
+@media(min-width:900px){#nav{inset:12px auto 12px max(12px,env(safe-area-inset-left,0px));border:1px solid var(--gl);border-radius:26px}
+ #nav button{border-radius:14px}#nav button.on{box-shadow:inset 0 1px 0 var(--glt)}
+ .wrap{padding-left:calc(232px + 12px + 28px)}}
 .sheet{background:var(--glassF);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);border:1px solid var(--gl);box-shadow:inset 0 1px 0 var(--glt),0 -10px 40px rgba(0,0,0,.3);border-radius:26px 26px 0 0}
 .ov{background:rgba(3,6,14,.35)}
 .tip,.toast{background:var(--glassF);-webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%);border:1px solid var(--gl);box-shadow:inset 0 1px 0 var(--glt),0 12px 30px rgba(0,0,0,.3)}
@@ -1376,7 +1378,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261121173822';
+const BUILD='20261121174000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
@@ -1404,10 +1406,18 @@ boot();
   if(tg.closest('.hsc,#mch,input,select,textarea,.ov,#lock,#nav,.seg,.sheet'))return;const x=e.touches[0].clientX;if(x<18||x>innerWidth-18)return;
   sx=x;sy=e.touches[0].clientY;st=Date.now();ok=true},{passive:true});
  document.addEventListener('touchend',e=>{if(!ok)return;ok=false;const c=e.changedTouches[0],dx=c.clientX-sx,dy=c.clientY-sy;
-  if(Date.now()-st>700||Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.8)return;const B=segBtns();if(!B)return;
-  const i=B.findIndex(b=>b.classList.contains('on'));const j=i+(dx<0?1:-1);if(i<0||j<0||j>=B.length)return;
-  hideTip();B[j].click();const a=$('#app');a.classList.remove('sw-l','sw-r');void a.offsetWidth;a.classList.add(dx<0?'sw-l':'sw-r');
-  B[j].scrollIntoView&&B[j].scrollIntoView({block:'nearest',inline:'nearest'})},{passive:true});
+  if(Date.now()-st>700||Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.8)return;go(dx<0?1:-1)},{passive:true});
+ function go(dir){const B=segBtns();if(!B)return false;const i=B.findIndex(b=>b.classList.contains('on'));const j=i+dir;if(i<0||j<0||j>=B.length)return false;
+  hideTip();B[j].click();const a=$('#app');a.classList.remove('sw-l','sw-r');void a.offsetWidth;a.classList.add(dir>0?'sw-l':'sw-r');return true}
+ /* trackpad: deslizar con dos dedos hacia los costados */
+ let acc=0,lockT=0,rst=null;
+ addEventListener('wheel',e=>{if(LOCKED||!S||$('#ov').innerHTML)return;if(Math.abs(e.deltaX)<Math.abs(e.deltaY)*1.5)return;
+  let el=e.target;while(el&&el!==document.body){if(el.scrollWidth>el.clientWidth+2&&/(auto|scroll)/.test(getComputedStyle(el).overflowX))return;el=el.parentElement}
+  if(Date.now()<lockT)return;acc+=e.deltaX;clearTimeout(rst);rst=setTimeout(()=>acc=0,180);
+  if(Math.abs(acc)>110){const d=acc>0?1:-1;acc=0;lockT=Date.now()+700;go(d)}},{passive:true});
+ /* teclado: flechas izquierda / derecha */
+ document.addEventListener('keydown',e=>{if(e.key!='ArrowLeft'&&e.key!='ArrowRight'||e.metaKey||e.ctrlKey||e.altKey||LOCKED||!S||$('#ov').innerHTML)return;
+  const tg=e.target;if(tg.closest&&tg.closest('input,select,textarea,[contenteditable]'))return;if(go(e.key=='ArrowRight'?1:-1))e.preventDefault()});
  document.addEventListener('animationend',e=>{if(e.target.id=='app')e.target.classList.remove('sw-l','sw-r')});
 })();
 </script></body></html>
