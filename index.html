@@ -369,6 +369,7 @@ header{background:var(--glassF);-webkit-backdrop-filter:blur(24px) saturate(170%
 .sheet label.nck{display:flex;font:400 14px/1.35 var(--sans);letter-spacing:0;text-transform:none;color:var(--fg);margin:0}.nck{display:flex;gap:12px;align-items:flex-start;padding:10px 2px;border-bottom:1px solid var(--line);cursor:pointer}.nck input{margin-top:3px;width:18px;height:18px;accent-color:var(--acc);flex:none}.nck span{display:flex;flex-direction:column;gap:2px}.nck small{color:var(--mut);font-size:12.5px}
 .nsteps{padding-left:20px;display:flex;flex-direction:column;gap:12px;font-size:14px;line-height:1.5}.nsteps .btn{margin-top:8px}.nsteps code{font-family:var(--mono);background:var(--acc-s);padding:1px 5px;border-radius:5px}
 #acct.dot{position:relative}#acct.dot::after{content:"";position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:var(--dn);box-shadow:0 0 0 2px var(--bg)}
+.gk .kpi .v{font-size:22px}.gk .kpi{padding:12px}
 /* swipe */
 #app.sw-l{animation:swl .28s cubic-bezier(.2,.8,.2,1)}#app.sw-r{animation:swr .28s cubic-bezier(.2,.8,.2,1)}
 @keyframes swl{from{opacity:.2;transform:translateX(36px)}to{opacity:1;transform:none}}@keyframes swr{from{opacity:.2;transform:translateX(-36px)}to{opacity:1;transform:none}}
@@ -703,14 +704,34 @@ function vAnio(){
  h+='<tr class="tt"><td>Gastos</td>'+T.map(t=>`<td>${short(t.e)}</td>`).join('')+'</tr>';
  h+='<tr class="tt"><td>Resto</td>'+T.map(t=>`<td class="${t.i-t.e<0?'neg':'pos'}">${short(t.i-t.e)}</td>`).join('')+'</tr></table></div>';
  return h+'<div class="note">Verde: ya pagado o cobrado. Sin color: estimado. Tocá una celda para editarla.</div>'}
+let GSEL=(()=>{try{return localStorage.getItem('fin-gsel')||'*'}catch(e){return'*'}})();
+function gastoChart(){const rows=(S.y[yr]||[]).filter(x=>catOf(x).t=='g'&&x.a.some(v=>v>0));const L=cats().filter(c=>c.t=='g');
+ const byC={};rows.forEach(x=>{const c=catOf(x);(byC[c.id]=byC[c.id]||{c,rows:[]}).rows.push(x)});const grp=Object.values(byC).sort((a,b)=>b.rows.reduce((s,x)=>s+x.a.reduce((p,q)=>p+(q||0),0),0)-a.rows.reduce((s,x)=>s+x.a.reduce((p,q)=>p+(q||0),0),0));
+ if(GSEL!='*'&&!GSEL.startsWith('c:')&&!rows.some(x=>x.n==GSEL))GSEL='*';
+ const opts=`<option value="*"${GSEL=='*'?' selected':''}>Todos los gastos</option>`+grp.map(g=>`<optgroup label="${esc(g.c.n)}"><option value="c:${g.c.id}"${GSEL=='c:'+g.c.id?' selected':''}>${esc(g.c.n)} (toda la categoría)</option>${g.rows.slice().sort((a,b)=>a.n.localeCompare(b.n)).map(x=>`<option value="${esc(x.n)}"${GSEL==x.n?' selected':''}>${esc(x.n)}</option>`).join('')}</optgroup>`).join('');
+ const sel=GSEL=='*'?rows:GSEL.startsWith('c:')?rows.filter(x=>catOf(x).id==GSEL.slice(2)):rows.filter(x=>x.n==GSEL);
+ const lab=GSEL=='*'?'Todos los gastos':GSEL.startsWith('c:')?(byC[GSEL.slice(2)]||{c:{n:''}}).c.n:GSEL;
+ const paid=MES.map((_,m)=>sel.reduce((a,x)=>a+(x.p[m]?x.a[m]||0:0),0)),est=MES.map((_,m)=>sel.reduce((a,x)=>a+(x.p[m]?0:x.a[m]||0),0)),tt=paid.map((v,i)=>v+est[i]);
+ const tot=tt.reduce((a,b)=>a+b,0),nz=tt.map((v,i)=>[v,i]).filter(z=>z[0]>0),avg=nz.length?tot/nz.length:0,mx=nz.length?nz.reduce((a,b)=>b[0]>a[0]?b:a):null,mn=nz.length?nz.reduce((a,b)=>b[0]<a[0]?b:a):null;
+ const first=nz[0],last=nz[nz.length-1],evo=first&&last&&first[1]!=last[1]?(last[0]/first[0]-1)*100:null,pT=paid.reduce((a,b)=>a+b,0);
+ const one=sel.length==1,col=one?'var(--c2)':'var(--c2)';
+ const chart=barChart({cats:MES,stacked:true,series:[{n:'Pagado',col,vals:paid},{n:'Estimado',col,vals:est,op:.4}],fy:short,H:190,aria:'Pagos de '+lab+' por mes',top:i=>tt[i]?short(tt[i]):'',
+  tip:i=>{const it=sel.map(x=>[x.n,x.a[i]||0,x.p[i]]).filter(z=>z[1]>0).sort((a,b)=>b[1]-a[1]);const r=one?[]:it.slice(0,9).map(z=>[z[2]?'var(--c2)':'',z[0]+(z[2]?'':' (est.)'),money(z[1])]);if(!one&&it.length>9)r.push(['','+ '+(it.length-9)+' más',money(it.slice(9).reduce((a,z)=>a+z[1],0))]);
+   return{t:MESL[i]+' '+yr,r:[['var(--c2)','Pagado',money(paid[i])],['','Estimado',money(est[i])],...(i>0&&tt[i-1]&&tt[i]?[['','vs. mes anterior',(tt[i]>=tt[i-1]?'+':'')+pc0((tt[i]/tt[i-1]-1)*100)]]:[]),...r]}}});
+ return `<div class="chart" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap"><div style="min-width:0"><h3>Pagos por mes</h3><div class="cs">${yr} · ARS · tenue = estimado sin pagar</div></div>
+  <select class="inp" id="gsel" aria-label="Elegir gasto" style="width:auto;max-width:100%;min-width:0;margin:0;flex:1 1 220px">${opts}</select></div>${chart}${legend([['var(--c2)','Pagado'],['color-mix(in srgb,var(--c2) 40%,transparent)','Estimado']])}
+  <div class="grid g3 gk" style="margin-top:12px;gap:8px">
+   <div class="card kpi"><div class="k">Total ${yr}</div><div class="v">${ms(tot)}</div><div class="s">pagado ${ms(pT)}</div></div>
+   <div class="card kpi"><div class="k">Promedio mensual</div><div class="v">${ms(avg)}</div><div class="s">${nz.length} meses con pagos</div></div>
+   <div class="card kpi"><div class="k">Evolución</div><div class="v ${evo==null?'':evo>0?'neg':'pos'}">${evo==null?'—':(evo>=0?'+':'')+pc0(evo)}</div><div class="s">${first&&last?MES[first[1]]+' → '+MES[last[1]]:''}${mx?' · máx '+MES[mx[1]]+' · mín '+MES[mn[1]]:''}</div></div></div></div>`}
+document.addEventListener('change',e=>{if(e.target&&e.target.id=='gsel'){GSEL=e.target.value;try{localStorage.setItem('fin-gsel',GSEL)}catch(x){}const y=scrollY;render();scrollTo(0,y)}});
 function vFlujo(){
  const T=[...Array(12).keys()].map(m=>tot(m)),B=[...Array(12).keys()].map(m=>bal(m)),vals=B.map(b=>b.est),op=T.map(t=>t.pend==0&&t.n?1:.45);
  const bars=barChart({cats:MES,series:[{n:'Ingresos',col:'var(--c3)',vals:T.map(t=>t.i),opi:op},{n:'Gastos',col:'var(--c2)',vals:T.map(t=>t.e),opi:op}],fy:short,H:170,aria:'Ingresos y gastos por mes',
   tip:i=>({t:MESL[i]+' '+yr,r:[['var(--c3)','Ingresos',money(T[i].i)],['var(--c2)','Gastos',money(T[i].e)],['','Resto',money(T[i].i-T[i].e)]]})});
- const line=lineChart({vals,fy:short,col:'var(--c1)',zero:true,H:150,xl:[[0,'Ene'],[5,'Jun'],[11,'Dic']],aria:'Saldo acumulado proyectado',tips:i=>({t:MESL[i]+' '+yr,r:[['var(--c1)','Saldo proyectado',money(vals[i])]]})});
+ const line=gastoChart();
  let h=`<div class="chart"><h3>Ingresos y gastos por mes</h3><div class="cs">ARS · tenue = mes con pendientes</div>${bars}${legend([['var(--c3)','Ingresos'],['var(--c2)','Gastos']])}</div>`;
- h+=`<div class="chart" style="margin-top:12px"><h3>Saldo acumulado proyectado</h3><div class="cs">ARS</div>${line}
- <div class="leg" style="justify-content:space-between"><span>Saldo inicial: <button data-open="1" class="btn" style="margin-left:6px">${money(S.o[yr]||0)}</button></span><span>Fin de año: <b>${money(vals[11])}</b></span></div></div>`;
+ h+=line+`<div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span class="mutc" style="font-size:13px">Saldo inicial del año <button data-open="1" class="btn" style="margin-left:6px">${money(S.o[yr]||0)}</button></span><span style="font-size:13px">Fin de año proyectado <b class="mono">${money(vals[11])}</b></span></div>`;
  h+='<div class="sec"><div class="list">';
  T.forEach((t,m)=>{const st=t.n&&t.pend==0?['Cerrado','c']:t.pend<t.n?['En curso','p']:['Estimado','e'];
   h+=`<button class="fm" data-mo="${m}" data-go="mes"><div><div class="t">${MESL[m]}<span class="st ${st[1]}">${st[0]}</span></div><div class="s">+${short(t.i)} · −${short(t.e)}</div></div><div class="r"><div class="t ${t.i-t.e<0?'neg':'pos'}">${money(t.i-t.e)}</div><div class="s">Saldo ${money(B[m].est)}</div></div></button>`});
@@ -1460,7 +1481,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261121175107';
+const BUILD='20261121182545';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
