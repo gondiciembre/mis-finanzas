@@ -370,6 +370,19 @@ header{background:var(--glassF);-webkit-backdrop-filter:blur(24px) saturate(170%
 .nsteps{padding-left:20px;display:flex;flex-direction:column;gap:12px;font-size:14px;line-height:1.5}.nsteps .btn{margin-top:8px}.nsteps code{font-family:var(--mono);background:var(--acc-s);padding:1px 5px;border-radius:5px}
 #acct.dot{position:relative}#acct.dot::after{content:"";position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:var(--dn);box-shadow:0 0 0 2px var(--bg)}
 .gk .kpi .v{font-size:22px}.gk .kpi{padding:12px}
+.gcard{padding:18px}.ghd{display:flex;justify-content:space-between;gap:10px}
+.gpick{display:flex;align-items:center;gap:12px;width:100%;margin-top:14px;padding:12px 14px;border-radius:16px;background:var(--glass2);border:1px solid var(--gl);box-shadow:inset 0 1px 0 var(--glt);text-align:left;color:var(--fg)}
+.gpick>i{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 8%,transparent)}.gpick span{display:flex;flex-direction:column;min-width:0;flex:1}.gpick small{font:600 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gpick b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gpick em{font:600 12px var(--sans);font-style:normal;color:var(--acc)}.gcard .gpick svg{color:var(--acc);flex:none;width:16px;height:16px;display:block}
+.gchips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:10px -2px 4px;padding:2px}.gchips::-webkit-scrollbar{display:none}
+.gchip{flex:none;display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--mut);background:rgba(127,140,170,.1);border:1px solid var(--gl);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gchip i{width:8px;height:8px;border-radius:50%;flex:none}.gchip.on{color:var(--fg);background:var(--glass2);box-shadow:inset 0 1px 0 var(--glt),0 2px 8px rgba(0,0,0,.15);border-color:color-mix(in srgb,var(--acc) 50%,transparent)}
+.gsts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:14px;border:1px solid var(--gl);border-radius:16px;background:rgba(127,140,170,.06);overflow:hidden}
+.gst{display:flex;flex-direction:column;gap:3px;padding:12px;min-width:0}.gst+.gst{border-left:1px solid var(--gl)}.gst span{font:600 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}.gst b{font:700 16px var(--mono);letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gst small{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gnote{margin-top:10px;font-size:13px;color:var(--mut)}.gnote b{color:var(--fg);font-weight:600}
+.gph{font:700 10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mut);padding:14px 4px 6px}
+.gpi{display:flex;align-items:center;gap:10px;width:100%;padding:10px 8px;border-radius:12px;text-align:left;color:var(--fg)}.gpi:hover{background:rgba(127,140,170,.1)}.gpi.on{background:var(--acc-s)}
+.gpi>i{width:10px;height:10px;border-radius:50%;flex:none}.gpi span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14.5px}.gpi.gcat span{color:var(--mut);font-style:italic}.gpi b{font:600 13px var(--mono);min-width:64px;text-align:right}.gpi svg{flex:none;opacity:.9;width:48px;height:16px;display:block}
 /* swipe */
 #app.sw-l{animation:swl .28s cubic-bezier(.2,.8,.2,1)}#app.sw-r{animation:swr .28s cubic-bezier(.2,.8,.2,1)}
 @keyframes swl{from{opacity:.2;transform:translateX(36px)}to{opacity:1;transform:none}}@keyframes swr{from{opacity:.2;transform:translateX(-36px)}to{opacity:1;transform:none}}
@@ -705,26 +718,51 @@ function vAnio(){
  h+='<tr class="tt"><td>Resto</td>'+T.map(t=>`<td class="${t.i-t.e<0?'neg':'pos'}">${short(t.i-t.e)}</td>`).join('')+'</tr></table></div>';
  return h+'<div class="note">Verde: ya pagado o cobrado. Sin color: estimado. Tocá una celda para editarla.</div>'}
 let GSEL=(()=>{try{return localStorage.getItem('fin-gsel')||'*'}catch(e){return'*'}})();
-function gastoChart(){const rows=(S.y[yr]||[]).filter(x=>catOf(x).t=='g'&&x.a.some(v=>v>0));const L=cats().filter(c=>c.t=='g');
- const byC={};rows.forEach(x=>{const c=catOf(x);(byC[c.id]=byC[c.id]||{c,rows:[]}).rows.push(x)});const grp=Object.values(byC).sort((a,b)=>b.rows.reduce((s,x)=>s+x.a.reduce((p,q)=>p+(q||0),0),0)-a.rows.reduce((s,x)=>s+x.a.reduce((p,q)=>p+(q||0),0),0));
- if(GSEL!='*'&&!GSEL.startsWith('c:')&&!rows.some(x=>x.n==GSEL))GSEL='*';
- const opts=`<option value="*"${GSEL=='*'?' selected':''}>Todos los gastos</option>`+grp.map(g=>`<optgroup label="${esc(g.c.n)}"><option value="c:${g.c.id}"${GSEL=='c:'+g.c.id?' selected':''}>${esc(g.c.n)} (toda la categoría)</option>${g.rows.slice().sort((a,b)=>a.n.localeCompare(b.n)).map(x=>`<option value="${esc(x.n)}"${GSEL==x.n?' selected':''}>${esc(x.n)}</option>`).join('')}</optgroup>`).join('');
- const sel=GSEL=='*'?rows:GSEL.startsWith('c:')?rows.filter(x=>catOf(x).id==GSEL.slice(2)):rows.filter(x=>x.n==GSEL);
- const lab=GSEL=='*'?'Todos los gastos':GSEL.startsWith('c:')?(byC[GSEL.slice(2)]||{c:{n:''}}).c.n:GSEL;
+const sumA=x=>x.a.reduce((p,q)=>p+(q||0),0);
+function gRows(){return(S.y[yr]||[]).filter(x=>catOf(x).t=='g'&&x.a.some(v=>v>0))}
+function gspark(a,col){const mx=Math.max(1,...a);return `<svg viewBox="0 0 48 16" width="48" height="16" aria-hidden="true">${a.map((v,i)=>v>0?`<rect x="${i*4}" y="${16-Math.max(1.5,v/mx*16)}" width="3" height="${Math.max(1.5,v/mx*16)}" rx="1" style="fill:${col}"/>`:'').join('')}</svg>`}
+function gastoChart(){const rows=gRows();
+ const byC={};rows.forEach(x=>{const c=catOf(x);(byC[c.id]=byC[c.id]||{c,rows:[],v:0}).rows.push(x);byC[c.id].v+=sumA(x)});const grp=Object.values(byC).sort((a,b)=>b.v-a.v);
+ if(GSEL!='*'&&!(GSEL.startsWith('c:')&&byC[GSEL.slice(2)])&&!rows.some(x=>x.n==GSEL))GSEL='*';
+ const isAll=GSEL=='*',isCat=GSEL.startsWith('c:'),sel=isAll?rows:isCat?byC[GSEL.slice(2)].rows:rows.filter(x=>x.n==GSEL),one=sel.length==1&&!isCat&&!isAll;
+ const cc=isAll?null:isCat?byC[GSEL.slice(2)].c:catOf(sel[0]),col=cc?catColor(cc):'var(--c2)',lab=isAll?'Todos los gastos':isCat?cc.n:GSEL;
  const paid=MES.map((_,m)=>sel.reduce((a,x)=>a+(x.p[m]?x.a[m]||0:0),0)),est=MES.map((_,m)=>sel.reduce((a,x)=>a+(x.p[m]?0:x.a[m]||0),0)),tt=paid.map((v,i)=>v+est[i]);
  const tot=tt.reduce((a,b)=>a+b,0),nz=tt.map((v,i)=>[v,i]).filter(z=>z[0]>0),avg=nz.length?tot/nz.length:0,mx=nz.length?nz.reduce((a,b)=>b[0]>a[0]?b:a):null,mn=nz.length?nz.reduce((a,b)=>b[0]<a[0]?b:a):null;
  const first=nz[0],last=nz[nz.length-1],evo=first&&last&&first[1]!=last[1]?(last[0]/first[0]-1)*100:null,pT=paid.reduce((a,b)=>a+b,0);
- const one=sel.length==1,col=one?'var(--c2)':'var(--c2)';
- const chart=barChart({cats:MES,stacked:true,series:[{n:'Pagado',col,vals:paid},{n:'Estimado',col,vals:est,op:.4}],fy:short,H:190,aria:'Pagos de '+lab+' por mes',top:i=>tt[i]?short(tt[i]):'',
-  tip:i=>{const it=sel.map(x=>[x.n,x.a[i]||0,x.p[i]]).filter(z=>z[1]>0).sort((a,b)=>b[1]-a[1]);const r=one?[]:it.slice(0,9).map(z=>[z[2]?'var(--c2)':'',z[0]+(z[2]?'':' (est.)'),money(z[1])]);if(!one&&it.length>9)r.push(['','+ '+(it.length-9)+' más',money(it.slice(9).reduce((a,z)=>a+z[1],0))]);
-   return{t:MESL[i]+' '+yr,r:[['var(--c2)','Pagado',money(paid[i])],['','Estimado',money(est[i])],...(i>0&&tt[i-1]&&tt[i]?[['','vs. mes anterior',(tt[i]>=tt[i-1]?'+':'')+pc0((tt[i]/tt[i-1]-1)*100)]]:[]),...r]}}});
- return `<div class="chart" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap"><div style="min-width:0"><h3>Pagos por mes</h3><div class="cs">${yr} · ARS · tenue = estimado sin pagar</div></div>
-  <select class="inp" id="gsel" aria-label="Elegir gasto" style="width:auto;max-width:100%;min-width:0;margin:0;flex:1 1 220px">${opts}</select></div>${chart}${legend([['var(--c2)','Pagado'],['color-mix(in srgb,var(--c2) 40%,transparent)','Estimado']])}
-  <div class="grid g3 gk" style="margin-top:12px;gap:8px">
-   <div class="card kpi"><div class="k">Total ${yr}</div><div class="v">${ms(tot)}</div><div class="s">pagado ${ms(pT)}</div></div>
-   <div class="card kpi"><div class="k">Promedio mensual</div><div class="v">${ms(avg)}</div><div class="s">${nz.length} meses con pagos</div></div>
-   <div class="card kpi"><div class="k">Evolución</div><div class="v ${evo==null?'':evo>0?'neg':'pos'}">${evo==null?'—':(evo>=0?'+':'')+pc0(evo)}</div><div class="s">${first&&last?MES[first[1]]+' → '+MES[last[1]]:''}${mx?' · máx '+MES[mx[1]]+' · mín '+MES[mn[1]]:''}</div></div></div></div>`}
-document.addEventListener('change',e=>{if(e.target&&e.target.id=='gsel'){GSEL=e.target.value;try{localStorage.setItem('fin-gsel',GSEL)}catch(x){}const y=scrollY;render();scrollTo(0,y)}});
+ const lp=[...paid.keys()].reverse().find(i=>paid[i]>0),ne=est.findIndex(v=>v>0);
+ // series: todos -> apilado por categoría; resto -> pagado + estimado
+ let series;if(isAll){series=grp.map(g=>({n:g.c.n,col:catColor(g.c),vals:MES.map((_,m)=>g.rows.reduce((a,x)=>a+(x.a[m]||0),0)),opi:MES.map((_,m)=>est[m]&&!paid[m]?.45:1)}))}
+ else series=[{n:'Pagado',col,vals:paid},{n:'Estimado',col,vals:est,op:.38}];
+ const showTop=i=>tt[i]&&(mx&&i==mx[1]||mn&&i==mn[1]&&nz.length>2||last&&i==last[1]);
+ const chart=barChart({cats:MES,stacked:true,series,fy:short,H:200,aria:'Pagos de '+lab+' por mes',ref:avg?{v:avg,t:'prom. '+short(avg)}:null,top:i=>showTop(i)?short(tt[i]):'',
+  tip:i=>{let r;if(isAll)r=grp.map(g=>[catColor(g.c),g.c.n,g.rows.reduce((a,x)=>a+(x.a[i]||0),0)]).filter(z=>z[2]>0).sort((a,b)=>b[2]-a[2]).map(z=>[z[0],z[1],money(z[2])]);
+   else if(one)r=[[col,paid[i]?'Pagado':'Estimado',money(tt[i])]];
+   else{const it=sel.map(x=>[x.n,x.a[i]||0,x.p[i]]).filter(z=>z[1]>0).sort((a,b)=>b[1]-a[1]);r=it.slice(0,8).map(z=>[col,z[0]+(z[2]?'':' · est.'),money(z[1])]);if(it.length>8)r.push(['','+ '+(it.length-8)+' más',money(it.slice(8).reduce((a,z)=>a+z[1],0))])}
+   const vs=i>0&&tt[i-1]&&tt[i]?[['','vs. '+MES[i-1],(tt[i]>=tt[i-1]?'+':'')+pc0((tt[i]/tt[i-1]-1)*100)]]:[];
+   return{t:MESL[i]+' '+yr+' · '+money(tt[i]),r:[...r,...vs]}}});
+ // chips rápidos: todos + 5 gastos más grandes (+ el elegido)
+ const top=rows.slice().sort((a,b)=>sumA(b)-sumA(a)).slice(0,5).map(x=>x.n);if(!isAll&&!isCat&&!top.includes(GSEL))top.unshift(GSEL);
+ const chip=(v,txt,c)=>`<button class="gchip${GSEL==v?' on':''}" data-gsel="${esc(v)}">${c?`<i style="background:${c}"></i>`:''}${esc(txt)}</button>`;
+ const chips=chip('*','Todos')+(isCat?chip(GSEL,cc.n,col):'')+top.map(n=>chip(n,n,catColor(catOf(rows.find(x=>x.n==n))))).join('');
+ const st=(k,v,s,cl='')=>`<div class="gst"><span>${k}</span><b class="${cl}">${v}</b><small>${s}</small></div>`;
+ return `<div class="chart gcard" style="margin-top:12px">
+  <div class="ghd"><div style="min-width:0"><h3>Pagos por mes</h3><div class="cs">${yr} · tocá una barra para ver el detalle</div></div></div>
+  <button class="gpick" data-gpick="1" aria-label="Elegir qué gasto ver"><i style="background:${col}"></i><span><small>${isAll?'Viendo':isCat?'Categoría':esc(cc.n)}</small><b>${esc(lab)}</b></span><em>Cambiar</em><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+  <div class="gchips">${chips}</div>
+  ${chart}
+  ${isAll?`<div class="leg">${grp.map(g=>`<span><i class="sw" style="background:${catColor(g.c)}"></i>${esc(g.c.n)}</span>`).join('')}</div>`:legend([[col,'Pagado'],[`color-mix(in srgb,${col} 38%,transparent)`,'Estimado']])}
+  <div class="gsts">${st('Total '+yr,ms(tot),pT<tot?'pagado '+ms(pT):'todo pagado')}${st('Promedio',ms(avg),'por mes · '+nz.length+' meses')}${st('Evolución',evo==null?'—':(evo>=0?'+':'')+pc0(evo),first&&last?MES[first[1]]+' → '+MES[last[1]]:'',evo==null?'':evo>0?'neg':'pos')}</div>
+  ${one&&(lp!=null||ne>=0)?`<div class="gnote">${lp!=null?`Último pago <b>${money(paid[lp])}</b> en ${MESL[lp].toLowerCase()}`:''}${lp!=null&&ne>=0?' · ':''}${ne>=0?`próximo estimado <b>${money(est[ne])}</b> en ${MESL[ne].toLowerCase()}`:''}</div>`:''}
+  ${mx&&nz.length>1?`<div class="gnote">Mes más caro <b>${MESL[mx[1]]}</b> (${money(mx[0])}) · más barato <b>${MESL[mn[1]]}</b> (${money(mn[0])})</div>`:''}</div>`}
+function gPick(){const rows=gRows(),byC={};rows.forEach(x=>{const c=catOf(x);(byC[c.id]=byC[c.id]||{c,rows:[],v:0}).rows.push(x);byC[c.id].v+=sumA(x)});const grp=Object.values(byC).sort((a,b)=>b.v-a.v);
+ const item=(v,name,c,a,cls='')=>`<button class="gpi${cls}${GSEL==v?' on':''}" data-gsel="${esc(v)}" data-q="${esc(name.toLowerCase())}"><i style="background:${c}"></i><span>${esc(name)}</span>${gspark(a,c)}<b>${ms(a.reduce((p,q)=>p+q,0))}</b></button>`;
+ const all=MES.map((_,m)=>rows.reduce((a,x)=>a+(x.a[m]||0),0));
+ mfn=null;$('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" aria-label="Elegir gasto" style="max-height:86vh;overflow:auto;padding-top:14px"><h2>¿Qué gasto querés ver?</h2>
+ <input class="inp" type="search" id="gq" placeholder="Buscar gasto…" autocomplete="off" style="margin:10px 0 6px">
+ <div id="gpl">${item('*','Todos los gastos','var(--fg)',all)}${grp.map(g=>{const c=catColor(g.c);return `<div class="gph" data-q="${esc(g.c.n.toLowerCase())}">${esc(g.c.n)}</div>${item('c:'+g.c.id,'Toda la categoría',c,MES.map((_,m)=>g.rows.reduce((a,x)=>a+(x.a[m]||0),0)),' gcat')}${g.rows.slice().sort((a,b)=>sumA(b)-sumA(a)).map(x=>item(x.n,x.n,c,x.a.map(v=>v||0))).join('')}`}).join('')}</div>
+ <div class="btns"><button data-close="1">Cerrar</button></div></div></div>`;
+ const q=$('#gq');q.addEventListener('input',()=>{const s=q.value.trim().toLowerCase();document.querySelectorAll('#gpl .gpi').forEach(b=>b.hidden=!!s&&!b.dataset.q.includes(s)&&!b.classList.contains('gcat'));document.querySelectorAll('#gpl .gcat,#gpl .gph').forEach(b=>b.hidden=!!s)})}
+function gSet(v){GSEL=v;try{localStorage.setItem('fin-gsel',GSEL)}catch(x){}closeSheet();const y=scrollY;render();scrollTo(0,y)}
 function vFlujo(){
  const T=[...Array(12).keys()].map(m=>tot(m)),B=[...Array(12).keys()].map(m=>bal(m)),vals=B.map(b=>b.est),op=T.map(t=>t.pend==0&&t.n?1:.45);
  const bars=barChart({cats:MES,series:[{n:'Ingresos',col:'var(--c3)',vals:T.map(t=>t.i),opi:op},{n:'Gastos',col:'var(--c2)',vals:T.map(t=>t.e),opi:op}],fy:short,H:170,aria:'Ingresos y gastos por mes',
@@ -798,6 +836,7 @@ function barChart(o){const n=o.cats.length,W=Math.max(370,o.minW?n*o.minW+60:0),
  const tk=ticks(0,Math.max(1,...tot)),mx=tk[tk.length-1],Y=q=>T+(1-q/mx)*(H-T-B),bw=(W-L-Rr)/n;
  const g=o.stacked?1:S.length,wide=o.stacked||g==1,barW=Math.min(wide?30:14,bw*(wide?.62:.36)),grpW=barW*g+(g-1)*2;
  let s='';tk.forEach(q=>{s+=`<line class="gl" x1="${L}" x2="${W-Rr}" y1="${Y(q)}" y2="${Y(q)}"/><text class="ax" x="${L-8}" y="${Y(q)+3}" text-anchor="end">${o.fy(q)}</text>`});
+ if(o.ref&&o.ref.v>0&&o.ref.v<=mx){const y=Y(o.ref.v);s+=`<line x1="${L}" x2="${W-Rr}" y1="${y}" y2="${y}" style="stroke:var(--fg)" stroke-width="1" stroke-dasharray="4 4" opacity=".45"/><text class="axl" x="${L+6}" y="${y-5}" text-anchor="start" style="fill:var(--fg);opacity:.75;paint-order:stroke;stroke:var(--bg);stroke-width:3px">${o.ref.t}</text>`}
  const every=Math.ceil(n/(W/34));
  o.cats.forEach((c,i)=>{const cx=L+bw*i+bw/2,x0=cx-grpW/2;let inner='';
   if(o.stacked){let y=Y(0);const segs=S.map(s=>({s,v:s.vals[i]||0})).filter(z=>z.v>0);segs.forEach((z,k)=>{const h=Math.max(1,(Y(0)-Y(z.v)));const top=k==segs.length-1;const gap=k>0?1.5:0;y-=h;
@@ -1411,7 +1450,7 @@ function render(){drawEye();if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'});
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -1450,6 +1489,8 @@ document.addEventListener('click',e=>{
  if(d.catdel)return delCat(d.catdel,t);
  if(d.unlock)return unlock();
  if(d.notif)return openNotif();
+ if(d.gpick)return gPick();
+ if(d.gsel!==undefined)return gSet(d.gsel);
  if(d.npush){const k=d.npush;if(k=='on')pushEnable();else if(k=='off')pushDisable();else if(k=='test')pushTest();else if(k=='prev')pushPreview();else if(k=='save')pushSaveCfg();else if(k=='cpfn')copyTxt(FNCODE,'Código');else if(k=='cpsql')copyTxt(pushSQL(),'SQL');return}
  if(d.locktoggle){if(lockCfg()){lockDisable();openAccount()}else lockEnable().then(()=>openAccount());return}
  if(d.cost){const I=S.inv;mod('Total invertido','ARS, como figura en el resumen de tu broker ("Total de la inversión").',[['f0','Total invertido ARS',I.cost||'']],v=>{I.cost=parse(v[0])||0});return}
@@ -1481,7 +1522,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261121182545';
+const BUILD='20261121182940';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
