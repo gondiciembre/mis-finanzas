@@ -38,6 +38,11 @@
  --rf:#2a78d6;--rv:#eb6834;--es:#1baf7a;--cr:#eda100;--lq:#64748b;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a;--c4:#eda100;--c5:#e87ba4;--c6:#008300;--c7:#6250d6;--c8:#e34948;--c9:#6250d6;--c10:#eda100;--c11:#1baf7a;--c12:#eb6834;color-scheme:light}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+.hb2{display:grid;gap:11px}.hb2t{display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:5px}.hb2t span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hb2t b{font:600 12px var(--mono);color:var(--mut);white-space:nowrap}
+.hb2 .tr{height:8px;border-radius:4px;background:var(--panel2);overflow:hidden}.hb2 .tr i{display:block;height:100%;border-radius:4px}
+.catr{display:flex;gap:8px;align-items:center;margin-top:8px}.catr .inp{flex:1;min-width:0}.catr .btn{flex:none}
+.addm{margin-left:10px;font:700 10.5px var(--mono);color:var(--acc);border:1px solid var(--line2);border-radius:6px;padding:2px 7px;letter-spacing:.04em}
+.sheet select.inp{font-size:15px}
 .prev{margin-top:10px;border:1px solid var(--line2);border-radius:10px;padding:8px 12px;background:var(--bg);display:grid;gap:4px;font:500 13px var(--mono)}
 .prev:empty{display:none}.prev .pr1{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.prev .pr1>span:first-child{color:var(--mut);font-family:var(--sans)}.prev .pr1.s{opacity:.85}
 .prev .prw{color:var(--dn);font:600 12.5px var(--sans);margin-top:2px}
@@ -332,7 +337,7 @@ button.fm:hover{background:var(--panel2)}
  </div>
  <div class="stx" id="st"><i></i><span>Conectando…</span></div>
  <div class="seg" id="sub" hidden></div>
- <div class="seg" id="tabs"><button data-tab="mes">Mes</button><button data-tab="anio">Año</button><button data-tab="flujo">Flujo</button></div>
+ <div class="seg" id="tabs"><button data-tab="mes">Mes</button><button data-tab="anio">Año</button><button data-tab="flujo">Análisis</button></div>
  <div class="chips" id="mch" hidden style="padding:10px 1px 0"></div>
 </header>
 <main id="app"></main>
@@ -375,6 +380,84 @@ function bal(m,y=yr){let o=S.o[y]||0,real=o,est=o;for(let k=0;k<=m;k++){const t=
 function ensure(y){if(S.y[y])return;const ks=Object.keys(S.y).map(Number).sort();const pk=S.y[y-1]?y-1:ks[ks.length-1];S.y[y]=(S.y[pk]||[]).filter(x=>x.end==null&&x.rep!==false).map(x=>({s:x.s,n:x.n,a:x.rep?Array(12).fill([...x.a].reverse().find(v=>v)||0):x.a.slice(),p:Array(12).fill(0),...(x.rep?{rep:true}:{})}));S.o[y]=S.y[y-1]?Math.round(bal(11,y-1).est):0}
 
 
+/* ---------- categorías de gastos e ingresos ---------- */
+const CAT_DEF=[{id:'cre',n:'Créditos',t:'g'},{id:'sm352',n:'Mantenimiento San Matías 352',t:'g'},{id:'auto',n:'Auto',t:'g'},{id:'chicos',n:'Chicos: colegio y actividades',t:'g'},{id:'salud',n:'Salud y familia',t:'g'},{id:'tc',n:'Tarjetas',t:'g'},{id:'efe',n:'Efectivo y gastos personales',t:'g'},{id:'aho',n:'Ahorro e inversión',t:'a'},
+ {id:'sue',n:'Sueldo',t:'i'},{id:'ren',n:'Renta',t:'i'},{id:'ext',n:'Extraordinarios',t:'i'},{id:'uso',n:'Uso de ahorros',t:'u'}];
+const CAT_T={g:'Gasto',a:'Ahorro',i:'Ingreso',u:'Uso de ahorros'};
+const CAT_NAME={'Sueldo Gonza':'sue','SAC':'sue','Ingreso Especial':'ext','Dividendo RSU XOM':'ren','Alquiler Depto PACHECO':'ren','Venta Moneda Extranjera':'uso','Rescate COCOS':'uso',
+ 'Expensas Naudir':'sm352','Celulares':'sm352','Cuota Northfield Mandy':'chicos','Cuota taller de juego Gaspar':'chicos','Deportes Mandy':'chicos','Patente Auto':'auto','OSDIPP Omar y Nancy':'salud','Gastos varios para casa':'sm352'};
+const CAT_SEC={in:'ext',cr:'cre',gv:'efe',sm:'sm352',ef:'efe',tc:'tc',iv:'aho',ot:'efe'};
+const cats=()=>{if(!S.cats)S.cats=JSON.parse(JSON.stringify(CAT_DEF));return S.cats};
+const catById=id=>cats().find(c=>c.id==id);
+function catOf(x){const c=(x.c&&catById(x.c))||catById(CAT_NAME[x.n])||catById(CAT_SEC[x.s]);return c||{id:'_',n:'Sin categoría',t:x.s=='in'?'i':'g'}}
+const catOk=(c,isIn)=>isIn?(c.t=='i'||c.t=='u'):(c.t=='g'||c.t=='a');
+function catColor(c){if(c.t=='a')return'var(--lq)';if(c.t=='u')return'var(--dim)';const L=cats().filter(z=>z.t==c.t);const i=L.findIndex(z=>z.id==c.id);return i<0?'var(--lq)':SER[i%SER.length]}
+function catSelect(x,isIn){const cur=x?catOf(x).id:catById(CAT_SEC[sh.k])?CAT_SEC[sh.k]:'';const L=cats().filter(c=>catOk(c,isIn));
+ return `<label for="scat">Categoría</label><select class="inp" id="scat">${L.map(c=>`<option value="${c.id}"${c.id==cur?' selected':''}>${esc(c.n)}</option>`).join('')}<option value="__new">+ Nueva categoría…</option></select><input type="text" id="scatn" placeholder="Nombre de la nueva categoría" hidden style="margin-top:8px">`}
+document.addEventListener('change',e=>{if(e.target&&e.target.id=='scat'){const n=$('#scatn');if(n){n.hidden=e.target.value!='__new';if(!n.hidden)n.focus()}}});
+function applyCat(x,isIn){const sel=$('#scat');if(!sel)return;let id=sel.value;
+ if(id=='__new'){const nm=($('#scatn').value||'').trim();if(!nm)return;id='c'+Date.now().toString(36);cats().push({id,n:nm,t:isIn?'i':'g'})}
+ x.c=id;Object.keys(S.y).forEach(y=>S.y[y].forEach(r=>{if(r!==x&&r.s==x.s&&r.n==x.n)r.c=id}))}
+function openCats(){const L=cats();
+ const row=c=>`<div class="catr"><input class="inp" type="text" data-cid="${c.id}" value="${esc(c.n)}" aria-label="Nombre"><span class="pill nt">${CAT_T[c.t]}</span><button class="btn" data-catdel="${c.id}" aria-label="Eliminar ${esc(c.n)}">✕</button></div>`;
+ $('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" style="max-height:88vh;overflow:auto"><h2>Categorías</h2><div class="m">Renombrá, eliminá o agregá. Al eliminar una, sus conceptos vuelven a la categoría sugerida.</div>
+ <div class="lab">Gastos y ahorro</div>${L.filter(c=>c.t=='g'||c.t=='a').map(row).join('')}
+ <div class="lab">Ingresos</div>${L.filter(c=>c.t=='i'||c.t=='u').map(row).join('')}
+ <div class="lab">Nueva categoría</div><div class="catr"><input class="inp" type="text" id="catnn" placeholder="Nombre"><select class="inp" id="catnt" style="max-width:150px"><option value="g">Gasto</option><option value="a">Ahorro</option><option value="i">Ingreso</option><option value="u">Uso de ahorros</option></select></div>
+ <div class="btns"><button data-close="1">Cancelar</button><button class="pr" data-catsave="1">Guardar</button></div></div></div>`}
+function saveCats(){const L=cats();document.querySelectorAll('#ov [data-cid]').forEach(i=>{const c=L.find(z=>z.id==i.dataset.cid);if(c&&i.value.trim())c.n=i.value.trim()});
+ const nn=($('#catnn').value||'').trim();if(nn)L.push({id:'c'+Date.now().toString(36),n:nn,t:$('#catnt').value});closeSheet();save();render()}
+function delCat(id,btn){if(!btn.dataset.arm){btn.dataset.arm=1;btn.textContent='¿Seguro?';return}
+ S.cats=cats().filter(c=>c.id!=id);Object.keys(S.y).forEach(y=>S.y[y].forEach(r=>{if(r.c==id)delete r.c}));save();openCats()}
+
+/* ---------- análisis de gastos ---------- */
+let gaY=null;
+function yearStats(y){const rows=S.y[y]||[],o={byCat:{},byRow:[],inc:0,incG:0,cons:0,aho:0,uso:0,paid:0,tot:0,m:Array.from({length:12},()=>({cons:0,incG:0,aho:0,byCat:{}}))};
+ rows.forEach(x=>{const c=catOf(x),s=x.a.reduce((a,b)=>a+(b||0),0),pd=x.a.reduce((a,b,i)=>a+(x.p[i]?(b||0):0),0);if(!s)return;
+  o.byCat[c.id]=(o.byCat[c.id]||0)+s;o.byRow.push({x,c,s});o.tot+=s;o.paid+=pd;
+  x.a.forEach((v,i)=>{v=v||0;const M=o.m[i];if(c.t=='g'){M.cons+=v;M.byCat[c.id]=(M.byCat[c.id]||0)+v}else if(c.t=='i')M.incG+=v;else if(c.t=='a')M.aho+=v});
+  if(c.t=='g')o.cons+=s;else if(c.t=='a')o.aho+=s;else if(c.t=='i'){o.inc+=s;o.incG+=s}else if(c.t=='u'){o.inc+=s;o.uso+=s}});
+ return o}
+const ms=n=>{const a=Math.abs(n);return (n<0?'−':'')+'$ '+(a>=1e6?(a/1e6).toFixed(1).replace('.',',')+' M':a>=1e3?Math.round(a/1e3)+' k':Math.round(a))};
+function vsPrev(cur,prev){if(!prev)return'';const d=(cur/prev-1)*100;return `<span class="${d>0?'dn':'up'}" title="vs. año anterior">${pct(d)}</span>`}
+function vGA(){const ys=Object.keys(S.y).filter(y=>yearStats(y).tot>0).sort();const Y=yr,st=yearStats(Y),pv=S.y[Y-1]?yearStats(Y-1):null,P=pv&&pv.tot?pv:null;
+ const L=cats(),gC=L.filter(c=>c.t=='g'),iC=L.filter(c=>c.t=='i'||c.t=='u'),rate=st.incG?(st.incG-st.cons)/st.incG*100:0,mAvg=st.cons/12;
+ let h=`<div class="hrow2" style="margin-top:0;margin-bottom:12px"><span class="pill nt">${Y} · ${pc0(st.tot?st.paid/st.tot*100:0)} ya pagado o cobrado</span><button class="btn" data-cats="1">Editar categorías</button></div>`;
+ h+=`<div class="grid g3">
+  <div class="card kpi"><div class="k">Ingresos</div><div class="v">${ms(st.incG)}</div><div class="s">${P?vsPrev(st.incG,P.incG)+' vs '+(Y-1)+' · ':''}${st.uso?'+ '+ms(st.uso)+' de ahorros':'sin usar ahorros'}</div></div>
+  <div class="card kpi"><div class="k">Gastos</div><div class="v">${ms(st.cons)}</div><div class="s">${P?vsPrev(st.cons,P.cons)+' vs '+(Y-1)+' · ':''}${ms(mAvg)} por mes</div></div>
+  <div class="card kpi"><div class="k">Te queda</div><div class="v ${st.incG-st.cons<0?'neg':'pos'}">${ms(st.incG-st.cons)}</div><div class="s">${pc0(rate)} del ingreso · invertiste ${ms(st.aho)}</div></div></div>`;
+ // categorías
+ const cs=gC.map(c=>({c,v:st.byCat[c.id]||0})).filter(z=>z.v>0).sort((a,b)=>b.v-a.v);const tc=st.cons||1;
+ if(st.byCat._)cs.push({c:{id:'_',n:'Sin categoría',t:'g'},v:st.byCat._});
+ h+=`<div class="grid g2c" style="margin-top:12px"><div class="chart"><h3>Gasto por categoría</h3><div class="cs">${Y} · ${ms(st.cons)} en total, sin ahorro</div>
+  <div class="donut"><svg viewBox="0 0 150 150" role="img" aria-label="Gasto por categoría">${donut(cs.map(z=>({v:z.v,col:catColor(z.c),lab:z.c.n,fmt:money})),tc)}<text x="75" y="70" text-anchor="middle" class="ax" style="font-size:8.5px;letter-spacing:.1em">GASTOS</text><text x="75" y="86" text-anchor="middle" style="fill:var(--fg);font:700 13px var(--mono)">${ms(st.cons)}</text></svg>
+  <div class="dl">${cs.map(z=>`<div><i class="sw" style="background:${catColor(z.c)}"></i><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(z.c.n)}</span><b>${pc0(z.v/tc*100)}</b></div>`).join('')}</div></div></div>
+  <div class="chart"><h3>Ranking de categorías</h3><div class="cs">monto anual · % del gasto${P?' · vs '+(Y-1):''}</div><div class="list" style="border:0">${cs.map(z=>`<div class="li" style="padding:9px 0"><i class="sw" style="background:${catColor(z.c)}"></i><div class="l1"><b style="font-family:var(--sans);font-weight:600">${esc(z.c.n)}</b><small>${pc0(z.v/tc*100)} del gasto · ${ms(z.v/12)} por mes</small></div><div class="r1"><b>${money(z.v)}</b><small>${P&&P.byCat[z.c.id]?vsPrev(z.v,P.byCat[z.c.id]):''}</small></div></div>`).join('')}</div></div></div>`;
+ // top conceptos
+ const top=st.byRow.filter(r=>r.c.t=='g').sort((a,b)=>b.s-a.s).slice(0,10);
+ h+=`<div class="chart" style="margin-top:12px"><h3>Los 10 conceptos que más pesan</h3><div class="cs">% sobre el gasto total del año</div><div class="hb2">${top.map(r=>`<div class="hb2r" data-tip="${tipA({t:r.x.n,r:[[catColor(r.c),r.c.n,''],['','Anual',money(r.s)],['','Por mes',money(r.s/12)],['','% del gasto',pc0(r.s/tc*100)]]})}"><div class="hb2t"><span>${esc(r.x.n)}</span><b>${pc0(r.s/tc*100)} · ${ms(r.s)}</b></div><div class="tr"><i style="width:${Math.max(1,r.s/top[0].s*100)}%;background:${catColor(r.c)}"></i></div></div>`).join('')}</div></div>`;
+ // por mes apilado
+ const ser=cs.map(z=>({n:z.c.n,col:catColor(z.c),vals:st.m.map(M=>M.byCat[z.c.id]||0)}));
+ h+=`<div class="chart" style="margin-top:12px"><h3>Gasto por categoría, mes a mes</h3><div class="cs">${Y} · ARS</div>${barChart({cats:MES,stacked:true,series:ser,fy:short,H:190,aria:'Gasto por categoría por mes',
+  tip:i=>({t:MESL[i]+' '+Y,r:ser.filter(s=>s.vals[i]).sort((a,b)=>b.vals[i]-a.vals[i]).map(s=>[s.col,s.n,money(s.vals[i])]).concat([['','Total',money(st.m[i].cons)]])})})}${legend(cs.map(z=>[catColor(z.c),z.c.n]))}</div>`;
+ // comparación entre años
+ if(ys.length>1){const ycol=['var(--c1)','var(--c2)','var(--c3)','var(--c4)'],YS=ys.slice(-4),stats=YS.map(y=>yearStats(y));
+  h+=`<div class="chart" style="margin-top:12px"><h3>Comparación entre años</h3><div class="cs">gasto anual por categoría · los años futuros son estimados</div>${barChart({cats:cs.map(z=>{const w=z.c.n.split(/[ :]/)[0];return w.length>8?w.slice(0,7)+'.':w}),series:YS.map((y,k)=>({n:y,col:ycol[k],vals:cs.map(z=>stats[k].byCat[z.c.id]||0)})),fy:short,H:190,minW:YS.length>2?70:56,aria:'Comparación entre años',
+   tip:i=>({t:cs[i].c.n,r:YS.map((y,k)=>[ycol[k],y+(+y>now.getFullYear()?' (estimado)':''),money(stats[k].byCat[cs[i].c.id]||0)])})})}${legend(YS.map((y,k)=>[ycol[k],y]))}</div>`}
+ // ingresos
+ const ic=iC.map(c=>({c,v:st.byCat[c.id]||0})).filter(z=>z.v>0).sort((a,b)=>b.v-a.v),sue=st.byCat.sue||0,def=st.m.map((M,i)=>({i,d:M.incG-M.cons})).filter(z=>z.d<0);
+ h+=`<div class="grid g2c" style="margin-top:12px"><div class="chart"><h3>De dónde vienen tus ingresos</h3><div class="cs">${Y} · ${ms(st.inc)} en total</div>
+  <div class="donut"><svg viewBox="0 0 150 150" role="img" aria-label="Ingresos por categoría">${donut(ic.map(z=>({v:z.v,col:catColor(z.c),lab:z.c.n,fmt:money})),st.inc||1)}<text x="75" y="70" text-anchor="middle" class="ax" style="font-size:8.5px;letter-spacing:.1em">INGRESOS</text><text x="75" y="86" text-anchor="middle" style="fill:var(--fg);font:700 13px var(--mono)">${ms(st.inc)}</text></svg>
+  <div class="dl">${ic.map(z=>`<div><i class="sw" style="background:${catColor(z.c)}"></i>${esc(z.c.n)}<b>${pc0(z.v/(st.inc||1)*100)}</b></div>`).join('')}</div></div></div>
+  <div class="chart"><h3>¿Alcanza el sueldo?</h3><div class="cs">${Y}</div>
+   <div class="stat"><span>El sueldo cubre</span><b class="${sue>=st.cons?'pos':'neg'}">${st.cons?pc0(sue/st.cons*100):'—'} del gasto</b></div>
+   <div class="stat"><span>Ingresos sin uso de ahorros</span><b>${money(st.incG)}</b></div>
+   <div class="stat"><span>Uso de ahorros</span><b>${money(st.uso)}</b></div>
+   <div class="stat"><span>Meses en negativo</span><b class="${def.length?'neg':'pos'}">${def.length?def.map(z=>MES[z.i]).join(', '):'ninguno'}</b></div>
+   ${def.length?`<div class="note" style="margin-top:6px">Peor mes: ${MESL[def.sort((a,b)=>a.d-b.d)[0].i]}, con ${money(def[0].d)}.</div>`:''}</div></div>`;
+ return h+`<div class="sec"><div class="sh"><h2>Flujo del año</h2></div></div>`+vFlujo()}
+
 function vMes(){
  const t=tot(mo),b=bal(mo),net=t.i-t.e,m=mepE();
  $('#mch').innerHTML=MES.map((x,i)=>`<button class="chip${i==mo?' on':''}${i==now.getMonth()&&yr==now.getFullYear()?' cur':''}" data-mo="${i}">${x}</button>`).join('');
@@ -396,7 +479,7 @@ function vAnio(){
  let h='<div class="tw"><table><tr><th></th>'+MES.map(m=>`<th>${m}</th>`).join('')+'</tr>';
  for(const k in SEC){
   const rs=R().map((x,i)=>[x,i]).filter(([x])=>x.s==k);if(!rs.length)continue;
-  h+=`<tr class="sc"><td colspan="13">${SEC[k]}</td></tr>`;
+  h+=`<tr class="sc"><td colspan="13"><span>${SEC[k]}</span><button class="addm" data-add="${k}">+ Agregar</button></td></tr>`;
   for(const [x,i] of rs)h+=`<tr><td>${esc(x.n)}</td>`+x.a.map((a,m)=>`<td class="cl${x.p[m]?' g':''}" data-ed="${i}" data-m="${m}">${a?short(a):''}</td>`).join('')+'</tr>'}
  const T=[...Array(12).keys()].map(m=>tot(m));
  h+='<tr class="sc"><td colspan="13">Totales</td></tr>';
@@ -420,7 +503,7 @@ function sheet(i,m,k){
  const x=i>=0?R()[i]:null;sh={i,m,k};const inc=(x?x.s:k)=='in';
  $('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true"><h2>${x?esc(x.n):'Nuevo concepto'}</h2><div class="m">${MESL[m]} ${yr} · ${SEC[x?x.s:k]}</div>
  <label for="sn">Concepto</label><input type="text" id="sn" value="${x?esc(x.n):''}" placeholder="Nombre">
- <label for="sa">Monto ARS</label><input type="text" id="sa" inputmode="decimal" value="${x&&x.a[m]?x.a[m]:''}" placeholder="0"><div class="prev" id="prev" aria-live="polite"></div>
+ <label for="sa">Monto ARS</label><input type="text" id="sa" inputmode="decimal" value="${x&&x.a[m]?x.a[m]:''}" placeholder="0"><div class="prev" id="prev" aria-live="polite"></div>${x?'':`<label for="smo">Mes</label><select class="inp" id="smo">${MESL.map((nm,j)=>`<option value="${j}"${j==m?' selected':''}>${nm} ${yr}</option>`).join('')}</select>`}${catSelect(x,inc)}
  <div class="swr"><label for="sd" style="margin:0;font:500 14px var(--sans);text-transform:none;letter-spacing:0;color:var(--fg)">${inc?'Ya lo cobré':'Ya lo pagué'}</label><input type="checkbox" id="sd" ${x&&x.p[m]?'checked':''}></div>
  <div class="swr" style="border:0"><label for="sp" style="margin:0;font:500 14px var(--sans);text-transform:none;letter-spacing:0;color:var(--fg)">Repetir este monto en los meses y años siguientes</label><input type="checkbox" id="sp" ${x?'':'checked'}></div>
  <div class="btns"><button data-close="1">Cancelar</button><button class="pr" data-save="1">Guardar</button></div>${x?`<button class="dl2" data-del="1">Eliminar desde ${MESL[m].toLowerCase()} en adelante</button><div class="note" style="text-align:center;margin-top:2px">Los meses anteriores quedan en el historial.</div>`:''}</div></div>`;
@@ -434,7 +517,7 @@ function updPrev(){const el=$('#prev');if(!el||!sh)return;const x=sh.i>=0?R()[sh
  ${!paid&&v?`<div class="pr1 s"><span>Si lo ${isIn?'cobrás':'pagás'} ahora</span><span><b class="${cl(b1)}">${money(b1)}</b></span></div>`:''}
  ${!isIn&&!paid&&v&&b1<0?`<div class="prw">No te alcanza con lo que tenés en el banco: faltan ${money(-b1)}.</div>`:''}`}
 document.addEventListener('input',e=>{if(e.target&&e.target.id=='sa')updPrev()});
-document.addEventListener('change',e=>{if(e.target&&e.target.id=='sd')updPrev()});
+document.addEventListener('change',e=>{if(e.target&&e.target.id=='sd')updPrev();if(e.target&&e.target.id=='smo'&&sh){sh.m=+e.target.value;updPrev()}});
 function closeSheet(){$('#ov').innerHTML='';sh=null;mfn=null}
 function saveSheet(){
  const n=$('#sn').value.trim(),v=parse($('#sa').value),dn=$('#sd').checked,ap=$('#sp').checked,isNew=sh.i<0;
@@ -444,6 +527,7 @@ function saveSheet(){
  Object.keys(S.y).filter(y=>+y>yr).forEach(y=>{let r=S.y[y].find(z=>z.s==x.s&&z.n==old);if(r&&n)r.n=n;
   if(ap){if(!r){r={s:x.s,n:x.n,a:Array(12).fill(0),p:Array(12).fill(0),rep:true};S.y[y].push(r)}for(let k=0;k<12;k++)if(!r.p[k])r.a[k]=v;delete r.end}});
  if(ap)for(let k=sh.m+1;k<12;k++)if(!x.p[k])x.a[k]=v;
+ applyCat(x,x.s=='in');
  closeSheet();save();render()}
 
 /* ---------- gráficos: librería común ---------- */
@@ -859,7 +943,7 @@ function vMon(){
 /* ---------- vista Análisis ---------- */
 function donut(parts,tot){let a=-Math.PI/2,s='';const R=66,r=46,cx=75,cy=75;
  parts.forEach(p=>{const f=p.v/tot;if(f<=0)return;const a2=a+f*2*Math.PI,lg=f>.5?1:0;
-  const P=(rr,an)=>`${(cx+rr*Math.cos(an)).toFixed(2)},${(cy+rr*Math.sin(an)).toFixed(2)}`,tip=` data-tip="${tipA({t:p.lab||'',r:[[p.col,'Peso',pc0(f*100)],['','Valor',usd(p.v)]]})}"`;
+  const P=(rr,an)=>`${(cx+rr*Math.cos(an)).toFixed(2)},${(cy+rr*Math.sin(an)).toFixed(2)}`,tip=` data-tip="${tipA({t:p.lab||'',r:[[p.col,'Peso',pc0(f*100)],['','Valor',(p.fmt||usd)(p.v)]]})}"`;
   s+=f>=.999?`<circle class="ds"${tip} cx="${cx}" cy="${cy}" r="${(R+r)/2}" fill="none" style="stroke:${p.col}" stroke-width="${R-r}"/>`:`<path class="ds"${tip} d="M${P(R,a)}A${R},${R} 0 ${lg} 1 ${P(R,a2)}L${P(r,a2)}A${r},${r} 0 ${lg} 0 ${P(r,a)}Z" style="fill:${p.col};stroke:var(--panel)" stroke-width="2.5" stroke-linejoin="round"/>`;a=a2});
  return s}
 function hbars(rows,tot,col){return '<div class="hb">'+rows.map((r,i)=>`<span class="lb">${esc(r[0])}</span><span class="tr"><i style="width:${Math.max(1,r[1]/rows[0][1]*100)}%;background:${typeof col=='function'?col(r,i):col}"></i></span><span class="vl">${pc0(r[1]/tot*100)} · ${usdS(r[1])}</span>`).join('')+'</div>'}
@@ -1007,12 +1091,12 @@ function render(){
  $('#yl').textContent=yr;
  if(!S.y[yr])ensure(yr);
  $('#py').disabled=!S.y[yr-1];
- app.innerHTML=g?(tab=='mes'?vMes():tab=='anio'?vAnio():vFlujo()):sec=='i'?vInv():sec=='a'?vAna():sec=='c'?vCash():sec=='r'?vRsu():sec=='m'?vMon():sec=='d'?vDol():vEst();
+ app.innerHTML=g?(tab=='mes'?vMes():tab=='anio'?vAnio():vGA()):sec=='i'?vInv():sec=='a'?vAna():sec=='c'?vCash():sec=='r'?vRsu():sec=='m'?vMon():sec=='d'?vDol():vEst();
  $('#mch').hidden=!(g&&tab=='mes'&&S&&SESSION);
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'});
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle]');if(!t)return;{const q=t.dataset;if(!S&&!(q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel]');if(!t)return;{const q=t.dataset;if(!S&&!(q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -1037,6 +1121,9 @@ document.addEventListener('click',e=>{
  if(d.rsuadd)return addRsu(null);
  if(d.rsued!==undefined)return addRsu(d.rsued);
  if(d.rsudel!==undefined){if(!t.dataset.arm){t.dataset.arm=1;t.textContent='Tocá de nuevo para eliminar';return}S.inv.rsu.g.splice(+d.rsudel,1);closeSheet();save();return render()}
+ if(d.cats)return openCats();
+ if(d.catsave)return saveCats();
+ if(d.catdel)return delCat(d.catdel,t);
  if(d.unlock)return unlock();
  if(d.locktoggle){if(lockCfg()){lockDisable();openAccount()}else lockEnable().then(()=>openAccount());return}
  if(d.cost){const I=S.inv;mod('Total invertido','ARS, como figura en el resumen de tu broker ("Total de la inversión").',[['f0','Total invertido ARS',I.cost||'']],v=>{I.cost=parse(v[0])||0});return}
@@ -1068,7 +1155,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261121142442';
+const BUILD='20261121143147';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
