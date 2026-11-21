@@ -112,6 +112,7 @@ h1{font-size:24px;line-height:1.15;margin:4px 0 0;font-weight:700;letter-spacing
 .fx{display:flex;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:10px;padding:6px 10px;font:500 12px var(--mono);color:var(--mut)}
 .fx b{color:var(--fg);font-weight:700;font-size:13px}
 .fx:hover{border-color:var(--acc)}
+.fx.on{color:var(--acc);border-color:var(--acc);background:var(--acc-s)}
 .stx{display:flex;align-items:center;gap:7px;margin-top:6px;font:500 11.5px var(--mono);color:var(--dim)}
 .stx i{width:7px;height:7px;border-radius:50%;background:var(--dim);flex:none}
 .stx.ok i{background:var(--up);box-shadow:0 0 0 3px var(--up-s)}
@@ -336,6 +337,7 @@ button.fm:hover{background:var(--panel2)}
   <div class="hright">
    <div class="yr" id="yrw"><button id="py" data-yr="-1" aria-label="Año anterior">‹</button><span id="yl"></span><button data-yr="1" aria-label="Año siguiente">›</button></div>
    <button class="fx" id="fxw" data-mep="1" aria-label="Dólar MEP"></button>
+   <button class="fx" id="hidev" data-hide="1" aria-label="Ocultar valores en dólares" aria-pressed="false"></button>
    <button class="fx" id="acct" data-acct="1" aria-label="Cuenta"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button>
   </div>
  </div>
@@ -368,9 +370,11 @@ const TODAY=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMont
 const fd=s=>s.slice(8)+'/'+s.slice(5,7)+'/'+s.slice(0,4);
 const fds=s=>s.slice(8)+'/'+s.slice(5,7)+'/'+s.slice(2,4);
 const nfu=new Intl.NumberFormat('es-AR',{maximumFractionDigits:0});
-const usd=n=>'US$ '+nfu.format(Math.round(n));
-const usd2=n=>'US$ '+n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
-const usdS=n=>{const a=Math.abs(n);return (n<0?'−':'')+(a>=1e6?'US$ '+(a/1e6).toFixed(2).replace('.',',')+'M':a>=1e4?'US$ '+(a/1e3).toFixed(1).replace('.',',')+'k':'US$ '+nfu.format(Math.round(a)))};
+let HIDE=false;try{HIDE=localStorage.getItem('fin-hide')=='1'}catch(e){}
+const MASK='•••••',HV=s=>HIDE?MASK:s;
+const usd=n=>'US$ '+(HIDE?MASK:nfu.format(Math.round(n)));
+const usd2=n=>HIDE?'US$ '+MASK:'US$ '+n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const usdS=n=>{if(HIDE)return 'US$ '+MASK;const a=Math.abs(n);return (n<0?'−':'')+(a>=1e6?'US$ '+(a/1e6).toFixed(2).replace('.',',')+'M':a>=1e4?'US$ '+(a/1e3).toFixed(1).replace('.',',')+'k':'US$ '+nfu.format(Math.round(a)))};
 const pct=(n,d=1)=>(n>0?'+':n<0?'−':'')+Math.abs(n).toFixed(d).replace('.',',')+'%';
 const pc0=n=>n.toFixed(1).replace('.',',')+'%';
 const sgn=n=>n>0.0001?'up':n<-0.0001?'dn':'nt';
@@ -437,7 +441,7 @@ async function loanFetch(force){if(LDrun)return;if(!force&&LD&&LD.v==2&&Date.now
   const lm=m[m.length-1],lbx=bl[bl.length-1];
   LD={v:2,ts:Date.now(),uva:uh.valor,uvaF:uh.fecha,mepC:lm.compra||lm.venta,mepF:lm.fecha,blueC:lbx.compra||lbx.venta,ser};try{localStorage.setItem('fin-loan',JSON.stringify(LD))}catch(e){}
   if(loanAuto()&&S&&sec=='g'&&tab!='uva')render()}
- catch(e){toast('No pude traer UVA / dólar: '+(e.message||e))}
+ catch(e){if(sec=='g'&&tab=='uva')toast('No pude traer UVA / dólar: '+(e.message||e))}
  LDrun=false;if(S&&sec=='g'&&tab=='uva')render()}
 let LRATE='mep',loanTimer=null,loanSig='';
 function loanLoop(){clearInterval(loanTimer);loanTimer=setInterval(async()=>{if(document.visibilityState!='visible'||!S||sec!='g'||tab!='uva'||$('#ov').innerHTML)return;
@@ -1000,7 +1004,7 @@ function vInv(){const I=S.inv;if(!I)return none('Todavía no hay datos de invers
  const P=port(),{T,D,by,m}=P,cost=I.cost||0,res=T*m-cost,np=P.items.filter(x=>x.np);
  recordHist(T,m);
  const inc=flows().filter(f=>f.ty=='r'&&f.d<=addY(TODAY,1)).reduce((a,f)=>a+f.x,0);
- let h=liveBar()+`<div class="hero"><div class="k">Patrimonio invertido</div><div class="big"><small>US$</small>${nfu.format(Math.round(T))}</div><div class="s">${money(T*m)} · MEP ${m.toLocaleString('es-AR',{minimumFractionDigits:2})}</div>
+ let h=liveBar()+`<div class="hero"><div class="k">Patrimonio invertido</div><div class="big"><small>US$</small>${HV(nfu.format(Math.round(T)))}</div><div class="s">${HV(money(T*m))} · MEP ${m.toLocaleString('es-AR',{minimumFractionDigits:2})}</div>
  <div class="hrow2"><span class="pill ${sgn(D)}">Hoy ${D>=0?'+':'−'}${usd(Math.abs(D))} · ${pct(D/(T-D)*100,2)}</span>${cost?`<button class="pill ${sgn(res)}" data-cost="1">Resultado ${res>=0?'+':'−'}${usd(Math.abs(res)/m)} · ${pct(res/cost*100)}</button>`:'<button class="pill nt" data-cost="1">Cargar total invertido</button>'}<span class="pill nt">Renta 12m ${usd(inc)}</span></div>
  <div class="stack" aria-hidden="true">${CORD.filter(k=>by[k].v>0).map(k=>`<i style="width:${by[k].v/T*100}%;background:${CL[k][1]}"></i>`).join('')}</div></div>`;
  h+=histChart(T);
@@ -1045,7 +1049,7 @@ function vDol(){const A=arbS(),r=arbCalc(A.sell,A.buy,A.amt,A.fee),f2=n=>n==null
  <div class="card"><div class="arbf">${selDol('arbsell',A.sell,'Vendo USD a (tipo comprador)')}<div class="s mutc" style="margin-top:6px">Te pagan ${f2(dq(A.sell,'c').p)} por dólar</div>
  ${selDol('arbbuy',A.buy,'Compro USD a (tipo vendedor)')}<div class="s mutc" style="margin-top:6px">Te cobran ${f2(dq(A.buy,'v').p)} por dólar</div>
  <div class="grid g2" style="gap:10px"><div><label class="lab" for="arbamt">Monto USD</label><input class="inp" type="text" inputmode="decimal" id="arbamt" value="${A.amt}"></div><div><label class="lab" for="arbfee">Comisión por operación %</label><input class="inp" type="text" inputmode="decimal" id="arbfee" value="${A.fee||0}"></div></div></div></div>
- <div class="hero"><div class="k">Resultado</div>${r?`<div class="big ${r.g<0?'neg':'pos'}"><small>US$</small>${r.g>=0?'+':'−'}${f2(Math.abs(r.g))}</div><div class="s"><span class="pill ${sgn(r.g)}">${pct(r.pc,2)}</span></div>
+ <div class="hero"><div class="k">Resultado</div>${r?`<div class="big ${r.g<0?'neg':'pos'}"><small>US$</small>${HV((r.g>=0?'+':'−')+f2(Math.abs(r.g)))}</div><div class="s"><span class="pill ${sgn(r.g)}">${pct(r.pc,2)}</span></div>
   <div class="stat" style="margin-top:14px"><span>Vendés US$ ${f2(A.amt)} a ${f2(r.a)}</span><b>${money(r.ars)}</b></div>
   <div class="stat"><span>Recomprás a ${f2(r.b)}</span><b>US$ ${f2(r.back)}</b></div>
   <div class="stat"><span>Brecha ${DOLK[A.sell][0]} compra / ${DOLK[A.buy][0]} venta</span><b>${pct((r.a/r.b-1)*100,2)}</b></div>`:'<div class="note">Faltan cotizaciones para calcular.</div>'}</div></div></div>`;
@@ -1190,7 +1194,7 @@ function vRsu(){const I=S.inv,R=I&&I.rsu;if(!R)return none('Todavía no hay dato
  const px=rsuPx(),m=mepE(),nt=1-R.tax/100,div=R.div||1.07,q=R.g.filter(g=>g.vd>=TODAY).reduce((a,g)=>a+g.q,0),ch=xomCh();
  const F=rsuFlows(),lim=addY(TODAY,1),f12=F.filter(f=>f.d<=lim),v12=f12.filter(f=>f.ty=='v').reduce((a,f)=>a+f.x,0),d12=f12.filter(f=>f.ty=='d').reduce((a,f)=>a+f.x,0);
  const nv=F.find(f=>f.ty=='v'),nd=F.find(f=>f.ty=='d'),totN=F.reduce((a,f)=>a+f.x,0);
- let h=`<div class="hero"><div class="k">RSU ExxonMobil sin vestear · ${q} acciones</div><div class="big"><small>US$</small>${nfu.format(Math.round(q*px))}</div><div class="s">Neto de ${R.tax}%: <b style="color:var(--fg)">${usd(q*px*nt)}</b> · ${money(q*px*nt*m)}</div>
+ let h=`<div class="hero"><div class="k">RSU ExxonMobil sin vestear · ${q} acciones</div><div class="big"><small>US$</small>${HV(nfu.format(Math.round(q*px)))}</div><div class="s">Neto de ${R.tax}%: <b style="color:var(--fg)">${usd(q*px*nt)}</b> · ${money(q*px*nt*m)}</div>
  <div class="hrow2"><button class="pill nt" data-rp="1">XOM ${usd2(px)}${ch!=null?` <span class="${sgn(ch)}">${pct(ch,2)}</span>`:''} · editar</button><span class="pill nt">Dividendo ${usd2(div)}/trim.</span>${ch!=null?`<span class="pill ${sgn(ch)}">Hoy ${q*px*ch/100>=0?'+':'−'}${usd(Math.abs(q*px*ch/100/(1+ch/100)))}</span>`:''}</div></div>`;
  h+=`<div class="grid g3" style="margin-top:12px">
  <div class="card kpi"><div class="k">Próximo vesting</div><div class="v">${nv?usd(nv.x):'—'}</div><div class="s">${nv?fds(nv.d)+' · '+nv.q+' acc · bruto '+usd(nv.g):''}</div></div>
@@ -1235,7 +1239,8 @@ const grpOf=s=>Object.keys(GRP).find(k=>GRP[k].includes(s))||'i';
 let lastSub={};try{lastSub=JSON.parse(localStorage.getItem('fin-sub')||'{}')}catch(e){}
 const TT={g:['Finanzas personales','Mis gastos'],i:['Inversiones','Cartera'],a:['Inversiones','Análisis de cartera'],c:['Inversiones','Cobros futuros'],r:['Compensación','RSU ExxonMobil'],e:['Inversiones','Notas estructuradas'],m:['Mercados','Monitor global'],d:['Mercados','Dólar · arbitraje']};
 function stRender(){const e=$('#st');if(!e)return;const mm={db:['ok','Sincronizado'],local:['bad','Sin sesión · datos de este dispositivo'],err:['bad','Error al sincronizar'],wait:['','Conectando…']}[SB?(SESSION?SYNC:'local'):'local']||['',''];e.className='stx '+mm[0];const lv=LIVE.st=='run'?' · actualizando precios…':LIVE.st=='ok'?' · en vivo '+hhmm(LIVE.at):LIVE.st=='err'?' · sin conexión al mercado':Q&&Q.ts?' · precios '+hhmm(Q.ts):'';e.lastChild.textContent=(!SB?'Sin configurar':mm[1]+(SYNC=='err'&&SYNCERR?' ('+SYNCERR+')':''))+lv;e.title=SYNCERR||''}
-function render(){if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
+function drawEye(){const b=$('#hidev');if(!b)return;b.setAttribute('aria-pressed',HIDE);b.classList.toggle('on',HIDE);b.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>${HIDE?'<path d="M4 4l16 16"/>':''}</svg>`}
+function render(){drawEye();if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
  $('#eb').textContent=TT[sec][0];$('#ht').textContent=TT[sec][1];stRender();
  const g=sec=='g';$('#yrw').hidden=!g;$('#tabs').hidden=!g;$('#mch').hidden=true;
  const gr=grpOf(sec);document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.grp==gr));
@@ -1254,7 +1259,7 @@ function render(){if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'});
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel]');if(!t)return;{const q=t.dataset;if(!S&&!(q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -1282,6 +1287,7 @@ document.addEventListener('click',e=>{
  if(d.cats)return openCats();
  if(d.loanref){dolFetch().then(()=>loanFetch(true));toast('Actualizando UVA y MEP…');return}
  if(d.loancfg)return loanCfg();
+ if(d.hide){HIDE=!HIDE;try{localStorage.setItem('fin-hide',HIDE?'1':'0')}catch(e){}hideTip();drawEye();render();toast(HIDE?'Valores en dólares ocultos':'Valores en dólares visibles');return}
  if(d.lrate){LRATE=d.lrate;return render()}
  if(d.lh){S.lh=+d.lh;save();return render()}
  if(d.rented!==undefined)return rentEdit(+d.rented);
@@ -1321,7 +1327,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261121153222';
+const BUILD='20261121155340';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
