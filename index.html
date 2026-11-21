@@ -38,6 +38,9 @@
  --rf:#2a78d6;--rv:#eb6834;--es:#1baf7a;--cr:#eda100;--lq:#64748b;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a;--c4:#eda100;--c5:#e87ba4;--c6:#008300;--c7:#6250d6;--c8:#e34948;--c9:#6250d6;--c10:#eda100;--c11:#1baf7a;--c12:#eb6834;color-scheme:light}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+.prev{margin-top:10px;border:1px solid var(--line2);border-radius:10px;padding:8px 12px;background:var(--bg);display:grid;gap:4px;font:500 13px var(--mono)}
+.prev:empty{display:none}.prev .pr1{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.prev .pr1>span:first-child{color:var(--mut);font-family:var(--sans)}.prev .pr1.s{opacity:.85}
+.prev .prw{color:var(--dn);font:600 12.5px var(--sans);margin-top:2px}
 #lock{position:fixed;inset:0;z-index:120;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
 .locked body>.wrap,.locked #nav{visibility:hidden}
 .lkbox{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;max-width:320px;color:var(--fg)}
@@ -417,11 +420,21 @@ function sheet(i,m,k){
  const x=i>=0?R()[i]:null;sh={i,m,k};const inc=(x?x.s:k)=='in';
  $('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true"><h2>${x?esc(x.n):'Nuevo concepto'}</h2><div class="m">${MESL[m]} ${yr} · ${SEC[x?x.s:k]}</div>
  <label for="sn">Concepto</label><input type="text" id="sn" value="${x?esc(x.n):''}" placeholder="Nombre">
- <label for="sa">Monto ARS</label><input type="text" id="sa" inputmode="decimal" value="${x&&x.a[m]?x.a[m]:''}" placeholder="0">
+ <label for="sa">Monto ARS</label><input type="text" id="sa" inputmode="decimal" value="${x&&x.a[m]?x.a[m]:''}" placeholder="0"><div class="prev" id="prev" aria-live="polite"></div>
  <div class="swr"><label for="sd" style="margin:0;font:500 14px var(--sans);text-transform:none;letter-spacing:0;color:var(--fg)">${inc?'Ya lo cobré':'Ya lo pagué'}</label><input type="checkbox" id="sd" ${x&&x.p[m]?'checked':''}></div>
  <div class="swr" style="border:0"><label for="sp" style="margin:0;font:500 14px var(--sans);text-transform:none;letter-spacing:0;color:var(--fg)">Repetir este monto en los meses y años siguientes</label><input type="checkbox" id="sp" ${x?'':'checked'}></div>
  <div class="btns"><button data-close="1">Cancelar</button><button class="pr" data-save="1">Guardar</button></div>${x?`<button class="dl2" data-del="1">Eliminar desde ${MESL[m].toLowerCase()} en adelante</button><div class="note" style="text-align:center;margin-top:2px">Los meses anteriores quedan en el historial.</div>`:''}</div></div>`;
+ updPrev();
  setTimeout(()=>{const e=$(x?'#sa':'#sn');if(e)e.focus()},50)}
+function updPrev(){const el=$('#prev');if(!el||!sh)return;const x=sh.i>=0?R()[sh.i]:null,isIn=(x?x.s:sh.k)=='in',m=sh.m,v=parse($('#sa').value),old=x?(x.a[m]||0):0,oldPaid=x?!!x.p[m]:false,paid=$('#sd').checked,sg=isIn?1:-1;
+ const t=tot(m),r0=t.i-t.e,r1=r0+sg*(v-old),b0=bal(m).real,bNow=b0-sg*(oldPaid?old:0),b1=bNow+sg*v,bAfter=paid?b1:bNow;
+ const cl=n=>n<0?'neg':'pos',arrow=(a,b)=>a===b?`<b class="${cl(b)}">${money(b)}</b>`:`<span class="mutc">${money(a)}</span> → <b class="${cl(b)}">${money(b)}</b>`;
+ el.innerHTML=`<div class="pr1"><span>Resto de ${MESL[m].toLowerCase()}</span><span>${arrow(r0,r1)}</span></div>
+ <div class="pr1"><span>En el banco ${paid?'después de '+(isIn?'cobrarlo':'pagarlo'):'hoy'}</span><span>${arrow(b0,bAfter)}</span></div>
+ ${!paid&&v?`<div class="pr1 s"><span>Si lo ${isIn?'cobrás':'pagás'} ahora</span><span><b class="${cl(b1)}">${money(b1)}</b></span></div>`:''}
+ ${!isIn&&!paid&&v&&b1<0?`<div class="prw">No te alcanza con lo que tenés en el banco: faltan ${money(-b1)}.</div>`:''}`}
+document.addEventListener('input',e=>{if(e.target&&e.target.id=='sa')updPrev()});
+document.addEventListener('change',e=>{if(e.target&&e.target.id=='sd')updPrev()});
 function closeSheet(){$('#ov').innerHTML='';sh=null;mfn=null}
 function saveSheet(){
  const n=$('#sn').value.trim(),v=parse($('#sa').value),dn=$('#sd').checked,ap=$('#sp').checked,isNew=sh.i<0;
@@ -1055,7 +1068,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261121070509';
+const BUILD='20261121142442';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
