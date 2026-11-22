@@ -403,7 +403,7 @@ header{background:var(--glassF);-webkit-backdrop-filter:blur(24px) saturate(170%
   <div class="hright">
    <div class="yr" id="yrw"><button id="py" data-yr="-1" aria-label="Año anterior">‹</button><span id="yl"></span><button data-yr="1" aria-label="Año siguiente">›</button></div>
    <button class="fx" id="fxw" data-mep="1" aria-label="Dólar MEP"></button>
-   <button class="fx" id="hidev" data-hide="1" aria-label="Ocultar valores en dólares" aria-pressed="false"></button>
+   <button class="fx" id="hidev" data-hide="1" aria-label="Ocultar montos" aria-pressed="false"></button>
    <button class="fx" id="acct" data-acct="1" aria-label="Cuenta"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button>
   </div>
  </div>
@@ -423,8 +423,8 @@ const SEC={in:'Ingresos',cr:'Créditos',gv:'Gastos varios',sm:'San Matías',ef:'
 const SAC={in:'var(--up)',cr:'var(--c12)',gv:'var(--c1)',sm:'var(--c3)',ef:'var(--c6)',tc:'var(--c2)',iv:'var(--c8)',ot:'var(--c4)'};
 const $=s=>document.querySelector(s);
 const nf=new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0});
-const money=n=>nf.format(Math.round(n));
-const short=n=>{const a=Math.abs(n);return a>=1e6?(n/1e6).toFixed(1).replace('.',',')+'M':a>=1e3?Math.round(n/1e3)+'k':String(Math.round(n))};
+const money=n=>HIDE?'$ •••••':nf.format(Math.round(n));
+const short=n=>{if(HIDE)return '•••';const a=Math.abs(n);return a>=1e6?(n/1e6).toFixed(1).replace('.',',')+'M':a>=1e3?Math.round(n/1e3)+'k':String(Math.round(n))};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const KEY='gastos-v1',QK='gastos-q';
 const now=new Date();
@@ -492,7 +492,7 @@ function yearStats(y){const rows=S.y[y]||[],o={byCat:{},byRow:[],inc:0,incG:0,co
   x.a.forEach((v,i)=>{v=v||0;const M=o.m[i];if(c.t=='g'){M.cons+=v;M.byCat[c.id]=(M.byCat[c.id]||0)+v}else if(c.t=='i')M.incG+=v;else if(c.t=='a')M.aho+=v});
   if(c.t=='g')o.cons+=s;else if(c.t=='a')o.aho+=s;else if(c.t=='i'){o.inc+=s;o.incG+=s}else if(c.t=='u'){o.inc+=s;o.uso+=s}});
  return o}
-const ms=n=>{const a=Math.abs(n);return (n<0?'−':'')+'$ '+(a>=1e6?(a/1e6).toFixed(1).replace('.',',')+' M':a>=1e3?Math.round(a/1e3)+' k':Math.round(a))};
+const ms=n=>{if(HIDE)return '$ •••';const a=Math.abs(n);return (n<0?'−':'')+'$ '+(a>=1e6?(a/1e6).toFixed(1).replace('.',',')+' M':a>=1e3?Math.round(a/1e3)+' k':Math.round(a))};
 function vsPrev(cur,prev){if(!prev)return'';const d=(cur/prev-1)*100;return `<span class="${d>0?'dn':'up'}" title="vs. año anterior">${pct(d)}</span>`}
 /* ---------- crédito UVA ---------- */
 const LOAN_DEF={name:'Hipotecario BNA UVA',uva0:59225.53,cap0:127462493.14,tna:6,n:360,fee:4,feeY:7,f0:'2026-10-21',first:'2026-12-10',rent:'Alquiler Depto PACHECO',costs:['Credito Hipotecario NACION','Seguros Banco Nación x Credito']};
@@ -1478,7 +1478,7 @@ document.addEventListener('click',e=>{
  if(d.cats)return openCats();
  if(d.loanref){dolFetch().then(()=>loanFetch(true));toast('Actualizando UVA y MEP…');return}
  if(d.loancfg)return loanCfg();
- if(d.hide){HIDE=!HIDE;try{localStorage.setItem('fin-hide',HIDE?'1':'0')}catch(e){}hideTip();drawEye();render();toast(HIDE?'Valores en dólares ocultos':'Valores en dólares visibles');return}
+ if(d.hide){HIDE=!HIDE;try{localStorage.setItem('fin-hide',HIDE?'1':'0')}catch(e){}hideTip();drawEye();render();toast(HIDE?'Montos ocultos':'Montos visibles');return}
  if(d.lrate){LRATE=d.lrate;return render()}
  if(d.lh){S.lh=+d.lh;save();return render()}
  if(d.rented!==undefined)return rentEdit(+d.rented);
@@ -1522,7 +1522,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261121182940';
+const BUILD='20261122203854';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
