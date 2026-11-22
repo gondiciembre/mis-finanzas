@@ -711,6 +711,13 @@ function vMes(){
  h+=`<div class="grid g2" style="margin-top:12px">
  <div class="card kpi"><div class="k">Ingresos</div><div class="v">${money(t.i)}</div><div class="bar"><i style="width:${t.i?t.id/t.i*100:0}%;background:var(--up)"></i></div><div class="s">Cobrado ${money(t.id)}</div></div>
  <div class="card kpi"><div class="k">Gastos</div><div class="v">${money(t.e)}</div><div class="bar"><i style="width:${t.e?t.ed/t.e*100:0}%;background:var(--c12)"></i></div><div class="s">Pagado ${money(t.ed)}</div></div></div>`;
+ {const by={i:0,u:0,g:0,a:0},dn={g:0,a:0};R().forEach(x=>{if(x.end!=null&&mo>=x.end)return;const v=x.a[mo]||0,ty=catOf(x).t;if(ty in by)by[ty]+=v;if(x.p[mo]&&ty in dn)dn[ty]+=v});
+  const cap=by.i-by.g,inv=by.a,left=cap-inv,pct=cap>0?Math.min(100,inv/cap*100):0,rate=by.i?cap/by.i*100:0;
+  h+=`<div class="card kpi capbox" style="margin-top:12px"><div class="k" style="display:flex;justify-content:space-between;gap:8px"><span>Capacidad de inversión · ${MESL[mo]}</span>${by.i?`<span class="pill ${cap<0?'dn':rate>=20?'up':'nt'}">${pc0(rate)} del ingreso</span>`:''}</div>
+   <div class="v ${cap<0?'neg':'pos'}">${money(cap)}</div>
+   <div class="bar"><i style="width:${pct}%;background:var(--c3)"></i></div>
+   <div class="s">${cap<0?'Este mes los gastos superan a los ingresos.':inv?`Ya destinaste ${money(inv)} a ahorro e inversión · ${left>=0?'te quedan '+money(left):'te pasaste por '+money(-left)}`:'Todavía no cargaste ahorro ni inversión este mes.'}</div>
+   <div class="s" style="opacity:.75">Ingresos ${money(by.i)}${by.u?' (sin '+money(by.u)+' de uso de ahorros)':''} − gastos ${money(by.g)} (sin Ahorro e inversión)</div></div>`}
  const all=R().map((x,i)=>[x,i]).filter(([x])=>!(x.end!=null&&mo>=x.end)),G={};
  all.forEach(([x,i])=>{const c=catOf(x);(G[c.id]=G[c.id]||{c,rs:[]}).rs.push([x,i])});
  const ord={i:0,u:1,g:2,a:3},L=cats(),ix=id=>{const j=L.findIndex(c=>c.id==id);return j<0?999:j};
@@ -1551,7 +1558,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261122215731';
+const BUILD='20261122222523';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
