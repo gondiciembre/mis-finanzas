@@ -383,6 +383,15 @@ header{background:var(--glassF);-webkit-backdrop-filter:blur(24px) saturate(170%
 .gph{font:700 10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mut);padding:14px 4px 6px}
 .gpi{display:flex;align-items:center;gap:10px;width:100%;padding:10px 8px;border-radius:12px;text-align:left;color:var(--fg)}.gpi:hover{background:rgba(127,140,170,.1)}.gpi.on{background:var(--acc-s)}
 .gpi>i{width:10px;height:10px;border-radius:50%;flex:none}.gpi span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14.5px}.gpi.gcat span{color:var(--mut);font-style:italic}.gpi b{font:600 13px var(--mono);min-width:64px;text-align:right}.gpi svg{flex:none;opacity:.9;width:48px;height:16px;display:block}
+.gbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:18px 2px 0;font:500 12px var(--mono);color:var(--mut)}.gbar div{display:flex;gap:6px}.gbar .btn{padding:6px 10px;font-size:12px}
+.gsec{margin-top:12px;background:var(--glass);border:1px solid var(--gl);border-radius:20px;box-shadow:inset 0 1px 0 var(--glt),var(--gsh);overflow:hidden}
+.gsec .list{background:transparent;border:0;box-shadow:none;border-radius:0;border-top:1px solid var(--gl)}
+.gsh{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px 10px;text-align:left;color:var(--fg)}
+.gdot{width:12px;height:12px;border-radius:50%;flex:none}.gn{display:flex;flex-direction:column;min-width:0;flex:1}.gn b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gn small,.gv small{font-size:12px;color:var(--mut)}
+.gv{display:flex;flex-direction:column;align-items:flex-end;flex:none;text-align:right}.gv b{font:700 14px var(--mono);white-space:nowrap}.gv small{font-family:var(--mono);white-space:nowrap}
+.gch{flex:none;color:var(--mut);transition:transform .25s}.gsec.closed .gch{transform:rotate(-90deg)}
+.gpb{height:4px;margin:0 16px 12px;border-radius:2px;background:rgba(127,140,170,.16);overflow:hidden}.gpb i{display:block;height:100%;border-radius:2px;transition:width .4s}
+.gsec .add{margin:0;border-radius:0;border:0;border-top:1px solid var(--gl);width:100%}
 /* swipe */
 #app.sw-l{animation:swl .28s cubic-bezier(.2,.8,.2,1)}#app.sw-r{animation:swr .28s cubic-bezier(.2,.8,.2,1)}
 @keyframes swl{from{opacity:.2;transform:translateX(36px)}to{opacity:1;transform:none}}@keyframes swr{from{opacity:.2;transform:translateX(-36px)}to{opacity:1;transform:none}}
@@ -686,6 +695,9 @@ function vGA(){const ys=Object.keys(S.y).filter(y=>yearStats(y).tot>0).sort();co
    ${def.length?`<div class="note" style="margin-top:6px">Peor mes: ${MESL[def.sort((a,b)=>a.d-b.d)[0].i]}, con ${money(def[0].d)}.</div>`:''}</div></div>`;
  return h+`<div class="sec"><div class="sh"><h2>Flujo del año</h2></div></div>`+vFlujo()}
 
+function gCol(){try{return JSON.parse(localStorage.getItem('fin-gcol')||'[]')}catch(e){return[]}}
+function gColSet(a){try{localStorage.setItem('fin-gcol',JSON.stringify(a))}catch(e){}const y=scrollY;render();scrollTo(0,y)}
+function secFor(c,rs){const n={};rs.forEach(([x])=>n[x.s]=(n[x.s]||0)+1);const top=Object.entries(n).sort((a,b)=>b[1]-a[1])[0];if(top)return top[0];const k=Object.keys(CAT_SEC).find(k=>CAT_SEC[k]==c.id);return k||(c.t=='i'||c.t=='u'?'in':'gv')}
 function vMes(){
  const t=tot(mo),b=bal(mo),net=t.i-t.e,m=mepE();
  {let dn=0,nn=0,full=0;const pc=MES.map((_,i)=>{const T=tot(i);dn+=T.n-T.pend;nn+=T.n;const v=T.n?(T.n-T.pend)/T.n:0;if(T.n&&!T.pend)full++;return v});
@@ -696,14 +708,23 @@ function vMes(){
  h+=`<div class="grid g2" style="margin-top:12px">
  <div class="card kpi"><div class="k">Ingresos</div><div class="v">${money(t.i)}</div><div class="bar"><i style="width:${t.i?t.id/t.i*100:0}%;background:var(--up)"></i></div><div class="s">Cobrado ${money(t.id)}</div></div>
  <div class="card kpi"><div class="k">Gastos</div><div class="v">${money(t.e)}</div><div class="bar"><i style="width:${t.e?t.ed/t.e*100:0}%;background:var(--c12)"></i></div><div class="s">Pagado ${money(t.ed)}</div></div></div>`;
- for(const k in SEC){
-  const rs=R().map((x,i)=>[x,i]).filter(([x])=>x.s==k&&!(x.end!=null&&mo>=x.end));
-  const sum=rs.reduce((a,[x])=>a+(x.a[mo]||0),0),dn=rs.reduce((a,[x])=>a+(x.p[mo]?x.a[mo]||0:0),0);
-  if(!rs.length&&k=='ot')continue;
-  h+=`<div class="sec"><div class="sh"><h2><span class="tag" style="--ac:${SAC[k]}">${k.toUpperCase()}</span>${SEC[k]}</h2><span class="m">${money(dn)} / ${money(sum)}</span></div><div class="list">`;
-  for(const [x,i] of rs){const a=x.a[mo]||0,d=x.p[mo],lab=k=='in'?['Cobrado','Estimado']:['Pagado','Estimado'];
-   h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${d?lab[0]:!d&&x.a[mo]&&x.uva&&LD?'Estimado · UVA en vivo + inflación':!d&&x.a[mo]&&x.alq&&contractFor(x.n,ymK(yr,mo))?'Estimado · contrato':lab[1]}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
-  h+=`<button class="add" data-add="${k}">+ Agregar</button></div></div>`}
+ const all=R().map((x,i)=>[x,i]).filter(([x])=>!(x.end!=null&&mo>=x.end)),G={};
+ all.forEach(([x,i])=>{const c=catOf(x);(G[c.id]=G[c.id]||{c,rs:[]}).rs.push([x,i])});
+ const ord={i:0,u:1,g:2,a:3},L=cats(),ix=id=>{const j=L.findIndex(c=>c.id==id);return j<0?999:j};
+ const groups=Object.values(G).sort((p,q)=>(ord[p.c.t]??4)-(ord[q.c.t]??4)||ix(p.c.id)-ix(q.c.id));
+ const col=gCol();
+ h+=`<div class="gbar"><span>${groups.length} categorías</span><div><button class="btn" data-gcol="all">Contraer todo</button><button class="btn" data-gcol="none">Expandir todo</button></div></div>`;
+ for(const g of groups){const c=g.c,isIn=c.t=='i'||c.t=='u',rs=g.rs,cc=catColor(c);
+  const sum=rs.reduce((a,[x])=>a+(x.a[mo]||0),0),dn=rs.reduce((a,[x])=>a+(x.p[mo]?x.a[mo]||0:0),0),rest=sum-dn,pend=rs.filter(([x])=>x.a[mo]&&!x.p[mo]).length,closed=col.includes(c.id);
+  if(!sum&&!rs.length)continue;
+  h+=`<div class="sec gsec${closed?' closed':''}"><button class="gsh" data-gtg="${esc(c.id)}" aria-expanded="${!closed}"><i class="gdot" style="background:${cc}"></i><span class="gn"><b>${esc(c.n)}</b><small>${rs.length} concepto${rs.length>1?'s':''}${pend?' · '+pend+' pendiente'+(pend>1?'s':''):sum?' · al día':''}</small></span>
+   <span class="gv"><b class="${rest?'':'pos'}">${rest?(isIn?'Resta cobrar ':'Resta ')+money(rest):sum?'✓ '+(isIn?'Cobrado':'Pagado'):'$ 0'}</b><small>${sum?'de '+money(sum):'sin montos este mes'}</small></span><svg class="gch" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+   <div class="gpb"><i style="width:${sum?dn/sum*100:0}%;background:${cc}"></i></div>`;
+  if(!closed){h+=`<div class="list">`;
+   for(const [x,i] of rs){const a=x.a[mo]||0,d=x.p[mo],lab=isIn||x.s=='in'?['Cobrado','Estimado']:['Pagado','Estimado'];
+    h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${d?lab[0]:!d&&x.a[mo]&&x.uva&&LD?'Estimado · UVA en vivo + inflación':!d&&x.a[mo]&&x.alq&&contractFor(x.n,ymK(yr,mo))?'Estimado · contrato':lab[1]}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
+   h+=`<button class="add" data-add="${secFor(c,rs)}" data-addc="${esc(c.id)}">+ Agregar en ${esc(c.n)}</button></div>`}
+  h+=`</div>`}
  return h}
 function vAnio(){
  let h='<div class="tw"><table><tr><th></th>'+MES.map(m=>`<th>${m}</th>`).join('')+'</tr>';
@@ -1450,7 +1471,7 @@ function render(){drawEye();if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'});
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -1512,7 +1533,9 @@ document.addEventListener('click',e=>{
   closeSheet();save();toast(hist?`${x.n}: eliminado desde ${MESL[m].toLowerCase()}`:`${x.n}: eliminado`);return render()}
  if(d.chk!==undefined){const x=R()[+d.chk];x.p[mo]=x.p[mo]?0:1;save();const y=scrollY;render();scrollTo(0,y);return}
  if(d.ed!==undefined){if(d.m!==undefined)mo=+d.m;return sheet(+d.ed,mo)}
- if(d.add)return sheet(-1,mo,d.add);
+ if(d.gtg){const a=gCol(),k=d.gtg;return gColSet(a.includes(k)?a.filter(z=>z!=k):[...a,k])}
+ if(d.gcol){return gColSet(d.gcol=='all'?[...new Set(R().map(x=>catOf(x).id))]:[])}
+ if(d.add){const r=sheet(-1,mo,d.add);if(d.addc){const s=$('#scat');if(s&&[...s.options].some(o=>o.value==d.addc))s.value=d.addc}return r}
  if(d.mo!==undefined){mo=+d.mo;if(d.go)tab=d.go;return render()}
  if(d.tab){tab=d.tab;return render()}
  if(d.yr){yr+=+d.yr;if(!S.y[yr])ensure(yr),save();return render()}
@@ -1522,7 +1545,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261122203854';
+const BUILD='20261122214513';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
