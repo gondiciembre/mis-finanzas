@@ -296,7 +296,7 @@ button.li:hover{background:var(--panel2)}
 table{border-collapse:collapse;font:500 12px var(--mono);width:100%}
 th,td{padding:8px 7px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
 th{color:var(--dim);font-weight:700;text-transform:uppercase;font-size:10.5px;letter-spacing:.06em}
-td:first-child,th:first-child{text-align:left;position:sticky;left:0;background:var(--panel);min-width:120px;max-width:150px;overflow:hidden;text-overflow:ellipsis;font-family:var(--sans);font-size:12.5px}
+td:first-child,th:first-child{text-align:left;position:sticky;left:0;background:var(--panel);min-width:140px;max-width:170px;overflow:hidden;text-overflow:ellipsis;font-family:var(--sans);font-size:12.5px}
 td.g{background:var(--up-s);color:var(--up);font-weight:700}td.cl{cursor:pointer}td.cl:hover{background:var(--panel2)}
 tr.sc td{background:var(--panel2);color:var(--acc);font:700 10.5px var(--mono);text-transform:uppercase;letter-spacing:.08em}
 tr.tt td{font-weight:700}
@@ -392,6 +392,9 @@ header{background:var(--glassF);-webkit-backdrop-filter:blur(24px) saturate(170%
 .gch{flex:none;color:var(--mut);transition:transform .25s}.gsec.closed .gch{transform:rotate(-90deg)}
 .gpb{height:4px;margin:0 16px 12px;border-radius:2px;background:rgba(127,140,170,.16);overflow:hidden}.gpb i{display:block;height:100%;border-radius:2px;transition:width .4s}
 .gsec .add{margin:0;border-radius:0;border:0;border-top:1px solid var(--gl);width:100%}
+tr.cg td{background:var(--panel2);font:700 12px var(--mono);border-top:1px solid var(--line)}.cgw{display:flex;align-items:center;gap:6px;min-width:0}
+.cgb{display:flex;align-items:center;gap:7px;color:var(--fg);font:700 12.5px var(--sans);min-width:0;flex:1;text-align:left}.cgb span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cgb .gdot{width:9px;height:9px}
+tr.cg.closed .gch{transform:rotate(-90deg)}tr.cg .addm{margin-left:auto;padding:1px 7px}tr.cg td.g{background:var(--up-s);color:var(--up)}
 /* swipe */
 #app.sw-l{animation:swl .28s cubic-bezier(.2,.8,.2,1)}#app.sw-r{animation:swr .28s cubic-bezier(.2,.8,.2,1)}
 @keyframes swl{from{opacity:.2;transform:translateX(36px)}to{opacity:1;transform:none}}@keyframes swr{from{opacity:.2;transform:translateX(-36px)}to{opacity:1;transform:none}}
@@ -727,11 +730,14 @@ function vMes(){
   h+=`</div>`}
  return h}
 function vAnio(){
- let h='<div class="tw"><table><tr><th></th>'+MES.map(m=>`<th>${m}</th>`).join('')+'</tr>';
- for(const k in SEC){
-  const rs=R().map((x,i)=>[x,i]).filter(([x])=>x.s==k);if(!rs.length)continue;
-  h+=`<tr class="sc"><td colspan="13"><span>${SEC[k]}</span><button class="addm" data-add="${k}">+ Agregar</button></td></tr>`;
-  for(const [x,i] of rs)h+=`<tr><td>${esc(x.n)}</td>`+x.a.map((a,m)=>`<td class="cl${x.p[m]?' g':''}" data-ed="${i}" data-m="${m}">${a?short(a):''}</td>`).join('')+'</tr>'}
+ let h=`<div class="gbar" style="margin-top:0;margin-bottom:10px"><span>Por categoría</span><div><button class="btn" data-gcol="all">Contraer todo</button><button class="btn" data-gcol="none">Expandir todo</button></div></div>`;
+ h+='<div class="tw"><table><tr><th></th>'+MES.map(m=>`<th>${m}</th>`).join('')+'</tr>';
+ const G={};R().forEach((x,i)=>{const c=catOf(x);(G[c.id]=G[c.id]||{c,rs:[]}).rs.push([x,i])});
+ const ord={i:0,u:1,g:2,a:3},L=cats(),ix=id=>{const j=L.findIndex(c=>c.id==id);return j<0?999:j},col=gCol();
+ Object.values(G).sort((p,q)=>(ord[p.c.t]??4)-(ord[q.c.t]??4)||ix(p.c.id)-ix(q.c.id)).forEach(g=>{const c=g.c,closed=col.includes(c.id),cc=catColor(c);
+  const sm=MES.map((_,m)=>g.rs.reduce((a,[x])=>a+(x.a[m]||0),0)),pd=MES.map((_,m)=>g.rs.every(([x])=>!x.a[m]||x.p[m])&&sm[m]>0);
+  h+=`<tr class="cg${closed?' closed':''}"><td><div class="cgw"><button class="cgb" data-gtg="${esc(c.id)}" aria-expanded="${!closed}"><svg class="gch" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><i class="gdot" style="background:${cc}"></i><span>${esc(c.n)}</span></button><button class="addm" data-add="${secFor(c,g.rs)}" data-addc="${esc(c.id)}" aria-label="Agregar en ${esc(c.n)}">+</button></div></td>`+sm.map((v,m)=>`<td class="${pd[m]?'g':''}">${v?short(v):''}</td>`).join('')+'</tr>';
+  if(!closed)for(const [x,i] of g.rs)h+=`<tr><td>${esc(x.n)}</td>`+x.a.map((a,m)=>`<td class="cl${x.p[m]&&a?' g':''}" data-ed="${i}" data-m="${m}">${a?short(a):''}</td>`).join('')+'</tr>'});
  const T=[...Array(12).keys()].map(m=>tot(m));
  h+='<tr class="sc"><td colspan="13">Totales</td></tr>';
  h+='<tr class="tt"><td>Ingresos</td>'+T.map(t=>`<td>${short(t.i)}</td>`).join('')+'</tr>';
@@ -1545,7 +1551,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261122214513';
+const BUILD='20261122215731';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
