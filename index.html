@@ -609,7 +609,11 @@ function sacAuto(){let ch=false;Object.keys(S.y).forEach(y=>{const R0=S.y[y],b=R
    if(!w){if(cur&&k<NOWK)continue;if(cur||!x.p[m]){x.a[m]=0;x.p[m]=1;ch=true}continue}
    if(k<NOWK&&x.p[m])continue;if(cur!=w){x.a[m]=w;ch=true}if(x.p[m]&&!cur){x.p[m]=0;ch=true}}});
  return ch}
-function loanAuto(){if(!S||!S.y)return false;let ch=false;try{ch=rentAuto()}catch(e){}try{ch=loanAutoQ()||ch}catch(e){}try{ch=rsuAuto()||ch}catch(e){}try{ch=sacAuto()||ch}catch(e){}try{ch=patAuto()||ch}catch(e){}try{ch=bilAuto()||ch}catch(e){}if(ch)save();return ch}
+/* migración: Billetera Gonza vuelve a ser fija ($ 500.000 desde dic 2026) */
+function bilFix(){if(S.bil&&S.bil.mig1)return false;S.bil={...(S.bil||{}),on:false,mig1:1};const fy=2026;
+ Object.keys(S.y).map(Number).sort((a,b)=>a-b).forEach(y=>{const x=S.y[y].find(z=>z.n==BIL_DEF.name);if(x){delete x.bil;for(let m=0;m<12;m++){if(ymK(y,m)<'2026-12'||x.p[m])continue;x.a[m]=500000}x.rep=true}
+  if(y>fy&&S.y[y-1])S.o[y]=Math.round(bal(11,y-1).est)});return true}
+function loanAuto(){if(!S||!S.y)return false;let ch=false;try{ch=bilFix()}catch(e){}try{ch=rentAuto()}catch(e){}try{ch=loanAutoQ()||ch}catch(e){}try{ch=rsuAuto()||ch}catch(e){}try{ch=sacAuto()||ch}catch(e){}try{ch=patAuto()||ch}catch(e){}try{ch=bilAuto()||ch}catch(e){}if(ch)save();return ch}
 function loanMath(L,uva){const r=L.tna/1200,n=L.n,P=L.uva0,c=P*r/(1-Math.pow(1+r,-n));
  let k=0;const d0=new Date(L.first+'T12:00:00');for(let i=0;i<n;i++){const d=new Date(d0);d.setMonth(d0.getMonth()+i);if(d.toISOString().slice(0,10)<=TODAY)k++;else break}
  const g=Math.pow(1+r,k),bal=P*g-c*(g-1)/r,intRest=c*(n-k)-bal;
@@ -867,7 +871,7 @@ function vMes(){
  h+=`<div class="grid g2" style="margin-top:12px">
  <div class="card kpi"><div class="k">Ingresos</div><div class="v">${money(t.i)}</div><div class="bar"><i style="width:${t.i?t.id/t.i*100:0}%;background:var(--up)"></i></div><div class="s">Cobrado ${money(t.id)}</div></div>
  <div class="card kpi"><div class="k">Gastos</div><div class="v">${money(t.e)}</div><div class="bar"><i style="width:${t.e?t.ed/t.e*100:0}%;background:var(--c12)"></i></div><div class="s">Pagado ${money(t.ed)}</div></div></div>`;
- {const by={i:0,u:0,g:0,a:0},dn={g:0,a:0};let vest=0;R().forEach(x=>{if(x.end!=null&&mo>=x.end)return;if(x.bil&&ymK(yr,mo)>=bilCfg().from)return;if(isVest(x))vest+=x.a[mo]||0;const v=x.a[mo]||0,ty=catOf(x).t;if(ty in by)by[ty]+=v;if(x.p[mo]&&ty in dn)dn[ty]+=v});
+ {const by={i:0,u:0,g:0,a:0},dn={g:0,a:0};let vest=0;R().forEach(x=>{if(x.end!=null&&mo>=x.end)return;if(x.bil&&bilCfg().on&&ymK(yr,mo)>=bilCfg().from)return;if(isVest(x))vest+=x.a[mo]||0;const v=x.a[mo]||0,ty=catOf(x).t;if(ty in by)by[ty]+=v;if(x.p[mo]&&ty in dn)dn[ty]+=v});
   const cap=by.i-by.g,inv=by.a,left=cap-inv,pct=cap>0?Math.min(100,inv/cap*100):0,rate=by.i?cap/by.i*100:0;
   h+=`<div class="card kpi capbox" style="margin-top:12px"><div class="k" style="display:flex;justify-content:space-between;gap:8px"><span>Capacidad de inversión · ${MESL[mo]}</span>${by.i?`<span class="pill ${cap<0?'dn':rate>=20?'up':'nt'}">${pc0(rate)} del ingreso</span>`:''}</div>
    <div class="v ${cap<0?'neg':'pos'}">${money(cap)}</div>
@@ -895,7 +899,7 @@ function vMes(){
    <div class="gpb"><i style="width:${sum?dn/sum*100:0}%;background:${cc}"></i></div>`;
   if(!closed){h+=`<div class="list">`;
    for(const [x,i] of rs){const a=x.a[mo]||0,d=x.p[mo],lab=isIn||x.s=='in'?['Cobrado','Estimado']:['Pagado','Estimado'];
-    h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${d?lab[0]:!d&&x.bil&&ymK(yr,mo)>=bilCfg().from?'Estimado · lo que queda disponible':!d&&x.a[mo]&&x.sac?'Estimado · 50% del mejor sueldo '+(mo<6?'ene–jun':'jul–dic'):!d&&x.a[mo]&&x.pat&&ymK(yr,mo)>=NOWK&&carOps().some(o=>o.patG)?'Estimado · patente PBA del auto nuevo':!d&&x.a[mo]&&x.rsu&&ymK(yr,mo)>=NOWK?'Estimado · '+(x.vd&&x.vd[ymK(yr,mo)]?fd(x.vd[ymK(yr,mo)]).slice(0,5)+' · ':'')+'neto 35% × MEP '+f2u(mepE()):!d&&x.a[mo]&&x.uva&&LD?'Estimado · UVA en vivo + inflación':!d&&x.a[mo]&&x.alq&&contractFor(x.n,ymK(yr,mo))?'Estimado · contrato':lab[1]}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
+    h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${d?lab[0]:!d&&x.bil&&bilCfg().on&&ymK(yr,mo)>=bilCfg().from?'Estimado · lo que queda disponible':!d&&x.a[mo]&&x.sac?'Estimado · 50% del mejor sueldo '+(mo<6?'ene–jun':'jul–dic'):!d&&x.a[mo]&&x.pat&&ymK(yr,mo)>=NOWK&&carOps().some(o=>o.patG)?'Estimado · patente PBA del auto nuevo':!d&&x.a[mo]&&x.rsu&&ymK(yr,mo)>=NOWK?'Estimado · '+(x.vd&&x.vd[ymK(yr,mo)]?fd(x.vd[ymK(yr,mo)]).slice(0,5)+' · ':'')+'neto 35% × MEP '+f2u(mepE()):!d&&x.a[mo]&&x.uva&&LD?'Estimado · UVA en vivo + inflación':!d&&x.a[mo]&&x.alq&&contractFor(x.n,ymK(yr,mo))?'Estimado · contrato':lab[1]}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
    h+=`<button class="add" data-add="${secFor(c,rs)}" data-addc="${esc(c.id)}">+ Agregar en ${esc(c.n)}</button></div>`}
   h+=`</div>`}
  if(curSec)h+=`</div>`;
@@ -1733,7 +1737,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261123045150';
+const BUILD='20261123050039';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
