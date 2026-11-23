@@ -562,13 +562,24 @@ function bilAuto(){const B=bilCfg();if(!B.on||!B.name)return false;let ch=false;
   carry=run}
  return ch}
 /* RSU: vestings y dividendos netos (35%) en pesos al MEP, desde el mes actual */
-const RSU_ROWS={d:{n:'Dividendo RSU XOM',c:'ren'},v:{n:'Vesting RSU XOM',c:'ext'}};
+const RSU_ROWS={d:{n:'Dividendo RSU XOM',c:'ren'},v:{n:'Vesting RSU XOM',c:'ext'}},RSU_V=['Vesting RSU XOM (1)','Vesting RSU XOM (2)'];
+const isVest=x=>x.n==RSU_ROWS.v.n||RSU_V.includes(x.n);
 function rsuAuto(){const I=S.inv;if(!I||!I.rsu||!I.rsu.g||!I.rsu.g.length)return false;let F;try{F=rsuFlows()}catch(e){return false}
- const m=mepE();if(!m)return false;const sum={d:{},v:{}};F.forEach(f=>{const k=f.d.slice(0,7);sum[f.ty][k]=(sum[f.ty][k]||0)+f.x*m});let ch=false;
- for(const ty of ['d','v']){const def=RSU_ROWS[ty];Object.keys(S.y).forEach(y=>{let x=S.y[y].find(z=>z.n==def.n);
-  for(let mm=0;mm<12;mm++){const k=ymK(+y,mm);if(k<NOWK)continue;const v=Math.round(sum[ty][k]||0);
-   if(!x){if(!v)continue;x={s:'in',n:def.n,a:Array(12).fill(0),p:Array(12).fill(0),c:def.c};S.y[y].push(x);ch=true}
-   x.rsu=1;if(x.p[mm])continue;if((x.a[mm]||0)!=v){x.a[mm]=v;ch=true}}})}
+ const m=mepE();if(!m)return false;let ch=false;
+ // quitar la fila única anterior (la reemplazan las dos cuotas)
+ Object.keys(S.y).forEach(y=>{const i=S.y[y].findIndex(z=>z.n==RSU_ROWS.v.n&&z.rsu&&!z.a.some((v,k)=>v&&z.p[k]&&ymK(+y,k)<NOWK));if(i>=0){S.y[y].splice(i,1);ch=true}});
+ const want={};[RSU_ROWS.d.n,...RSU_V].forEach(n=>want[n]={});const dates={};
+ F.filter(f=>f.ty=='d').forEach(f=>{const k=f.d.slice(0,7);want[RSU_ROWS.d.n][k]=(want[RSU_ROWS.d.n][k]||0)+f.x*m;(dates[RSU_ROWS.d.n]=dates[RSU_ROWS.d.n]||{})[k]=f.d});
+ const vm={};F.filter(f=>f.ty=='v').forEach(f=>{(vm[f.d.slice(0,7)]=vm[f.d.slice(0,7)]||[]).push(f)});
+ Object.entries(vm).forEach(([k,L])=>{L.sort((a,b)=>a.d<b.d?-1:1).forEach((f,i)=>{const n=RSU_V[Math.min(i,RSU_V.length-1)];want[n][k]=(want[n][k]||0)+f.x*m;(dates[n]=dates[n]||{})[k]=f.d})});
+ Object.keys(want).forEach(n=>{const c=n==RSU_ROWS.d.n?RSU_ROWS.d.c:RSU_ROWS.v.c;Object.keys(S.y).forEach(y=>{let x=S.y[y].find(z=>z.n==n);
+  const any=Object.keys(want[n]).some(k=>k.startsWith(y+'-'));if(!x&&!any)return;
+  if(!x){x={s:'in',n,a:Array(12).fill(0),p:Array(12).fill(0),c};S.y[y].push(x);ch=true}
+  x.rsu=1;x.vd=dates[n]||{};
+  for(let mm=0;mm<12;mm++){const k=ymK(+y,mm),cur=x.a[mm]||0;
+   if(k<NOWK){if(!cur&&!x.p[mm]){x.p[mm]=1;ch=true}continue}
+   if(x.p[mm]&&cur)continue;const v=Math.round(want[n][k]||0),pz=v?0:1;
+   if(cur!=v||(x.p[mm]?1:0)!=pz){x.a[mm]=v;x.p[mm]=pz;ch=true}}})});
  return ch}
 function loanAuto(){if(!S||!S.y)return false;let ch=false;try{ch=rentAuto()}catch(e){}try{ch=loanAutoQ()||ch}catch(e){}try{ch=rsuAuto()||ch}catch(e){}try{ch=bilAuto()||ch}catch(e){}if(ch)save();return ch}
 function loanMath(L,uva){const r=L.tna/1200,n=L.n,P=L.uva0,c=P*r/(1-Math.pow(1+r,-n));
@@ -731,7 +742,7 @@ function vMes(){
  h+=`<div class="grid g2" style="margin-top:12px">
  <div class="card kpi"><div class="k">Ingresos</div><div class="v">${money(t.i)}</div><div class="bar"><i style="width:${t.i?t.id/t.i*100:0}%;background:var(--up)"></i></div><div class="s">Cobrado ${money(t.id)}</div></div>
  <div class="card kpi"><div class="k">Gastos</div><div class="v">${money(t.e)}</div><div class="bar"><i style="width:${t.e?t.ed/t.e*100:0}%;background:var(--c12)"></i></div><div class="s">Pagado ${money(t.ed)}</div></div></div>`;
- {const by={i:0,u:0,g:0,a:0},dn={g:0,a:0};let vest=0;R().forEach(x=>{if(x.end!=null&&mo>=x.end)return;if(x.bil&&ymK(yr,mo)>=bilCfg().from)return;if(x.n==RSU_ROWS.v.n)vest+=x.a[mo]||0;const v=x.a[mo]||0,ty=catOf(x).t;if(ty in by)by[ty]+=v;if(x.p[mo]&&ty in dn)dn[ty]+=v});
+ {const by={i:0,u:0,g:0,a:0},dn={g:0,a:0};let vest=0;R().forEach(x=>{if(x.end!=null&&mo>=x.end)return;if(x.bil&&ymK(yr,mo)>=bilCfg().from)return;if(isVest(x))vest+=x.a[mo]||0;const v=x.a[mo]||0,ty=catOf(x).t;if(ty in by)by[ty]+=v;if(x.p[mo]&&ty in dn)dn[ty]+=v});
   const cap=by.i-by.g,inv=by.a,left=cap-inv,pct=cap>0?Math.min(100,inv/cap*100):0,rate=by.i?cap/by.i*100:0;
   h+=`<div class="card kpi capbox" style="margin-top:12px"><div class="k" style="display:flex;justify-content:space-between;gap:8px"><span>Capacidad de inversión · ${MESL[mo]}</span>${by.i?`<span class="pill ${cap<0?'dn':rate>=20?'up':'nt'}">${pc0(rate)} del ingreso</span>`:''}</div>
    <div class="v ${cap<0?'neg':'pos'}">${money(cap)}</div>
@@ -752,7 +763,7 @@ function vMes(){
    <div class="gpb"><i style="width:${sum?dn/sum*100:0}%;background:${cc}"></i></div>`;
   if(!closed){h+=`<div class="list">`;
    for(const [x,i] of rs){const a=x.a[mo]||0,d=x.p[mo],lab=isIn||x.s=='in'?['Cobrado','Estimado']:['Pagado','Estimado'];
-    h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${d?lab[0]:!d&&x.bil&&ymK(yr,mo)>=bilCfg().from?'Estimado · lo que queda disponible':!d&&x.a[mo]&&x.rsu&&ymK(yr,mo)>=NOWK?'Estimado · neto 35% × MEP '+f2u(mepE()):!d&&x.a[mo]&&x.uva&&LD?'Estimado · UVA en vivo + inflación':!d&&x.a[mo]&&x.alq&&contractFor(x.n,ymK(yr,mo))?'Estimado · contrato':lab[1]}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
+    h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${d?lab[0]:!d&&x.bil&&ymK(yr,mo)>=bilCfg().from?'Estimado · lo que queda disponible':!d&&x.a[mo]&&x.rsu&&ymK(yr,mo)>=NOWK?'Estimado · '+(x.vd&&x.vd[ymK(yr,mo)]?fd(x.vd[ymK(yr,mo)]).slice(0,5)+' · ':'')+'neto 35% × MEP '+f2u(mepE()):!d&&x.a[mo]&&x.uva&&LD?'Estimado · UVA en vivo + inflación':!d&&x.a[mo]&&x.alq&&contractFor(x.n,ymK(yr,mo))?'Estimado · contrato':lab[1]}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
    h+=`<button class="add" data-add="${secFor(c,rs)}" data-addc="${esc(c.id)}">+ Agregar en ${esc(c.n)}</button></div>`}
   h+=`</div>`}
  return h}
@@ -1578,7 +1589,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261123014804';
+const BUILD='20261123024346';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
