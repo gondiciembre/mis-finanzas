@@ -198,7 +198,7 @@ h1{font-size:24px;line-height:1.15;margin:4px 0 0;font-weight:700;letter-spacing
 
 /* holdings */
 .grp{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:12px}
-.gh{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--panel2);border-bottom:1px solid var(--line);font-weight:700}
+.gh{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--panel2);border-bottom:1px solid var(--line);font-weight:700;width:100%;text-align:left;color:var(--fg);font-size:14px}.grp.closed .gh{border-bottom:0}.grp.closed .gch{transform:rotate(-90deg)}.ghn{display:flex;flex-direction:column;min-width:0}.ghn small{font:500 11.5px var(--mono);color:var(--mut)}
 .gh .sw{background:var(--cc)}
 .gh .gv{margin-left:auto;font:700 14px var(--mono)}
 .gh .gp{font:500 12px var(--mono);color:var(--mut);min-width:48px;text-align:right}
@@ -1366,6 +1366,8 @@ function histChart(T){const P=HIST?Object.entries(HIST.pts).sort((a,b)=>a[0]<b[0
 /* ---------- vista Cartera ---------- */
 function liveBar(){const st=LIVE.st=='run'?['nt','Actualizando…']:LIVE.st=='ok'?['up','En vivo · '+hhmm(LIVE.at)]:Q&&Q.ts?['nt','Cotización '+hhmm(Q.ts)]:['nt','Sin cotización'];
  return `<div class="hrow2" style="margin-top:0;margin-bottom:12px"><span class="pill ${st[0]}">${st[1]}</span><button class="btn" data-refresh="1">↻ Actualizar</button><button class="btn" data-addtk="1">+ Agregar ticker</button></div>`}
+function iCol(){try{return JSON.parse(localStorage.getItem('fin-icol')||'[]')}catch(e){return[]}}
+function iColSet(a){try{localStorage.setItem('fin-icol',JSON.stringify(a))}catch(e){}const y=scrollY;render();scrollTo(0,y)}
 function vInv(){const I=S.inv;if(!I)return none('Todavía no hay datos de inversiones.');
  const P=port(),{T,D,by,m}=P,cost=I.cost||0,res=T*m-cost,np=P.items.filter(x=>x.np);
  recordHist(T,m);
@@ -1373,15 +1375,17 @@ function vInv(){const I=S.inv;if(!I)return none('Todavía no hay datos de invers
  let h=liveBar()+`<div class="hero"><div class="k">Patrimonio invertido</div><div class="big"><small>US$</small>${HV(nfu.format(Math.round(T)))}</div><div class="s">${HV(money(T*m))} · MEP ${m.toLocaleString('es-AR',{minimumFractionDigits:2})}</div>
  <div class="hrow2"><span class="pill ${sgn(D)}">Hoy ${D>=0?'+':'−'}${usd(Math.abs(D))} · ${pct(D/(T-D)*100,2)}</span>${cost?`<button class="pill ${sgn(res)}" data-cost="1">Resultado ${res>=0?'+':'−'}${usd(Math.abs(res)/m)} · ${pct(res/cost*100)}</button>`:'<button class="pill nt" data-cost="1">Cargar total invertido</button>'}<span class="pill nt">Renta 12m ${usd(inc)}</span></div>
  <div class="stack" aria-hidden="true">${CORD.filter(k=>by[k].v>0).map(k=>`<i style="width:${by[k].v/T*100}%;background:${CL[k][1]}"></i>`).join('')}</div></div>`;
- h+=histChart(T);
  h+='<div class="grid g5" style="margin-top:12px">'+CORD.filter(k=>by[k].n).map(k=>{const b=by[k],dp=b.v-b.d?b.d/(b.v-b.d)*100:0;
   return `<div class="card kpi ct" style="--cc:${CL[k][1]}"><div class="k"><span style="display:flex;align-items:center;gap:7px"><i class="sw"></i>${CL[k][0]}</span><span>${pc0(b.v/T*100)}</span></div><div class="v">${usd(b.v)}</div><div class="s"><span class="${sgn(b.d)}">${b.d?pct(dp,2):'—'}</span> · ${b.d>=0?'+':'−'}${usd(Math.abs(b.d))} hoy</div></div>`}).join('')+'</div>';
  const mov=P.items.filter(x=>x.ch!=null&&!x.cash).sort((a,b)=>b.ch-a.ch);
  if(mov.length){const top=[...mov.slice(0,3),...mov.slice(-3).reverse()];
   h+=`<div class="sec"><div class="sh"><h2>Variación diaria</h2><span class="m">${Q&&Q.ts?'precios '+hhmm(Q.ts):''}</span></div><div class="grid g3">`+top.map(x=>`<div class="card kpi" style="padding:12px 14px"><div class="k"><span>${esc(x.t)}</span><span class="pill ${sgn(x.ch)}">${pct(x.ch,2)}</span></div><div class="v" style="font-size:19px;margin-top:8px">${usd(x.v)}</div><div class="s">${x.dU>=0?'+':'−'}${usd2(Math.abs(x.dU))} hoy</div></div>`).join('')+'</div></div>'}
- h+=`<div class="sec"><div class="sh"><h2>Tenencias por clase</h2><span class="m">${P.items.length} posiciones · USD</span></div>`;
- CORD.forEach(k=>{const xs=P.items.filter(x=>x.c==k).sort((a,b)=>b.v-a.v);if(!xs.length)return;
-  h+=`<div class="grp" style="--cc:${CL[k][1]}"><div class="gh"><i class="sw"></i>${CL[k][0]}<span class="gv">${usd(by[k].v)}</span><span class="gp">${pc0(by[k].v/T*100)}</span></div><div class="thd hr"><span>Ticker</span><span>Instrumento</span><span>Cantidad</span><span>Precio US$</span><span>Valor US$</span><span>Día</span><span>Peso</span></div>`;
+ const icol=iCol();
+ h+=`<div class="sec"><div class="sh"><h2>Tenencias por clase</h2><span class="m">${P.items.length} posiciones · USD</span></div><div class="gbar" style="margin:0 2px 2px"><span>${CORD.filter(k=>P.items.some(x=>x.c==k)).length} clases</span><div><button class="btn" data-icol="all">Contraer todo</button><button class="btn" data-icol="none">Expandir todo</button></div></div>`;
+ CORD.forEach(k=>{const xs=P.items.filter(x=>x.c==k).sort((a,b)=>b.v-a.v);if(!xs.length)return;const closed=icol.includes(k),b=by[k],dp=b.v-b.d?b.d/(b.v-b.d)*100:0;
+  h+=`<div class="grp${closed?' closed':''}" style="--cc:${CL[k][1]}"><button class="gh" data-itg="${k}" aria-expanded="${!closed}"><svg class="gch" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><i class="sw"></i><span class="ghn">${CL[k][0]}<small>${xs.length} ${xs.length>1?'posiciones':'posición'}${b.d?` · <span class="${sgn(b.d)}">${pct(dp,2)} hoy</span>`:''}</small></span><span class="gv">${usd(b.v)}</span><span class="gp">${pc0(b.v/T*100)}</span></button>`;
+  if(closed){h+='</div>';return}
+  h+=`<div class="thd hr"><span>Ticker</span><span>Instrumento</span><span>Cantidad</span><span>Precio US$</span><span>Valor US$</span><span>Día</span><span>Peso</span></div>`;
   h+=xs.map(x=>{const tagS=x.live?'<span class="src" title="Precio de mercado">LIVE</span>':x.man?'<span class="src w" title="Precio cargado a mano">MAN</span>':x.h&&x.h.stale?'<span class="src w" title="Precio desactualizado">OLD</span>':'';
    const f2=n=>n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
    const pxs=x.cash?'—':x.np?'s/p':f2(x.px);
@@ -1392,6 +1396,7 @@ function vInv(){const I=S.inv;if(!I)return none('Todavía no hay datos de invers
    <div class="vv">${x.np?'<b class="mutc">Sin precio</b><small>'+(x.h.k=='est'?'VN US$ '+nfu.format(x.h.q):'tocá para cargar')+'</small>':`<b>${usd(x.v)}</b><small>${x.cash?'':pxs+' · '}<span class="${x.ch==null?'':sgn(x.ch)}">${x.ch==null?'—':pct(x.ch,2)}</span> · ${pc0(x.v/T*100)}</small>`}</div>`;
    return x.i>=0?`<button class="hr" data-hp="${x.i}">${inner}</button>`:`<button class="hr" data-cash="${x.ci}">${inner}</button>`}).join('')+'</div>'});
  h+='</div>';
+ h+=`<div style="margin-top:18px">${histChart(T)}</div>`;
  return h+`<div class="note">Precios en D (dólar MEP) directos de BYMA vía ${esc(Q&&Q.src||'rendimientos.co')}; los bonos y ONs cotizan cada 100 VN. Se actualizan al abrir la app y cada minuto mientras está abierta. Sin cotización en D (TMVE8, BPB8D, FCI, notas): pesos ÷ MEP o último resumen de Cocos. ${np.length?np.length+' sin precio no suman al total. ':''}${cost?'Resultado contra lo invertido ('+money(cost)+'), tocalo para cambiarlo.':''} Tocá una tenencia para cambiar la cantidad, registrar una compra o venta, o eliminarla.</div>`}
 
 /* ---------- dólar: arbitraje entre tipos de cambio ---------- */
@@ -1625,7 +1630,7 @@ function render(){drawEye();if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'});
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -1666,6 +1671,8 @@ document.addEventListener('click',e=>{
  if(d.notif)return openNotif();
  if(d.gpick)return gPick();
  if(d.car)return carAct(d.car);
+ if(d.itg){const a=iCol();return iColSet(a.includes(d.itg)?a.filter(z=>z!=d.itg):[...a,d.itg])}
+ if(d.icol)return iColSet(d.icol=='all'?[...CORD]:[]);
  if(d.carsc){const [i,k]=d.carsc.split(':'),o=carOps()[+i];o.sc=k;if(o.led)carLedger(o,true);save();const y=scrollY;render();scrollTo(0,y);return}
  if(d.gsel!==undefined)return gSet(d.gsel);
  if(d.npush){const k=d.npush;if(k=='on')pushEnable();else if(k=='off')pushDisable();else if(k=='test')pushTest();else if(k=='prev')pushPreview();else if(k=='save')pushSaveCfg();else if(k=='cpfn')copyTxt(FNCODE,'Código');else if(k=='cpsql')copyTxt(pushSQL(),'SQL');return}
@@ -1701,7 +1708,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261123033857';
+const BUILD='20261123034613';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
