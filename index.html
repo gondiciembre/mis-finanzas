@@ -406,6 +406,7 @@ tr.cg.closed .gch{transform:rotate(-90deg)}tr.cg .addm{margin-left:auto;padding:
 .creco{margin-top:12px;padding:14px;border-radius:16px;border:1px solid var(--gl);background:rgba(127,140,170,.08)}.creco.up{border-color:color-mix(in srgb,var(--up) 45%,transparent);background:var(--up-s)}
 .creco .k{font:600 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}.creco>b{display:block;font-size:17px;margin:6px 0 4px}.creco.up>b{color:var(--up)}.creco p{margin:0;font-size:13.5px;line-height:1.45}
 .cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-top:10px}.cgrid div{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:12px;background:var(--glass);border:1px solid var(--gl)}.cgrid small{font:600 9.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}.cgrid b{font:700 14px var(--mono)}.cgrid span{font:600 11.5px var(--mono);color:var(--mut)}
+.csim{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13px;font-weight:600}.csim span{flex:1}.sheet .csim{display:none}.csim .inp{width:130px;margin:0;font:600 14px var(--mono);padding:8px 10px}
 /* swipe */
 #app.sw-l{animation:swl .28s cubic-bezier(.2,.8,.2,1)}#app.sw-r{animation:swr .28s cubic-bezier(.2,.8,.2,1)}
 @keyframes swl{from{opacity:.2;transform:translateX(36px)}to{opacity:1;transform:none}}@keyframes swr{from{opacity:.2;transform:translateX(-36px)}to{opacity:1;transform:none}}
@@ -714,16 +715,17 @@ function carCalc(o){const M=fxq('mep'),B=fxq('blue'),fxV=M.v;
   if(B)add('up_blue','Vendés en dólares · los vendés al blue',o.sellU*B.c,`${usdA(o.sellU)} × ${f2u(B.c)} (blue compra)`)}
  const best=sc.reduce((a,b)=>!a||b.put<a.put?b:a,null),pick=sc.find(s=>s.k==o.sc)||best;
  return{costs,tot,sc,best,pick,fxV,M,B,impl:o.sellA&&o.sellU?o.sellA/o.sellU:null,empl:o.mkt&&o.buyA?o.mkt-o.buyA:null}}
+document.addEventListener('change',e=>{const el=e.target;if(!el||!el.dataset||el.dataset.csim==null)return;const o=carOps()[+el.dataset.csim],v=parse(el.value);if(!o||!(v>0))return;o.sellU=v;o.sc=null;if(o.led)carLedger(o,true);save();const y=scrollY;render();scrollTo(0,y);toast('Oferta en dólares guardada en el cambio')});
 function carReco(o,C){const M=C.M,B=C.B,top=B&&B.c>M.c?['blue',B.c]:['MEP',M.c],pct=(a,b)=>(a>=b?'+':'')+pc0((a/b-1)*100);
  if(o.sellA&&o.sellU){const pes=C.sc.find(s=>s.k=='pp'),bu=C.sc.filter(s=>s.k!='pp').sort((a,b)=>a.put-b.put)[0],gain=bu.got-pes.got,win=gain>0;
   return `<div class="creco ${win?'up':'nt'}"><div class="k">Recomendación · cotización en vivo</div><b>${win?`Vendé en dólares y vendelos al ${top[0]}`:'Vendé en pesos'}</b>
    <p>${win?`Ganás <b>${money(gain)}</b> (${usdA(gain/C.fxV)}) contra cobrar en pesos.`:`Cobrar en pesos te deja <b>${money(-gain)}</b> más que vender los dólares hoy.`}</p>
    <div class="cgrid"><div><small>Tu oferta implica</small><b>$ ${f2u(C.impl)}</b><span>por dólar</span></div><div><small>MEP compra</small><b>$ ${f2u(M.c)}</b><span class="${M.c>C.impl?'pos':'neg'}">${pct(M.c,C.impl)}</span></div>${B?`<div><small>Blue compra</small><b>$ ${f2u(B.c)}</b><span class="${B.c>C.impl?'pos':'neg'}">${pct(B.c,C.impl)}</span></div>`:''}</div>
-   <p class="note" style="margin:8px 0 0">Vender en dólares conviene mientras el dólar se pueda vender arriba de <b>$ ${f2u(C.impl)}</b>. ${win?`Si el comprador te paga en pesos, pedí al menos ${money(bu.got)} para que dé lo mismo.`:`Para que convenga en dólares, la oferta tendría que ser de al menos ${usdA(o.sellA/top[1])}.`}</p></div>`}
+   <label class="csim"><span>Oferta en dólares</span><input class="inp" type="text" inputmode="decimal" data-csim="${carOps().indexOf(o)}" value="${o.sellU}"></label><p class="note" style="margin:8px 0 0">Vender en dólares conviene mientras el dólar se pueda vender arriba de <b>$ ${f2u(C.impl)}</b>. ${win?`Si el comprador te paga en pesos, pedí al menos ${money(bu.got)} para que dé lo mismo.`:`Para que convenga en dólares, la oferta tendría que ser de al menos ${usdA(o.sellA/top[1])}.`}</p></div>`}
  if(o.sellA)return `<div class="creco nt"><div class="k">¿Y si vendés en dólares? · cotización en vivo</div><b>Pedí al menos ${usdA(o.sellA/top[1])}</b>
    <p>Con eso igualás los ${money(o.sellA)} vendiendo los dólares al ${top[0]} ($ ${f2u(top[1])}). Cualquier oferta en dólares por encima te deja más plata.</p>
    <div class="cgrid"><div><small>Equivale al MEP</small><b>${usdA(o.sellA/M.c)}</b><span>$ ${f2u(M.c)}</span></div>${B?`<div><small>Equivale al blue</small><b>${usdA(o.sellA/B.c)}</b><span>$ ${f2u(B.c)}</span></div>`:''}</div>
-   <p class="note" style="margin:8px 0 0">Cargá la oferta en dólares en el cambio y te muestro si hay arbitraje.</p></div>`;
+   <label class="csim"><span>Probá una oferta en dólares</span><input class="inp" type="text" inputmode="decimal" data-csim="${carOps().indexOf(o)}" placeholder="US$ ${nfu.format(Math.ceil(o.sellA/top[1]/100)*100)}"></label></div>`;
  if(o.sellU)return `<div class="creco nt"><div class="k">¿Y si vendés en pesos? · cotización en vivo</div><b>Aceptá pesos solo por encima de ${money(o.sellU*top[1])}</b>
    <p>Es lo que obtenés vendiendo tus ${usdA(o.sellU)} al ${top[0]} ($ ${f2u(top[1])}).</p></div>`;
  return ''}
@@ -1679,7 +1681,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261123031354';
+const BUILD='20261123031613';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
