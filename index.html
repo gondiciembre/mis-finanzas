@@ -828,6 +828,7 @@ function carAct(k){const [a,b]=String(k).split(':'),L=carOps(),i=+b;
 function vGA(){const ys=Object.keys(S.y).filter(y=>yearStats(y).tot>0).sort();const Y=yr,st=yearStats(Y),pv=S.y[Y-1]?yearStats(Y-1):null,P=pv&&pv.tot?pv:null;
  const L=cats(),gC=L.filter(c=>c.t=='g'),iC=L.filter(c=>c.t=='i'||c.t=='u'),rate=st.incG?(st.incG-st.cons)/st.incG*100:0,mAvg=st.cons/12;
  let h=`<div class="hrow2" style="margin-top:0;margin-bottom:12px"><span class="pill nt">${Y} · ${pc0(st.tot?st.paid/st.tot*100:0)} ya pagado o cobrado</span><button class="btn" data-cats="1">Editar categorías</button></div>`;
+ h+=gastoChart().replace('class="chart gcard" style="margin-top:12px"','class="chart gcard" style="margin-top:0;margin-bottom:12px"');
  h+=`<div class="grid g3">
   <div class="card kpi"><div class="k">Ingresos</div><div class="v">${ms(st.incG)}</div><div class="s">${P?vsPrev(st.incG,P.incG)+' vs '+(Y-1)+' · ':''}${st.uso?'+ '+ms(st.uso)+' de ahorros':'sin usar ahorros'}</div></div>
   <div class="card kpi"><div class="k">Gastos</div><div class="v">${ms(st.cons)}</div><div class="s">${P?vsPrev(st.cons,P.cons)+' vs '+(Y-1)+' · ':''}${ms(mAvg)} por mes</div></div>
@@ -978,7 +979,7 @@ function vFlujo(){
  const T=[...Array(12).keys()].map(m=>tot(m)),B=[...Array(12).keys()].map(m=>bal(m)),vals=B.map(b=>b.est),op=T.map(t=>t.pend==0&&t.n?1:.45);
  const bars=barChart({cats:MES,series:[{n:'Ingresos',col:'var(--c3)',vals:T.map(t=>t.i),opi:op},{n:'Gastos',col:'var(--c2)',vals:T.map(t=>t.e),opi:op}],fy:short,H:170,aria:'Ingresos y gastos por mes',
   tip:i=>({t:MESL[i]+' '+yr,r:[['var(--c3)','Ingresos',money(T[i].i)],['var(--c2)','Gastos',money(T[i].e)],['','Resto',money(T[i].i-T[i].e)]]})});
- const line=gastoChart();
+ const line='';
  let h=`<div class="chart"><h3>Ingresos y gastos por mes</h3><div class="cs">ARS · tenue = mes con pendientes</div>${bars}${legend([['var(--c3)','Ingresos'],['var(--c2)','Gastos']])}</div>`;
  h+=line+`<div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span class="mutc" style="font-size:13px">Saldo inicial del año <button data-open="1" class="btn" style="margin-left:6px">${money(S.o[yr]||0)}</button></span><span style="font-size:13px">Fin de año proyectado <b class="mono">${money(vals[11])}</b></span></div>`;
  h+='<div class="sec"><div class="list">';
@@ -1751,7 +1752,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261123060959';
+const BUILD='20261123061439';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
