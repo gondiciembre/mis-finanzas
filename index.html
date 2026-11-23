@@ -286,8 +286,8 @@ button.li:hover{background:var(--panel2)}
 .hb .vl{text-align:right;color:var(--mut);white-space:nowrap}
 .donut{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
 .donut svg{width:150px;flex:none}
-.donut .dl{flex:1;min-width:160px;display:grid;gap:8px;font:500 12.5px var(--mono)}
-.donut .dl div{display:flex;align-items:center;gap:8px}
+.donut .dl{flex:1 1 230px;min-width:0;display:grid;gap:8px;font:500 12.5px var(--mono)}.donut svg{margin:0 auto}
+.donut .dl div{display:flex;align-items:center;gap:8px;min-width:0}
 .donut .dl b{margin-left:auto}
 .stat{display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:13px;gap:10px}
 .stat:first-of-type{border-top:0}
@@ -418,6 +418,7 @@ tr.ss td{font-size:11.5px}tr.ss.in td{color:var(--up)}tr.ss.eg td{color:var(--c2
 .srcb{margin-top:12px;padding:12px;border-radius:14px;border:1px solid var(--gl);background:rgba(127,140,170,.07)}.srch{font:600 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin-bottom:8px}
 .srcl{display:flex;flex-wrap:wrap;gap:6px}.srcc{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:7px 10px;border-radius:12px;border:1px solid var(--gl);background:var(--glass);color:var(--fg);text-align:left;max-width:100%}.srcc span{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}.srcc b{font:600 12px var(--mono);color:var(--mut)}
 .srcc.on{border-color:var(--up);background:var(--up-s)}.srcc.on b{color:var(--up)}.srcc.on span::before{content:"✓ ";color:var(--up)}.srct{margin-top:10px;font-size:13.5px}.srct:empty{display:none}
+@media(max-width:480px){.grid.g2 .kpi .v{font-size:clamp(16px,4.5vw,21px)}.fm .r{flex:none}.fm .r .t{white-space:nowrap}.kpi .v{overflow-wrap:anywhere}}
 /* swipe */
 #app.sw-l{animation:swl .28s cubic-bezier(.2,.8,.2,1)}#app.sw-r{animation:swr .28s cubic-bezier(.2,.8,.2,1)}
 @keyframes swl{from{opacity:.2;transform:translateX(36px)}to{opacity:1;transform:none}}@keyframes swr{from{opacity:.2;transform:translateX(-36px)}to{opacity:1;transform:none}}
@@ -1750,7 +1751,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261123055404';
+const BUILD='20261123060959';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
