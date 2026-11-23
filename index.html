@@ -414,6 +414,7 @@ tr.cg.closed .gch{transform:rotate(-90deg)}tr.cg .addm{margin-left:auto;padding:
 .mst{display:flex;align-items:center;gap:10px;flex:1;min-width:0}.mst>i{width:6px;height:34px;border-radius:3px;background:var(--up);flex:none}.msec.eg .mst>i{background:var(--c2)}.mst span{display:flex;flex-direction:column}.mst b{font-size:20px;letter-spacing:-.02em}.mst small,.msv small{font:500 12px var(--mono);color:var(--mut)}
 .msv{display:flex;flex-direction:column;align-items:flex-end;text-align:right}.msv b{font:700 17px var(--mono)}.msec.closed .msh .gch{transform:rotate(-90deg)}.msec.closed .gpb{margin-bottom:0}
 tr.ss td{font-size:11.5px}tr.ss.in td{color:var(--up)}tr.ss.eg td{color:var(--c2)}
+.gok{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;margin-left:7px;vertical-align:2px;color:#fff}.gok.in{background:var(--up)}.gok.eg{background:var(--dn)}.gn b{display:flex;align-items:center;min-width:0}.gnt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.gok{flex:none}.gsh .gv{flex:0 1 auto;min-width:0}.gsh .gv small,.gsh .gv b{overflow:hidden;text-overflow:ellipsis;max-width:100%}
 /* swipe */
 #app.sw-l{animation:swl .28s cubic-bezier(.2,.8,.2,1)}#app.sw-r{animation:swr .28s cubic-bezier(.2,.8,.2,1)}
 @keyframes swl{from{opacity:.2;transform:translateX(36px)}to{opacity:1;transform:none}}@keyframes swr{from{opacity:.2;transform:translateX(-36px)}to{opacity:1;transform:none}}
@@ -889,7 +890,7 @@ function vMes(){
   if(secClosed)continue;
   const sum=rs.reduce((a,[x])=>a+(x.a[mo]||0),0),dn=rs.reduce((a,[x])=>a+(x.p[mo]?x.a[mo]||0:0),0),rest=sum-dn,pend=rs.filter(([x])=>x.a[mo]&&!x.p[mo]).length,closed=col.includes(c.id);
   if(!sum&&!rs.length)continue;
-  h+=`<div class="sec gsec${closed?' closed':''}"><button class="gsh" data-gtg="${esc(c.id)}" aria-expanded="${!closed}"><i class="gdot" style="background:${cc}"></i><span class="gn"><b>${esc(c.n)}</b><small>${rs.length} concepto${rs.length>1?'s':''}${pend?' · '+pend+' pendiente'+(pend>1?'s':''):sum?' · al día':''}</small></span>
+  h+=`<div class="sec gsec${closed?' closed':''}"><button class="gsh" data-gtg="${esc(c.id)}" aria-expanded="${!closed}"><i class="gdot" style="background:${cc}"></i><span class="gn"><b><span class="gnt">${esc(c.n)}</span>${sum&&!pend?`<i class="gok ${isIn?'in':'eg'}" aria-label="Categoría completa"><svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></i>`:''}</b><small>${rs.length} concepto${rs.length>1?'s':''}${pend?' · '+pend+' pendiente'+(pend>1?'s':''):sum?' · al día':''}</small></span>
    <span class="gv"><b class="${rest?'':'pos'}">${rest?money(rest):sum?'✓ '+(isIn?'Cobrado':'Pagado'):'$ 0'}</b><small>${rest?(isIn?'por cobrar':'por pagar')+' de '+money(sum):sum?'de '+money(sum):'sin montos este mes'}</small></span><svg class="gch" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
    <div class="gpb"><i style="width:${sum?dn/sum*100:0}%;background:${cc}"></i></div>`;
   if(!closed){h+=`<div class="list">`;
@@ -1732,7 +1733,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261123044437';
+const BUILD='20261123045150';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
