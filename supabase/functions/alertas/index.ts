@@ -1,4 +1,4 @@
-// Mis finanzas · alertas push (Supabase Edge Function "alertas")
+// Finanzas Gonzo · alertas push (Supabase Edge Function "alertas")
 // Sin claves en el código: usa SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY del entorno de Supabase.
 // Las claves VAPID se generan solas la primera vez y se guardan en public.push_state (sin acceso público).
 import webpush from "npm:web-push@3.6.7";
@@ -158,7 +158,7 @@ function rules(S: Any, cfg: Any, M: Any, st: Any): Alert[] {
 async function sendTo(uid: string, push: Any, list: Alert[], keys: Any) {
   webpush.setVapidDetails("mailto:alertas@mis-finanzas.app", keys.publicKey, keys.privateKey);
   let subs = push.subs || [], dead = 0;
-  const msgs = list.length > 4 ? [{ title: `${list.length} avisos de Mis finanzas`, body: list.map((a) => a.title).join(" · "), tag: "resumen", url: "#" }] : list;
+  const msgs = list.length > 4 ? [{ title: `${list.length} avisos de Finanzas Gonzo`, body: list.map((a) => a.title).join(" · "), tag: "resumen", url: "#" }] : list;
   for (const m of msgs) for (const s of subs) {
     try { await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify({ title: m.title, body: m.body, tag: m.tag, url: m.url }), { TTL: 6 * 3600, urgency: "high" }); }
     catch (e: Any) { if (e && (e.statusCode == 404 || e.statusCode == 410)) { s.dead = 1; dead++; } }
@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
       const { data: p } = await SB.from("docs").select("data").eq("user_id", u.user.id).eq("id", "push").maybeSingle();
       if (op == "preview") { const { data: led } = await SB.from("docs").select("data").eq("user_id", u.user.id).eq("id", "ledger").maybeSingle(); const M = await market(); const cfg = { ...DEF, ...((p && p.data && p.data.cfg) || {}) }; const st = (await getState("u:" + u.user.id)) || { sent: {} }; const L = { ...LOAN_DEF, ...((led && led.data && led.data.loan) || {}) }; return json({ ok: M.ok, alerts: led ? rules(led.data, cfg, M, { ...st, daily: null }) : [], loan: loanState(L, M, dISO(nowART())) }); }
       if (!p || !(p.data.subs || []).length) return json({ error: "Este usuario no tiene dispositivos suscriptos." }, 400);
-      await sendTo(u.user.id, p.data, [{ key: "test", cat: "test", title: "Notificaciones activadas", body: "Mis finanzas te va a avisar de movimientos fuertes, el crédito UVA y decisiones pendientes.", tag: "test", url: "#" }], await vapid());
+      await sendTo(u.user.id, p.data, [{ key: "test", cat: "test", title: "Notificaciones activadas", body: "Finanzas Gonzo te va a avisar de movimientos fuertes, el crédito UVA y decisiones pendientes.", tag: "test", url: "#" }], await vapid());
       return json({ ok: true, devices: p.data.subs.length });
     }
     return json({ ok: true, users: await runAll(!!body.dry) });

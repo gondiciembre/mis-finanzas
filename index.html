@@ -2,10 +2,10 @@
 <html lang="es"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Mis finanzas</title>
+<title>Finanzas Gonzo</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Mis finanzas">
+<meta name="apple-mobile-web-app-title" content="Finanzas Gonzo">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0f1a">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -415,7 +415,7 @@ tr.cg.closed .gch{transform:rotate(-90deg)}tr.cg .addm{margin-left:auto;padding:
 </style></head>
 <body>
 <nav id="nav" aria-label="Secciones">
- <div class="brand"><b>Mis finanzas</b><span>gastos · cartera · RSU · mercados</span></div>
+ <div class="brand"><b>Finanzas Gonzo</b><span>gastos · cartera · RSU · mercados</span></div>
  <button data-grp="g"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg>Gastos</button>
  <button data-grp="i"><svg viewBox="0 0 24 24"><path d="M12 3v9l7.8 4.5"/><circle cx="12" cy="12" r="9"/></svg>Cartera</button>
  <button data-grp="r"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>RSU</button>
@@ -1167,7 +1167,7 @@ async function lockSupported(){try{return !!(window.PublicKeyCredential&&await P
 async function lockEnable(){
  if(!await lockSupported()){toast('Este dispositivo o navegador no permite Face ID / Touch ID para sitios web.');return false}
  try{const em=SESSION&&SESSION.user&&SESSION.user.email||'usuario';
-  const c=await navigator.credentials.create({publicKey:{challenge:rnd(32),rp:{name:'Mis finanzas',id:location.hostname},user:{id:rnd(16),name:em,displayName:'Mis finanzas · '+em},
+  const c=await navigator.credentials.create({publicKey:{challenge:rnd(32),rp:{name:'Finanzas Gonzo',id:location.hostname},user:{id:rnd(16),name:em,displayName:'Finanzas Gonzo · '+em},
    pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'preferred'},timeout:60000,attestation:'none'}});
   localStorage.setItem(LK,JSON.stringify({id:b64(c.rawId),on:true}));toast('Bloqueo activado en este dispositivo');return true}
  catch(e){toast(e&&e.name=='NotAllowedError'?'Activación cancelada.':'No se pudo activar: '+(e&&e.message||e));return false}}
@@ -1183,7 +1183,7 @@ function drawLock(){let el=$('#lock');
  document.documentElement.classList.add('locked');
  if(!el){el=document.createElement('div');el.id='lock';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-label','App bloqueada');document.body.appendChild(el)}
  el.innerHTML=`<div class="lkbox"><svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
- <h2>Mis finanzas</h2><p>Bloqueada en este dispositivo</p><button class="lkbtn" data-unlock="1">Desbloquear con Face ID / Touch ID</button><p class="lkm" id="lkmsg" role="status"></p>
+ <h2>Finanzas Gonzo</h2><p>Bloqueada en este dispositivo</p><button class="lkbtn" data-unlock="1">Desbloquear con Face ID / Touch ID</button><p class="lkm" id="lkmsg" role="status"></p>
  <button class="lklink" data-logout="1">Cerrar sesión</button></div>`}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='hidden'){hiddenAt=Date.now()}else if(lockCfg()&&SESSION&&hiddenAt&&Date.now()-hiddenAt>LOCK_AFTER){lockNow();unlock()}});
 
@@ -1272,7 +1272,7 @@ async function mySub(){try{const r=await swReady();return await r.pushManager.ge
 async function loadPush(){try{PUSH=await getDoc('push')}catch(e){}PUSH=PUSH||{subs:[]};PUSH.cfg={...NDEF,...(PUSH.cfg||{}),on:{...NDEF.on,...((PUSH.cfg||{}).on||{})}};return PUSH}
 async function pushEnable(){const msg=$('#nmsg');const say=s=>{if(msg)msg.textContent=s};
  if(!pushOK()){say(isIOS()&&!isStandalone()?'En el iPhone las notificaciones funcionan solo con la app abierta desde el ícono de la pantalla de inicio (Compartir → Agregar a inicio).':'Este navegador no permite notificaciones push.');return}
- say('Pidiendo permiso…');const perm=await Notification.requestPermission();if(perm!='granted'){say('No diste permiso. Activalo en Ajustes → Notificaciones → Mis finanzas.');return}
+ say('Pidiendo permiso…');const perm=await Notification.requestPermission();if(perm!='granted'){say('No diste permiso. Activalo en Ajustes → Notificaciones → Finanzas Gonzo.');return}
  try{say('Conectando con el servidor…');const {key}=await fnCall('key');const reg=await swReady();let s=await reg.pushManager.getSubscription();
   if(!s)s=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:ub64(key)});const j=s.toJSON();
   await loadPush();PUSH.subs=(PUSH.subs||[]).filter(x=>x.endpoint!=j.endpoint);PUSH.subs.push({endpoint:j.endpoint,keys:j.keys,dev:devName(),at:Date.now()});
@@ -1283,7 +1283,7 @@ async function pushTest(){const m=$('#nmsg');try{m.textContent='Enviando…';con
 async function pushPreview(){const el=$('#nprev');el.innerHTML='<p class="note">Revisando el mercado…</p>';try{const r=await fnCall('preview');el.innerHTML=r.alerts&&r.alerts.length?r.alerts.map(a=>`<div class="stat"><span>${esc(a.title)}</span></div>`).join(''):'<p class="note">Ahora no hay nada para avisarte.</p>'}catch(e){el.innerHTML=`<p class="note">${esc(e.message)}</p>`}}
 function pushSaveCfg(){const c=PUSH.cfg;NCAT.forEach(([k])=>c.on[k]=$('#nc_'+k).checked);['mv','pm','fx','conc','liq'].forEach(k=>{const v=parse($('#nt_'+k).value);if(v>0)c[k]=v});c.priv=$('#npriv').checked;
  putDoc('push',PUSH).then(()=>toast('Preferencias guardadas'))}
-const pushSQL=()=>{const c=sbConf()||{url:'https://TU-PROYECTO.supabase.co',key:'TU-ANON-KEY'};return `-- Mis finanzas · alertas (correr una vez en Supabase → SQL Editor)
+const pushSQL=()=>{const c=sbConf()||{url:'https://TU-PROYECTO.supabase.co',key:'TU-ANON-KEY'};return `-- Finanzas Gonzo · alertas (correr una vez en Supabase → SQL Editor)
 create table if not exists public.push_state (id text primary key, data jsonb not null default '{}'::jsonb, updated_at timestamptz default now());
 alter table public.push_state enable row level security;
 grant all on table public.push_state to service_role;
@@ -1708,7 +1708,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261123034613';
+const BUILD='20261123042109';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
