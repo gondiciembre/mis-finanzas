@@ -721,13 +721,13 @@ function patAuto(){let ch=false;const L=carOps().filter(o=>o.patG&&(o.val||patBa
   const [x,nw]=rowIn(y,'Patente Auto',{s:'gv',c:'auto'});if(!x)continue;if(nw)ch=true;x.pat=1;if(x.p[m]&&x.a[m])continue;const v=Math.round(patAnual(cur.val||patBase(cur))/10);if((x.a[m]||0)!=v){x.a[m]=v;ch=true}}});
  return ch}
 function carCalc(o){const M=fxq('mep'),B=fxq('blue'),fxV=M.v;
- const autoP=o.autoPat!==false,alta=autoP?altaPat(o):0,costs=alta+(o.costs||[]).filter(c=>!(autoP&&isPatCost(c))).reduce((a,c)=>a+(c.cur=='USD'?(+c.amt||0)*fxV:(+c.amt||0)),0),tot=(o.buyA||0)+costs,sc=[];
+ const autoP=o.autoPat!==false,alta=autoP?altaPat(o):0,cu1=o.pat1!==false&&(o.val||patBase(o))?Math.round(patAnual(o.val||patBase(o))/10):0,costs=alta+cu1+(o.costs||[]).filter(c=>!((autoP||cu1)&&isPatCost(c))).reduce((a,c)=>a+(c.cur=='USD'?(+c.amt||0)*fxV:(+c.amt||0)),0),tot=(o.buyA||0)+costs,sc=[];
  const add=(k,l,got,note)=>sc.push({k,l,got,put:tot-got,note});
  if(o.sellA)add('pp','Vendés en pesos',o.sellA,'cobrás '+money(o.sellA));
  if(o.sellU){add('up_mep','Vendés en dólares · los vendés al MEP',o.sellU*M.c,`${usdA(o.sellU)} × ${f2u(M.c)} (MEP compra)`);
   if(B)add('up_blue','Vendés en dólares · los vendés al blue',o.sellU*B.c,`${usdA(o.sellU)} × ${f2u(B.c)} (blue compra)`)}
  const best=sc.reduce((a,b)=>!a||b.put<a.put?b:a,null),pick=sc.find(s=>s.k==o.sc)||best;
- return{costs,alta,autoP,tot,sc,best,pick,fxV,M,B,impl:o.sellA&&o.sellU?o.sellA/o.sellU:null,empl:o.mkt&&o.buyA?o.mkt-o.buyA:null}}
+ return{costs,alta,cu1,autoP,tot,sc,best,pick,fxV,M,B,impl:o.sellA&&o.sellU?o.sellA/o.sellU:null,empl:o.mkt&&o.buyA?o.mkt-o.buyA:null}}
 document.addEventListener('change',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.patg!=null){const o=carOps()[+el.dataset.patg];o.patG=el.checked;loanAuto();save();const y=scrollY;render();scrollTo(0,y);toast(o.patG?'Patente Auto se completa sola en Gastos':'Patente Auto vuelve a ser manual');return}
  if(!el||!el.dataset||el.dataset.csim==null)return;const o=carOps()[+el.dataset.csim],v=parse(el.value);if(!o||!(v>0))return;o.sellU=v;o.sc=null;if(o.led)carLedger(o,true);save();const y=scrollY;render();scrollTo(0,y);toast('Oferta en dólares guardada en el cambio')});
 function carReco(o,C){const M=C.M,B=C.B,top=B&&B.c>M.c?['blue',B.c]:['MEP',M.c],pct=(a,b)=>(a>=b?'+':'')+pc0((a/b-1)*100);
@@ -755,7 +755,7 @@ function vCars(){if(!loanTimer)loanLoop();if((!DOL||Date.now()-DOL.ts>60e3)&&Dat
  for(const [o,i] of ord){const C=carCalc(o),done=o.st=='done';
   h+=`<div class="card car" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="min-width:0"><b style="font-size:16px">${esc(o.n||'Cambio de auto')}</b><div class="mutc" style="font:500 12px var(--mono);margin-top:2px">${mFull(o.date)}</div></div><span class="pill ${done?'up':'nt'}">${done?'Hecho':'Planificado'}</span></div>
    <div class="cflow"><div><small>Vendés</small><b>${esc(o.sellD||'Auto actual')}</b><span>${o.sellA?money(o.sellA):''}${o.sellA&&o.sellU?' · ':''}${o.sellU?usdA(o.sellU):''}</span></div><i aria-hidden="true">→</i><div><small>Comprás</small><b>${esc(o.buyD||'Auto nuevo')}</b><span>${o.buyA?money(o.buyA):''}</span></div></div>
-   <details class="cdet"><summary><span>Gastos del auto nuevo</span><b>${money(C.costs)}</b></summary>${C.autoP?`<div class="stat"><span>Alta de patente <em class="ctag">automático</em><br><small class="mutc">${o.orig=='nac'?'1,5% nacional/Mercosur':'2% importado'} + 2,5% sellos PBA + formularios · sobre ${money(patBase(o))}</small></span><b>${money(C.alta)}</b></div>`:''}${(o.costs||[]).map(c=>{const off=C.autoP&&isPatCost(c);return `<div class="stat${off?' coff':''}"><span>${esc(c.n)}${off?' <small class="mutc">· reemplazado por el cálculo</small>':''}</span><b>${c.cur=='USD'?usdA(+c.amt)+' · '+money(c.amt*C.fxV):money(+c.amt)}</b></div>`}).join('')}${!C.autoP&&!(o.costs||[]).length?'<p class="note">Sin gastos cargados.</p>':''}</details>
+   <details class="cdet"><summary><span>Gastos del auto nuevo</span><b>${money(C.costs)}</b></summary>${C.autoP?`<div class="stat"><span>Alta de patente <em class="ctag">automático</em><br><small class="mutc">${o.orig=='nac'?'1,5% nacional/Mercosur':'2% importado'} + 2,5% sellos PBA + formularios · sobre ${money(patBase(o))}</small></span><b>${money(C.alta)}</b></div>`:''}${C.cu1?`<div class="stat"><span>1 cuota de patente <em class="ctag">automático</em><br><small class="mutc">1 de 10 cuotas de la patente PBA estimada</small></span><b>${money(C.cu1)}</b></div>`:''}${(o.costs||[]).map(c=>{const off=(C.autoP||C.cu1)&&isPatCost(c);return `<div class="stat${off?' coff':''}"><span>${esc(c.n)}${off?' <small class="mutc">· reemplazado por el cálculo</small>':''}</span><b>${c.cur=='USD'?usdA(+c.amt)+' · '+money(c.amt*C.fxV):money(+c.amt)}</b></div>`}).join('')}${!C.autoP&&!(o.costs||[]).length?'<p class="note">Sin gastos cargados.</p>':''}</details>
    <div class="stat"><span>Total con gastos</span><b>${money(C.tot)}</b></div>
    ${(o.val||patBase(o))?(()=>{const an=patAnual(o.val||patBase(o));return `<div class="stat"><span>Patente PBA estimada<br><small class="mutc">valuación ${money(o.val||patBase(o))} · ${o.val?'cargada':'precio'} · 10 cuotas mar–dic</small></span><b>${money(Math.round(an/10))}<small class="mutc" style="display:block;text-align:right;font-weight:500">${money(an)} al año</small></b></div>
    <label class="csim" style="margin-top:6px"><span>Usar esta patente en Gastos desde ${mFull(mAdd(o.date,1)).toLowerCase()}</span><input type="checkbox" data-patg="${i}" ${o.patG?'checked':''} style="width:20px;height:20px;accent-color:var(--acc)"></label>`})():''}
@@ -776,11 +776,12 @@ function carEdit(i,base){const o=i>=0?carOps()[i]:base||{n:'',date:NOWK,st:'plan
  <div class="grid g2" style="gap:10px">${f('cba','Precio en pesos',o.buyA,'$')}${f('cmk','Precio de mercado (opcional)',o.mkt,'$')}</div>
  <div class="grid g2" style="gap:10px"><div><label for="cor">Origen</label><select class="inp" id="cor"><option value="imp"${o.orig!='nac'?' selected':''}>Importado extra Mercosur</option><option value="nac"${o.orig=='nac'?' selected':''}>Nacional o Mercosur</option></select></div>${f('cval','Valuación fiscal ARBA (opcional)',o.val,'para la patente')}</div>
  <label class="nck" style="margin-top:8px"><input type="checkbox" id="cap" ${o.autoPat!==false?'checked':''}><span><b>Calcular el alta de patente</b><small>arancel DNRPA + 2,5% sellos PBA + formularios, sobre el precio de mercado (o de compra)</small></span></label>
+ <label class="nck"><input type="checkbox" id="cp1" ${o.pat1!==false?'checked':''}><span><b>Sumar 1 cuota de patente</b><small>según el mes, al patentar te pueden cobrar una de las 10 cuotas</small></span></label>${o.adj?`<p class="note">Los gastos fijos en pesos se ajustaron por la inflación estimada (${pcs(infl()*100)} mensual) desde el cambio anterior. Revisalos si ya tenés el valor real.</p>`:''}
  <h3 class="csh">Otros gastos del auto nuevo</h3><div id="crows">${(o.costs||[]).map(cr).join('')}</div><button type="button" class="btn" data-cradd="1" style="margin-top:8px">+ Agregar gasto</button>
  <div class="btns">${i>=0?`<button data-car="del:${i}" style="color:var(--dn)">Borrar</button>`:''}<button data-close="1">Cancelar</button><button class="pr" data-car="save:${i}">Guardar</button></div></div></div>`;
  carEdit.row=cr}
 function carSave(i){const v=id=>$(id).value.trim(),num=id=>parse(v(id))||0,L=carOps();
- const o={...(i>=0?L[i]:{}),n:v('#cn')||'Cambio de auto',date:/^\d{4}-\d{2}$/.test(v('#cdt'))?v('#cdt'):NOWK,st:v('#cst'),sellD:v('#csd'),sellA:num('#csa'),sellU:num('#csu'),buyD:v('#cbd'),buyA:num('#cba'),buyU:0,orig:v('#cor'),val:num('#cval'),autoPat:$('#cap').checked,mkt:num('#cmk'),
+ const o={...(i>=0?L[i]:{}),adj:undefined,n:v('#cn')||'Cambio de auto',date:/^\d{4}-\d{2}$/.test(v('#cdt'))?v('#cdt'):NOWK,st:v('#cst'),sellD:v('#csd'),sellA:num('#csa'),sellU:num('#csu'),buyD:v('#cbd'),buyA:num('#cba'),buyU:0,orig:v('#cor'),val:num('#cval'),autoPat:$('#cap').checked,pat1:$('#cp1').checked,mkt:num('#cmk'),
   costs:[...document.querySelectorAll('#crows .crow')].map(r=>{const e=r.querySelectorAll('input,select');return{n:e[0].value.trim(),amt:parse(e[1].value)||0,cur:e[2].value}}).filter(c=>c.n||c.amt)};
  if(i>=0)L[i]=o;else L.push(o);if(o.led)carLedger(o,true);closeSheet();save();render();toast('Cambio guardado')}
 function carLedger(o,quiet){const C=carCalc(o);if(!C.pick){toast('Falta el precio de venta o de compra.');return}const y=+o.date.slice(0,4),m=+o.date.slice(5,7)-1;ensure(y);
@@ -792,12 +793,13 @@ function carLedger(o,quiet){const C=carCalc(o);if(!C.pick){toast('Falta el preci
 document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('[data-cradd],[data-crx]');if(!a)return;e.preventDefault();e.stopPropagation();
  if(a.dataset.crx)a.closest('.crow').remove();else{const w=document.createElement('div');w.innerHTML=carEdit.row({n:'',amt:'',cur:'ARS'});$('#crows').appendChild(w.firstChild)}},true);
 function carAct(k){const [a,b]=String(k).split(':'),L=carOps(),i=+b;
- if(a=='new')return carEdit(-1,L.length?{n:'',date:mAdd(L.slice().sort((x,y)=>x.date<y.date?1:-1)[0].date,6),st:'plan',costs:(L[L.length-1].costs||[]).map(c=>({...c}))}:null);
+ const adjC=(cs,from,to)=>{const f=Math.pow(1+infl(),Math.max(0,mDiff(from,to)));return(cs||[]).filter(c=>!isPatCost(c)).map(c=>({...c,amt:c.cur=='USD'?c.amt:Math.round((+c.amt||0)*f/100)*100}))};
+ if(a=='new'){if(!L.length)return carEdit(-1,null);const last=L.slice().sort((x,y)=>x.date<y.date?1:-1)[0],nd=mAdd(last.date,6);return carEdit(-1,{n:'',date:nd,st:'plan',orig:last.orig,costs:adjC(last.costs,last.date,nd),adj:1})}
  if(a=='seed'){L.push({n:'Bronco',date:NOWK,st:'plan',sellD:'Camioneta actual',sellA:59000000,buyD:'Bronco · precio empleado',buyA:60500000,mkt:61316300,
   costs:[{n:'Alta patente',amt:2791088,cur:'ARS'},{n:'Verificación y grabado',amt:96053,cur:'ARS'},{n:'Polarizado',amt:270000,cur:'ARS'},{n:'Tuercas de seguridad',amt:115000,cur:'ARS'},{n:'Tratamiento cerámico',amt:590000,cur:'ARS'}]});save();return render()}
  if(a=='ed')return carEdit(i);if(a=='save')return carSave(i);
  if(a=='del'){if(carAct.arm!==i){carAct.arm=i;toast('Tocá Borrar de nuevo para confirmar');return}carAct.arm=null;const o=L[i];if(o.led){const R0=S.y[o.led.y];if(R0){const j=R0.findIndex(x=>x.n==o.led.n&&x.car);if(j>=0)R0.splice(j,1)}}L.splice(i,1);closeSheet();save();return render()}
- if(a=='next'){const o=L[i];return carEdit(-1,{n:'',date:mAdd(o.date,6),st:'plan',sellD:o.buyD,sellA:o.buyA,buyD:o.buyD,buyA:o.buyA,mkt:o.mkt,costs:(o.costs||[]).map(c=>({...c}))})}
+ if(a=='next'){const o=L[i],nd=mAdd(o.date,6);return carEdit(-1,{n:'',date:nd,st:'plan',orig:o.orig,sellD:o.buyD,sellA:o.buyA,buyD:o.buyD,buyA:o.buyA,mkt:o.mkt,costs:adjC(o.costs,o.date,nd),adj:1})}
  if(a=='led')return carLedger(L[i])}
 function vGA(){const ys=Object.keys(S.y).filter(y=>yearStats(y).tot>0).sort();const Y=yr,st=yearStats(Y),pv=S.y[Y-1]?yearStats(Y-1):null,P=pv&&pv.tot?pv:null;
  const L=cats(),gC=L.filter(c=>c.t=='g'),iC=L.filter(c=>c.t=='i'||c.t=='u'),rate=st.incG?(st.incG-st.cons)/st.incG*100:0,mAvg=st.cons/12;
@@ -1699,7 +1701,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261123033057';
+const BUILD='20261123033857';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
