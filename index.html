@@ -868,16 +868,18 @@ function vMes(){
  const yp=nn?dn/nn*100:0,yb=$('#ypr');if(yb)yb.innerHTML=`<div class="yprl"><span>${yr} · <b>${Math.round(yp)}%</b> completado</span><span>${full} de 12 meses cerrados</span></div><div class="yprb" role="progressbar" aria-valuenow="${Math.round(yp)}" aria-valuemin="0" aria-valuemax="100" aria-label="Año completado"><i style="width:${yp}%"></i></div>`}
  let h='';
  h+=`<div class="hero"><div class="k" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Dinero disponible en cuenta · ${MESL[mo]}</span><span class="pill ${t.pend?'wr':'up'}">${t.pend?t.pend+' pendiente'+(t.pend>1?'s':''):'Al día'}</span></div><div class="big ${b.real<0?'neg':''}">${money(b.real)}</div><div class="s">≈ ${usd(b.real/m)} · lo cobrado menos lo pagado hasta hoy${(()=>{const B=bilCfg(),bx=B.on&&R().find(x=>x.n==B.name);return bx&&ymK(yr,mo)>=B.from&&!bx.p[mo]?`<br>Al cerrar el mes pasan ${money(bx.a[mo]||0)} a ${esc(B.name)}`:''})()}</div></div>`;
- h+=`<div class="grid g2" style="margin-top:12px">
+ {const by={i:0,u:0,g:0,a:0},dn={i:0,u:0,g:0,a:0},pd={i:0,g:0};let vest=0;
+  R().forEach(x=>{if(x.end!=null&&mo>=x.end)return;if(x.bil&&bilCfg().on&&ymK(yr,mo)>=bilCfg().from)return;const v=x.a[mo]||0,ty=catOf(x).t;if(isVest(x))vest+=v;if(!(ty in by))return;by[ty]+=v;if(x.p[mo])dn[ty]+=v;else if(v&&ty in pd)pd[ty]++});
+  h+=`<div class="grid g2" style="margin-top:12px">
  <div class="card kpi"><div class="k">Ingresos</div><div class="v">${money(t.i)}</div><div class="bar"><i style="width:${t.i?t.id/t.i*100:0}%;background:var(--up)"></i></div><div class="s">Cobrado ${money(t.id)}</div></div>
- <div class="card kpi"><div class="k">Gastos</div><div class="v">${money(t.e)}</div><div class="bar"><i style="width:${t.e?t.ed/t.e*100:0}%;background:var(--c12)"></i></div><div class="s">Pagado ${money(t.ed)}</div></div></div>`;
- {const by={i:0,u:0,g:0,a:0},dn={g:0,a:0};let vest=0;R().forEach(x=>{if(x.end!=null&&mo>=x.end)return;if(x.bil&&bilCfg().on&&ymK(yr,mo)>=bilCfg().from)return;if(isVest(x))vest+=x.a[mo]||0;const v=x.a[mo]||0,ty=catOf(x).t;if(ty in by)by[ty]+=v;if(x.p[mo]&&ty in dn)dn[ty]+=v});
-  const cap=by.i-by.g,inv=by.a,left=cap-inv,pct=cap>0?Math.min(100,inv/cap*100):0,rate=by.i?cap/by.i*100:0;
-  h+=`<div class="card kpi capbox" style="margin-top:12px"><div class="k" style="display:flex;justify-content:space-between;gap:8px"><span>Capacidad de inversión · ${MESL[mo]}</span>${by.i?`<span class="pill ${cap<0?'dn':rate>=20?'up':'nt'}">${pc0(rate)} del ingreso</span>`:''}</div>
+ <div class="card kpi"><div class="k">Gastos</div><div class="v">${money(by.g)}</div><div class="bar"><i style="width:${by.g?dn.g/by.g*100:0}%;background:var(--c12)"></i></div><div class="s">Pagado ${money(dn.g)}${by.a?`<br><span style="opacity:.75">+ ${money(by.a)} a ahorro e inversión</span>`:''}</div></div></div>`;
+  const est=by.i-by.g,real=dn.i-dn.g,done=!pd.i&&!pd.g,cap=done?real:est,inv=by.a,invD=dn.a,left=cap-inv,pct=cap>0?Math.min(100,inv/cap*100):0,rate=by.i?cap/by.i*100:0;
+  h+=`<div class="card kpi capbox" style="margin-top:12px"><div class="k" style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>Capacidad de ${done?'ahorro real':'inversión estimada'} · ${MESL[mo]}</span><span class="pill ${done?'up':'nt'}">${done?'✓ Real':(pd.i+pd.g)+' por confirmar'}</span></div>
    <div class="v ${cap<0?'neg':'pos'}">${money(cap)}</div>
+   ${done?'':`<div class="s">Confirmado hasta hoy: <b>${money(real)}</b> (cobrado ${money(dn.i)} − pagado ${money(dn.g)})</div>`}
    <div class="bar"><i style="width:${pct}%;background:var(--c3)"></i></div>
-   <div class="s">${cap<0?'Este mes los gastos superan a los ingresos.':inv?`Ya destinaste ${money(inv)} a ahorro e inversión · ${left>=0?'te quedan '+money(left):'te pasaste por '+money(-left)}`:'Todavía no cargaste ahorro ni inversión este mes.'}</div>
-   <div class="s" style="opacity:.75">Ingresos ${money(by.i)}${by.u?' (sin '+money(by.u)+' de uso de ahorros)':''} − gastos ${money(by.g)} (sin Ahorro e inversión)${vest?` · incluye ${money(vest)} del vesting de XOM`:''}</div></div>`}
+   <div class="s">${cap<0?'Este mes los gastos superan a los ingresos.':inv?`${invD>=inv?'Destinaste':'Vas a destinar'} ${money(inv)} a ahorro e inversión (${pc0(rate>0?inv/by.i*100:0)} del ingreso) · ${left>=0?'te quedan '+money(left):'te pasaste por '+money(-left)}`:'Todavía no cargaste ahorro ni inversión este mes.'}</div>
+   <div class="s" style="opacity:.75">${by.i?pc0(rate)+' del ingreso · ':''}Ingresos ${money(by.i)}${by.u?' (sin '+money(by.u)+' de uso de ahorros)':''} − gastos ${money(by.g)}${vest?` · incluye ${money(vest)} del vesting de XOM`:''}</div></div>`}
  const all=R().map((x,i)=>[x,i]).filter(([x])=>!(x.end!=null&&mo>=x.end)),G={};
  all.forEach(([x,i])=>{const c=catOf(x);(G[c.id]=G[c.id]||{c,rs:[]}).rs.push([x,i])});
  const ord={i:0,u:1,g:2,a:3},L=cats(),ix=id=>{const j=L.findIndex(c=>c.id==id);return j<0?999:j};
@@ -894,7 +896,7 @@ function vMes(){
   if(secClosed)continue;
   const sum=rs.reduce((a,[x])=>a+(x.a[mo]||0),0),dn=rs.reduce((a,[x])=>a+(x.p[mo]?x.a[mo]||0:0),0),rest=sum-dn,pend=rs.filter(([x])=>x.a[mo]&&!x.p[mo]).length,closed=col.includes(c.id);
   if(!sum&&!rs.length)continue;
-  h+=`<div class="sec gsec${closed?' closed':''}"><button class="gsh" data-gtg="${esc(c.id)}" aria-expanded="${!closed}"><i class="gdot" style="background:${cc}"></i><span class="gn"><b><span class="gnt">${esc(c.n)}</span>${sum&&!pend?`<i class="gok ${isIn?'in':'eg'}" aria-label="Categoría completa"><svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></i>`:''}</b><small>${rs.length} concepto${rs.length>1?'s':''}${pend?' · '+pend+' pendiente'+(pend>1?'s':''):sum?' · al día':''}</small></span>
+  h+=`<div class="sec gsec${closed?' closed':''}"><button class="gsh" data-gtg="${esc(c.id)}" aria-expanded="${!closed}"><i class="gdot" style="background:${cc}"></i><span class="gn"><b><span class="gnt">${esc(c.n)}</span>${!pend&&(sum||rs.every(([x])=>x.p[mo]))?`<i class="gok ${isIn?'in':'eg'}" aria-label="Categoría completa"><svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></i>`:''}</b><small>${rs.length} concepto${rs.length>1?'s':''}${pend?' · '+pend+' pendiente'+(pend>1?'s':''):sum?' · al día':''}</small></span>
    <span class="gv"><b class="${rest?'':'pos'}">${rest?money(rest):sum?'✓ '+(isIn?'Cobrado':'Pagado'):'$ 0'}</b><small>${rest?(isIn?'por cobrar':'por pagar')+' de '+money(sum):sum?'de '+money(sum):'sin montos este mes'}</small></span><svg class="gch" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
    <div class="gpb"><i style="width:${sum?dn/sum*100:0}%;background:${cc}"></i></div>`;
   if(!closed){h+=`<div class="list">`;
@@ -1737,7 +1739,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261123050039';
+const BUILD='20261123050517';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
