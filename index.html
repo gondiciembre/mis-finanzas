@@ -390,7 +390,8 @@ header{background:var(--glassF);-webkit-backdrop-filter:blur(24px) saturate(170%
 @media(max-width:430px){header .fx{padding:6px 8px;gap:6px}.fxt{display:none}}
 .sheet label.nck{display:flex;font:400 14px/1.35 var(--sans);letter-spacing:0;text-transform:none;color:var(--fg);margin:0}.nck{display:flex;gap:12px;align-items:flex-start;padding:10px 2px;border-bottom:1px solid var(--line);cursor:pointer}.nck input{margin-top:3px;width:18px;height:18px;accent-color:var(--acc);flex:none}.nck span{display:flex;flex-direction:column;gap:2px}.nck small{color:var(--mut);font-size:12.5px}
 .nsteps{padding-left:20px;display:flex;flex-direction:column;gap:12px;font-size:14px;line-height:1.5}.nsteps .btn{margin-top:8px}.nsteps code{font-family:var(--mono);background:var(--acc-s);padding:1px 5px;border-radius:5px}
-#acct.dot{position:relative}#acct.dot::after{content:"";position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:var(--dn);box-shadow:0 0 0 2px var(--bg)}
+#bell{position:relative}#bell .bn{position:absolute;top:-6px;right:-6px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--dn);color:#fff;font:700 10px/17px var(--mono);text-align:center;box-shadow:0 0 0 2px var(--bg)}
+.ibx-g{font:600 11px var(--sans);color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 4px}.ibx{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;padding:11px 10px;border-radius:12px;background:none;border:0;color:inherit;font:inherit;cursor:pointer}.ibx+.ibx{border-top:1px solid var(--line)}.ibx.new{background:color-mix(in srgb,var(--acc) 9%,transparent)}.ibx .ic{flex:0 0 30px;height:30px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--mono);background:var(--panel2)}.ibx .ic.up{color:var(--up)}.ibx .ic.dn{color:var(--dn)}.ibx .tx{flex:1;min-width:0}.ibx .tx b{display:block;font-size:14px}.ibx .tx small{display:block;color:var(--mut);font-size:12.5px;margin-top:2px}.ibx .tm{font:500 11px var(--mono);color:var(--mut);white-space:nowrap}
 .gk .kpi .v{font-size:22px}.gk .kpi{padding:12px}
 .gcard{padding:18px}.ghd{display:flex;justify-content:space-between;gap:10px}
 .gpick{display:flex;align-items:center;gap:12px;width:100%;margin-top:14px;padding:12px 14px;border-radius:16px;background:var(--glass2);border:1px solid var(--gl);box-shadow:inset 0 1px 0 var(--glt);text-align:left;color:var(--fg)}
@@ -489,6 +490,7 @@ tr.ss td{font-size:11.5px}tr.ss.in td{color:var(--up)}tr.ss.eg td{color:var(--c2
    <div class="yr" id="yrw"><button id="py" data-yr="-1" aria-label="Año anterior">‹</button><span id="yl"></span><button data-yr="1" aria-label="Año siguiente">›</button></div>
    <button class="fx" id="fxw" data-mep="1" aria-label="Dólar MEP"></button>
    <button class="fx" id="hidev" data-hide="1" aria-label="Ocultar montos" aria-pressed="false"></button>
+   <button class="fx" id="bell" data-inbox="1" aria-label="Avisos"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="bn" hidden></span></button>
    <button class="fx" id="acct" data-acct="1" aria-label="Cuenta"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button>
   </div>
  </div>
@@ -1420,8 +1422,21 @@ $job$);`};
 function copyTxt(s,label){if(!s){toast('Todavía no cargó, probá de nuevo en un segundo.');return}const ok=()=>toast(label+' copiado');
  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(s).then(ok,()=>fallbackCopy(s,ok));else fallbackCopy(s,ok)}
 function fallbackCopy(s,ok){const a=document.createElement('textarea');a.value=s;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();try{document.execCommand('copy');ok()}catch(e){toast('No pude copiar')}a.remove()}
+/* ---------- bandeja de avisos ---------- */
+async function openInbox(){let seen=0;try{seen=+localStorage.getItem('fin-alseen')||0}catch(e){}
+ const draw=()=>{const L=(ALR&&ALR.items)||[],td=new Date().toDateString(),yd=new Date(Date.now()-864e5).toDateString();
+  const day=ts=>{const d=new Date(ts),k=d.toDateString();return k==td?'Hoy':k==yd?'Ayer':d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})};
+  const nNew=L.filter(a=>(a.ts||0)>seen).length;let g='',body='';
+  L.slice(0,40).forEach(a=>{const dd=day(a.ts||0);if(dd!=g){g=dd;body+=`<div class="ibx-g">${esc(dd)}</div>`}
+   const t=String(a.t||''),ic=/^▲|sub/i.test(t)?['up','▲']:/^▼|baj|cay/i.test(t)?['dn','▼']:['','•'],link=a.url&&a.url!='#';
+   const inner=`<span class="ic ${ic[0]}">${ic[1]}</span><span class="tx"><b>${esc(t.replace(/^[▲▼]\s*/,''))}</b><small>${esc(a.b||'')}</small></span><span class="tm">${new Date(a.ts||0).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false})}${link?' ›':''}</span>`;
+   body+=link?`<button class="ibx${(a.ts||0)>seen?' new':''}" data-goh="${esc(a.url)}">${inner}</button>`:`<div class="ibx${(a.ts||0)>seen?' new':''}" style="cursor:default">${inner}</div>`});
+  $('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" aria-label="Avisos" style="max-height:90vh;overflow:auto"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">Avisos</h2><button class="btn" data-notif="1">⚙ Configurar</button></div>
+   <div class="m">${L.length?(nNew?`${nNew} nuevo${nNew>1?'s':''} desde la última vez`:'Estás al día')+(ALR&&ALR.u?' · revisado '+new Date(ALR.u).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false}):''):'Todavía no hay avisos.'}</div>${body||'<p class="note">Cuando pase algo que tengas que saber (subas o bajas fuertes, el dólar, el crédito, cobros o rotación de cartera) aparece acá.</p>'}</div></div>`};
+ mfn=null;draw();try{const a=await getDoc('alerts');if(a){ALR=a;draw()}}catch(e){}seenAlerts()}
+
 function seenAlerts(){try{localStorage.setItem('fin-alseen',String(ALR&&ALR.u||Date.now()))}catch(e){}drawBell()}
-function drawBell(){const b=$('#acct');if(!b)return;let seen=0;try{seen=+localStorage.getItem('fin-alseen')||0}catch(e){}b.classList.toggle('dot',!!(ALR&&ALR.u>seen&&ALR.items&&ALR.items.length));badgeSet()}
+function drawBell(){const b=$('#bell');if(!b)return;let seen=0;try{seen=+localStorage.getItem('fin-alseen')||0}catch(e){}const n=ALR&&ALR.items?ALR.items.filter(a=>(a.ts||0)>seen).length:0,bn=b.querySelector('.bn');b.classList.toggle('dot',n>0);bn.hidden=!n;bn.textContent=n>9?'9+':n;b.setAttribute('aria-label',n?`Avisos, ${n} sin leer`:'Avisos');badgeSet()}
 async function openNotif(keep){if(!FNCODE)fetch('./supabase/functions/alertas/index.ts',{cache:'no-store'}).then(r=>r.ok?r.text():'').then(s=>FNCODE=s).catch(()=>{});
  if(!keep){$('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" style="max-height:90vh;overflow:auto"><h2>Notificaciones</h2><div class="m">Cargando…</div></div></div>`}
  await loadPush();try{ALR=await getDoc('alerts')}catch(e){}const s=pushOK()?await mySub():null,mine=s&&PUSH.subs.some(x=>x.endpoint==s.endpoint),c=PUSH.cfg,n=PUSH.subs.length;
@@ -1448,7 +1463,7 @@ async function openNotif(keep){if(!FNCODE)fetch('./supabase/functions/alertas/in
  <li><b>Activar.</b> Volvé acá y tocá <b>Activar en este dispositivo</b> en cada iPhone o compu donde quieras recibirlas.</li></ol></details>
  </div></div>`;seenAlerts()}
 function goHash(h){h=String(h||location.hash).replace(/^#/,'');let tg='';if(h.includes('~'))[h,tg]=h.split('~');const M={retiro:['j'],hoy:['h'],patrimonio:['p'],ons:['o'],autos:['g','auto'],cartera:['i'],analisis:['a'],cobros:['c'],notas:['e'],rsu:['r'],dolar:['d'],mundo:['m'],credito:['g','uva'],alquiler:['g','alq'],gastos:['g','mes'],avisos:['n']}[h];if(!M||!S)return;
- if(M[0]=='n'){openNotif();}else{sec=M[0];if(M[1])tab=M[1];try{localStorage.setItem('gastos-sec',sec)}catch(e){}closeSheet();render();scrollTo(0,0);const mt=/^(mv|conc|cob)-(.+)$/.exec(tg);if(mt&&sec=='i')focusTk(mt[2])}try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}
+ if(M[0]=='n'){openInbox();}else{sec=M[0];if(M[1])tab=M[1];try{localStorage.setItem('gastos-sec',sec)}catch(e){}closeSheet();render();scrollTo(0,0);const mt=/^(mv|conc|cob)-(.+)$/.exec(tg);if(mt&&sec=='i')focusTk(mt[2])}try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}
 addEventListener('hashchange',()=>goHash());
 /* ---------- IOL: cotizaciones en tiempo real (vía función "iol" de tu Supabase) ---------- */
 let IOLQ={},IOLst={st:'off',at:0,err:'',n:0};try{IOLQ=JSON.parse(localStorage.getItem('fin-iolq')||'{}')}catch(e){}
@@ -1813,7 +1828,7 @@ function vHoy(){iolPoll(false);if(!LD)loanFetch(false);const N=nwCalc();nwRecord
  if(P){const mv=P.items.filter(x=>x.ch!=null&&x.live&&x.v>100).map(x=>({t:x.u||x.t,c:x.ch,v:x.v,x})).sort((a,b)=>b.c-a.c),up=mv.slice(0,2),dn=mv.slice(-2).reverse().filter(x=>x.c<0);
   h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>Mercado</b><span class="mutc" style="font:500 12px var(--mono)">MEP ${f2u(m)}${DOL&&DOL.t&&DOL.t.blue?' · blue '+f2u(DOL.t.blue.v):''}</span></div>
   <div class="hoymv">${up.filter(x=>x.c>0).map(x=>`<div><b>${logoHTML(x.x)}${esc(x.t)}</b><span class="pos">+${String(x.c.toFixed(2)).replace('.',',')}%</span></div>`).join('')}${dn.map(x=>`<div><b>${logoHTML(x.x)}${esc(x.t)}</b><span class="neg">${String(x.c.toFixed(2)).replace('.',',')}%</span></div>`).join('')}</div></div>`}
- if(ALR&&ALR.items&&ALR.items.length)h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>Últimos avisos</b><button class="btn" data-notif="1">Ver todos</button></div>${ALR.items.slice(0,3).map(a=>a.url&&a.url!='#'?`<button class="stat hoyal" data-goh="${esc(a.url)}"><span>${esc(a.t)}</span><span class="mutc">›</span></button>`:`<div class="stat"><span>${esc(a.t)}</span></div>`).join('')}</div>`;
+ if(ALR&&ALR.items&&ALR.items.length)h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>Últimos avisos</b><button class="btn" data-inbox="1">Ver todos</button></div>${ALR.items.slice(0,3).map(a=>a.url&&a.url!='#'?`<button class="stat hoyal" data-goh="${esc(a.url)}"><span>${esc(a.t)}</span><span class="mutc">›</span></button>`:`<div class="stat"><span>${esc(a.t)}</span></div>`).join('')}</div>`;
  return h}
 /* ---------- camino al retiro ---------- */
 const RET_DEF={birth:'',age:50,base:6,spread:2,ap:null,hire:'',sal:null,pct:50,gr:100,unv:'keep',prop:null,pg:0,lsub:true};
@@ -2097,7 +2112,7 @@ function render(){drawEye();badgeSet();if(S&&S.y&&sec=='g')try{loanAuto()}catch(
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'});
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -2143,6 +2158,7 @@ document.addEventListener('click',e=>{
  if(d.bkr)return restoreBackup(d.bkr);
  if(d.bks)return openBackups();
  if(d.iol){if(d.iol=='open')return iolSheet();return iolAct(d.iol)}
+ if(d.inbox)return openInbox();
  if(d.notif)return openNotif();
  if(d.gpick)return gPick();
  if(d.onley){const [k,v]=d.onley.split(':');S.onLey=S.onLey||{};if(v)S.onLey[k]=v;else delete S.onLey[k];save();closeSheet();render();return onDetail(k)}
@@ -2193,7 +2209,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261124124500';
+const BUILD='20261124143000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
