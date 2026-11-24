@@ -419,6 +419,10 @@ tr.ss td{font-size:11.5px}tr.ss.in td{color:var(--up)}tr.ss.eg td{color:var(--c2
 .srcl{display:flex;flex-wrap:wrap;gap:6px}.srcc{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:7px 10px;border-radius:12px;border:1px solid var(--gl);background:var(--glass);color:var(--fg);text-align:left;max-width:100%}.srcc span{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}.srcc b{font:600 12px var(--mono);color:var(--mut)}
 .srcc.on{border-color:var(--up);background:var(--up-s)}.srcc.on b{color:var(--up)}.srcc.on span::before{content:"✓ ";color:var(--up)}.srct{margin-top:10px;font-size:13.5px}.srct:empty{display:none}
 @media(max-width:480px){.grid.g2 .kpi .v{font-size:clamp(16px,4.5vw,21px)}.fm .r{flex:none}.fm .r .t{white-space:nowrap}.kpi .v{overflow-wrap:anywhere}}
+.onr{display:grid!important;grid-template-columns:minmax(0,1fr) auto 86px;gap:10px;align-items:center;text-align:left;width:100%;padding:11px 14px!important}
+.onl1{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0}.onl1 b{font:700 14px var(--mono)}.onl1 small{flex-basis:100%;font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.onl2,.onl3{display:flex;flex-direction:column;align-items:flex-end;text-align:right}.onl2 b,.onl3 b{font:700 13.5px var(--mono)}.onl2 small,.onl3 small{font:500 11px var(--mono);color:var(--mut)}.onl2 small.pos{color:var(--up)}.onl2 small.neg{color:var(--dn)}
+.lb{font:700 9.5px var(--mono);letter-spacing:.06em;padding:2px 6px;border-radius:6px;background:rgba(127,140,170,.15);color:var(--mut)}.lb.ny{background:color-mix(in srgb,var(--c1) 18%,transparent);color:var(--c1)}.lb.ar{background:color-mix(in srgb,var(--c2) 18%,transparent);color:var(--c2)}
 /* swipe */
 #app.sw-l{animation:swl .28s cubic-bezier(.2,.8,.2,1)}#app.sw-r{animation:swr .28s cubic-bezier(.2,.8,.2,1)}
 @keyframes swl{from{opacity:.2;transform:translateX(36px)}to{opacity:1;transform:none}}@keyframes swr{from{opacity:.2;transform:translateX(-36px)}to{opacity:1;transform:none}}
@@ -546,7 +550,7 @@ async function loanFetch(force){if(LDrun)return;if(!force&&LD&&LD.v==2&&Date.now
  catch(e){if(sec=='g'&&tab=='uva')toast('No pude traer UVA / dólar: '+(e.message||e))}
  LDrun=false;if(S&&sec=='g'&&tab=='uva')render()}
 let LRATE='mep',loanTimer=null,loanSig='';
-function loanLoop(){clearInterval(loanTimer);loanTimer=setInterval(async()=>{if(document.visibilityState!='visible'||!S||sec!='g'||(tab!='uva'&&tab!='auto')||$('#ov').innerHTML)return;
+function loanLoop(){clearInterval(loanTimer);loanTimer=setInterval(async()=>{if(document.visibilityState!='visible'||!S||(sec!='o'&&(sec!='g'||(tab!='uva'&&tab!='auto')))||$('#ov').innerHTML)return;if(sec=='o'){const b=ONS&&ONS.ts;await onsFetch(true);if(ONS&&ONS.ts!=b)render();return}
  const before=JSON.stringify([DOL&&DOL.t&&DOL.t.bolsa,DOL&&DOL.t&&DOL.t.blue,LD&&LD.uva]);await dolFetch();await loanFetch(false);
  if(JSON.stringify([DOL&&DOL.t&&DOL.t.bolsa,DOL&&DOL.t&&DOL.t.blue,LD&&LD.uva])!=before)render()},60000)}
 /* cuota del hipotecario calculada con la UVA en vivo (meses no pagados desde autoFrom) */
@@ -1493,6 +1497,109 @@ function bigChart(x){if(!x)return'';const a=x.sp||[],c=p28(x),col=c==null||c>=0?
  const ago=i=>{const dd=Math.round((n-1-i)*28/(n-1));return dd==0?'hoy':'hace '+dd+' día'+(dd>1?'s':'')};
  return `<div class="chart mbig"><div class="mbh"><span class="eyebrow">${MLAB[x.id]||x.id} · ${esc(x.n)} · 28D</span><span class="pill ${sgn(c||0)}">${c==null?'':pct(c,2)}</span></div><div class="mbp num">${mfmt(x,x.p)}</div>
  ${lineChart({vals:a,col,H:160,fy:q=>mfmt(x,q),xl:[[0,'−28D'],[n-1,'hoy']],aria:x.n+' últimos 28 días',tips:i=>({t:ago(i),r:[[col,x.n,mfmt(x,a[i])],['','vs. inicio',pct((a[i]/a[0]-1)*100,2)]]})})}</div>`}
+/* ---------- ONs: obligaciones negociables hard dollar ---------- */
+/* Datos fijos de las emisiones (ley, cupón, frecuencia, amortización, lámina, VT y TIR de referencia).
+   Fuente: informe de ONs de Banco Hipotecario al 19/11/2026, más ley NY confirmada en prensa (YMCX, MGCR, VSCV, TSC3, TSC4).
+   Precios en vivo y flujos de fondos: rendimientos.co (BYMA, especie D). */
+const ON_REF='19/11/2026';
+const ONMETA={
+ PQCT:['Petroquímica Comodoro Rivadavia','ARG',1,'2028-07-21','B',8.5,2,102.95,8.31],
+ YMCY:['YPF','NY',1,'2028-10-10','B',6.5,4,100.74,5.62],
+ PLC6:['Pluspetrol','ARG',1,'2029-02-27','B',6.5,2,104.86,5.85],
+ MGCT:['Pampa Energía','ARG',1000,'2029-04-01','B',5.49,2,100.81,5.15],
+ CACD:['Capex','ARG',1,'2029-06-04','B',8.25,2,103.87,9.03],
+ YM43:['YPF','ARG',1,'2030-04-14','B',5.5,2,103.41,7.09],
+ YM39:['YPF','NY',1,'2030-07-22','B',8.75,2,103.01,6.40],
+ YM34:['YPF','NY',1,'2034-01-17','A',8.25,2,102.96,7.86],
+ MGCO:['Pampa Energía','NY',10000,'2034-12-17','B',7.88,2,103.5,7.62],
+ VSCT:['Vista Energy','NY',10000,'2035-12-10','A',7.63,2,103.52,7.85],
+ VSCX:['Vista Energy','NY',1000,'2038-04-08','A',7.88,2,101.01,8.51],
+ CS52:['Cresud','ARG',1,'2028-04-30','B',4.75,2,102.73,6.05],
+ CS50:['Cresud','ARG',1,'2029-03-12','B',7.25,2,103.87,7.04],
+ IRCO:['IRSA','ARG',1,'2029-10-23','B',7.25,2,102.48,6.05],
+ CS53:['Cresud','ARG',1,'2030-04-30','B',6,2,103.59,7.06],
+ AERB:['Aeropuertos Argentina 2000','ARG',1,'2026-12-15','B',5.5,2,102.34,3.48],
+ ARC1:['Aeropuertos Argentina 2000','NY',1,'2031-08-01','A',8.5,4,98.04,null],
+ TLCV:['Telecom','ARG',1,'2027-05-29','B',3.5,4,100.82,5.13],
+ TLCW:['Telecom','ARG',1,'2030-05-29','B',6.25,2,103.09,6.75],
+ TLCM:['Telecom','NY',1000,'2031-07-18','A',9.5,2,103.38,7.40],
+ T641:['Tarjeta Naranja','ARG',1,'2027-04-30','B',7.9,4,100,3.32],
+ FO4A:['Futuros y Opciones','ARG',1,'2027-07-20','B',7.9,4,100.75,2.34],
+ HJCJ:['John Deere','ARG',1000,'2027-07-25','B',8.5,2,102.81,3.35],
+ HJCH:['John Deere','ARG',1,'2028-01-17','B',7,2,102.51,4.29],
+ BYCH:['Banco Galicia','NY',1,'2028-10-10','B',7.75,2,100.88,5.55],
+ BACH:['Banco Macro','NY',1000,'2031-01-28','B',8,2,102.62,6.93],
+ YMCX:['YPF','NY',null,'2031-09-11','A',8.75,null,null,null],
+ MGCR:['Pampa Energía','NY',null,'2037-11-16','A',7.75,null,null,null],
+ VSCV:['Vista Energy','NY',null,'2033-06-10',null,8.5,null,null,null],
+ TSC3:['TGS','NY',null,null,null,null,null,null,null],
+ TSC4:['TGS','NY',null,'2035-11-20',null,null,null,null,null]};
+let ONS=null,ONSrun=false;let ONF={q:'',ley:'NY',sort:'tir',mine:false};try{Object.assign(ONF,JSON.parse(localStorage.getItem('fin-onf')||'{}'))}catch(e){}
+const onfSave=()=>{try{localStorage.setItem('fin-onf',JSON.stringify(ONF))}catch(e){}};
+async function onsFetch(force){if(ONSrun)return;if(!force&&ONS&&Date.now()-ONS.ts<60e3)return;ONSrun=true;
+ try{let cfg=null;try{const c=JSON.parse(localStorage.getItem('fin-oncfg')||'null');if(c&&Date.now()-c.ts<12*3600e3)cfg=c.d}catch(e){}
+  const [live,conf]=await Promise.all([fetch(API+'ons',{cache:'no-store'}).then(r=>r.json()),cfg?Promise.resolve(cfg):fetch(API+'config').then(r=>r.json()).then(j=>j.ons||{})]);
+  if(!cfg)try{localStorage.setItem('fin-oncfg',JSON.stringify({ts:Date.now(),d:conf}))}catch(e){}
+  const L={};(live.data||[]).forEach(x=>L[x.symbol]=x);ONS={ts:Date.now(),L,conf}}
+ catch(e){if(sec=='o')toast('No pude traer las ONs: '+(e.message||e))}
+ ONSrun=false;if(S&&sec=='o'&&!$('#ov').innerHTML)render()}
+const addMo=(d,n)=>{const x=new Date(d+'T12:00:00Z');x.setUTCMonth(x.getUTCMonth()+n);return x.toISOString().slice(0,10)};
+function onFlows(k,m,conf){const set=TODAY;const c=conf&&Object.entries(conf).find(([kk,v])=>kk==k||v.ticker_d912==k+'D');
+ if(c&&c[1].flujos&&c[1].flujos.length)return{src:'flujos',fl:c[1].flujos.filter(f=>f.fecha>set).map(f=>({d:f.fecha,m:f.monto*100})),name:c[1].nombre,vto:c[1].vencimiento};
+ if(m&&m[4]=='B'&&m[3]&&m[5]&&m[6]){const per=12/m[6],cp=m[5]/m[6],fl=[];let d=m[3];while(d>set){fl.unshift({d,m:cp});d=addMo(d,-per)}if(fl.length)fl[fl.length-1].m+=100;return{src:'cupón',fl,last:d}}
+ return null}
+function onYield(px,fl){if(!px||!fl||!fl.length)return null;const t0=Date.parse(TODAY+'T12:00:00Z')+864e5,T=fl.map(f=>Math.max(0,(Date.parse(f.d+'T12:00:00Z')-t0)/(365*864e5)));
+ const pv=r=>fl.reduce((a,f,i)=>a+f.m/Math.pow(1+r,T[i]),0);let lo=-0.5,hi=2;if(pv(lo)<px||pv(hi)>px)return null;for(let i=0;i<80;i++){const md=(lo+hi)/2;if(pv(md)>px)lo=md;else hi=md}const r=(lo+hi)/2,P=pv(r);
+ const mac=fl.reduce((a,f,i)=>a+T[i]*f.m/Math.pow(1+r,T[i]),0)/P;return{tir:r*100,md:mac/(1+r),mac}}
+function onRows(){if(!ONS)return[];const keys=new Set(Object.keys(ONMETA));Object.entries(ONS.conf||{}).forEach(([k,v])=>keys.add((v.ticker_d912||k+'D').replace(/D$/,'')));
+ const mine=new Set(((S.inv&&S.inv.pos)||[]).filter(h=>h.k=='on').map(h=>dtk(h).replace(/D$/,'')));
+ return [...keys].map(k=>{const m=ONMETA[k],sym=k+'D',lv=ONS.L[sym]||ONS.L[k.replace(/O$/,'')+'D'],F=onFlows(k,m,ONS.conf),px=lv&&lv.c;
+  const y=px&&F?onYield(px,F.fl):null;let vt=null,par=null;
+  if(m&&m[4]=='B'&&m[5]&&m[6]&&F&&F.fl.length){const per=12/m[6],last=addMo(F.fl[0].d,-per),days=Math.max(0,(Date.parse(TODAY)-Date.parse(last))/864e5);vt=100+m[5]*days/365}else if(m&&m[7])vt=m[7];
+  if(vt&&px)par=px/vt*100;
+  return{k,sym,emi:(m&&m[0])||(F&&F.name)||'—',ley:m?m[1]:null,lam:m&&m[2],vto:(m&&m[3])||(F&&F.vto)||(F&&F.fl.length?F.fl[F.fl.length-1].d:null),amort:m&&m[4],cup:m&&m[5],freq:m&&m[6],px,ch:lv?lv.pct_change:null,vol:lv?lv.v:0,bid:lv&&lv.px_bid,ask:lv&&lv.px_ask,
+   tir:y?y.tir:null,md:y?y.md:null,tirRef:m&&m[8],par,vt,fl:F?F.fl:[],fsrc:F&&F.src,mine:mine.has(k)}}).filter(r=>r.px||r.mine)}
+function onScatter(rows){const P=rows.filter(r=>r.tir!=null&&r.md!=null&&r.tir>-5&&r.tir<25);if(P.length<2)return'';const W=370,H=230,L=40,Rr=12,T=12,B=26;
+ const xs=P.map(r=>r.md),ys=P.map(r=>r.tir),tx=ticks(0,Math.max(...xs)),ty=ticks(Math.min(0,Math.min(...ys)),Math.max(...ys));const X=v=>L+(v-tx[0])/(tx[tx.length-1]-tx[0])*(W-L-Rr),Y=v=>T+(1-(v-ty[0])/(ty[ty.length-1]-ty[0]))*(H-T-B);
+ let s='';ty.forEach(q=>{s+=`<line class="gl" x1="${L}" x2="${W-Rr}" y1="${Y(q)}" y2="${Y(q)}"/><text class="ax" x="${L-6}" y="${Y(q)+3}" text-anchor="end">${q}%</text>`});tx.forEach(q=>{s+=`<text class="ax" x="${X(q)}" y="${H-8}" text-anchor="middle">${q}</text>`});
+ // curva ajustada (log) por ley
+ const fit=G=>{if(G.length<3)return'';const a=G.map(r=>Math.log(r.md+.25)),b=G.map(r=>r.tir),n=G.length,ma=a.reduce((p,q)=>p+q,0)/n,mb=b.reduce((p,q)=>p+q,0)/n,sl=a.reduce((p,q,i)=>p+(q-ma)*(b[i]-mb),0)/a.reduce((p,q)=>p+(q-ma)**2,0)||0,ic=mb-sl*ma;
+  const mx=Math.max(...G.map(r=>r.md));let d='';for(let i=0;i<=30;i++){const x=0.1+(mx-0.1)*i/30,yv=ic+sl*Math.log(x+.25);d+=(i?'L':'M')+X(x).toFixed(1)+','+Y(Math.max(ty[0],Math.min(ty[ty.length-1],yv))).toFixed(1)}return d};
+ const gN=P.filter(r=>r.ley=='NY'),gA=P.filter(r=>r.ley!='NY');
+ [[gA,'var(--c2)'],[gN,'var(--c1)']].forEach(([G,c])=>{const d=fit(G);if(d)s+=`<path d="${d}" fill="none" style="stroke:${c}" stroke-width="1.6" stroke-dasharray="5 4" opacity=".7"/>`});
+ P.forEach(r=>{const c=r.ley=='NY'?'var(--c1)':r.ley=='ARG'?'var(--c2)':'var(--mut)';s+=`<g class="hp" data-tip="${tipA({t:r.sym+' · '+r.emi,r:[[c,'TIR',pcs(r.tir)],['','Duration',r.md.toFixed(2)+' años'],['','Ley',r.ley||'s/d'],['','Precio','US$ '+f2u(r.px)]]})}"><circle cx="${X(r.md)}" cy="${Y(r.tir)}" r="${r.mine?7:5}" style="fill:${c};stroke:${r.mine?'var(--fg)':'var(--panel)'}" stroke-width="${r.mine?2:1.5}"/><text class="axl" x="${X(r.md)+7}" y="${Y(r.tir)-6}" style="fill:var(--mut);font-size:9px">${r.k}</text></g>`});
+ return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Curva de ONs: TIR contra duration">${s}</svg>`}
+function vOns(){onsFetch(false);if(!loanTimer)loanLoop();
+ if(!ONS)return '<div class="empty">Cargando ONs…</div>';
+ const all=onRows(),q=ONF.q.trim().toLowerCase();
+ let rows=all.filter(r=>(ONF.ley=='all'||(ONF.ley=='NY'?r.ley=='NY':ONF.ley=='ARG'?r.ley=='ARG':!r.ley))&&(!ONF.mine||r.mine)&&(!q||r.k.toLowerCase().includes(q)||r.emi.toLowerCase().includes(q)));
+ const sk={tir:r=>-(r.tir??-99),md:r=>r.md??99,vto:r=>r.vto||'9',par:r=>r.par??999,vol:r=>-(r.vol||0),ch:r=>-(r.ch??-99)}[ONF.sort];rows.sort((a,b)=>sk(a)<sk(b)?-1:sk(a)>sk(b)?1:0);
+ const nNY=all.filter(r=>r.ley=='NY').length,nA=all.filter(r=>r.ley=='ARG').length,avg=G=>{const v=G.filter(r=>r.tir!=null);return v.length?v.reduce((a,r)=>a+r.tir,0)/v.length:null};
+ const aN=avg(all.filter(r=>r.ley=='NY')),aA=avg(all.filter(r=>r.ley=='ARG'));
+ let h=`<div class="hrow2" style="margin-top:0;margin-bottom:12px"><span class="pill up">● en vivo</span><span class="pill nt">${all.length} ONs en dólares</span><button class="btn" data-onref="1">↻ Actualizar</button></div>
+ <div class="grid g3"><div class="card kpi"><div class="k">TIR prom. ley NY</div><div class="v">${aN!=null?pcs(aN):'—'}</div><div class="s">${nNY} ONs</div></div><div class="card kpi"><div class="k">TIR prom. ley ARG</div><div class="v">${aA!=null?pcs(aA):'—'}</div><div class="s">${nA} ONs</div></div><div class="card kpi"><div class="k">Spread ARG − NY</div><div class="v">${aN!=null&&aA!=null?(aA-aN>=0?'+':'')+Math.round((aA-aN)*100)+' pb':'—'}</div><div class="s">prima por ley local</div></div></div>`;
+ h+=`<div class="chart" style="margin-top:12px"><h3>Curva de ONs</h3><div class="cs">TIR contra duration · línea punteada = curva ajustada · tocá un punto</div>${onScatter(rows.length>2?rows:all)}${legend([['var(--c1)','Ley NY'],['var(--c2)','Ley ARG'],['var(--mut)','Ley s/d']])}</div>`;
+ const chip=(k,v,l)=>`<button class="gchip${ONF[k]===v?' on':''}" data-onf="${k}:${v}">${l}</button>`;
+ h+=`<div class="sec"><div class="sh"><h2>Listado</h2><span class="m">${rows.length} de ${all.length}</span></div>
+  <input class="inp" type="search" id="onq" placeholder="Buscar ticker o empresa (YPF, Vista, MGCO…)" value="${esc(ONF.q)}" autocomplete="off" style="margin:0 0 8px">
+  <div class="gchips">${chip('ley','NY','Ley NY')}${chip('ley','ARG','Ley ARG')}${chip('ley','all','Todas')}${chip('ley','sd','Ley s/d')}<button class="gchip${ONF.mine?' on':''}" data-onf="mine:${!ONF.mine}">Mis ONs</button></div>
+  <div class="gchips"><span class="mutc" style="font-size:12px;align-self:center;flex:none">Ordenar:</span>${chip('sort','tir','TIR')}${chip('sort','md','Duration')}${chip('sort','vto','Vencimiento')}${chip('sort','par','Paridad')}${chip('sort','vol','Volumen')}${chip('sort','ch','Var. día')}</div>
+  <div class="list onl">${rows.map(r=>`<button class="li onr" data-on="${r.k}"><div class="onl1"><b>${r.sym}${r.mine?' <em class="ctag">en cartera</em>':''}</b><span class="lb ${r.ley=='NY'?'ny':r.ley=='ARG'?'ar':''}">${r.ley||'s/d'}</span><small>${esc(r.emi)} · vto ${r.vto?fd(r.vto):'—'}${r.cup?' · '+String(r.cup).replace('.',',')+'%':''}</small></div>
+   <div class="onl2"><b>${r.px?f2u(r.px):'—'}</b><small class="${r.ch>0?'pos':r.ch<0?'neg':''}">${r.ch!=null?(r.ch>0?'+':'')+String(r.ch).replace('.',',')+'%':''}</small></div>
+   <div class="onl3"><b>${r.tir!=null?pcs(r.tir):r.tirRef?pcs(r.tirRef)+'*':'—'}</b><small>MD ${r.md!=null?r.md.toFixed(1):'—'} · par ${r.par?Math.round(r.par)+'%':'—'}</small></div></button>`).join('')||'<p class="note" style="padding:14px">No hay ONs con esos filtros.</p>'}</div>
+  <p class="note">Precios en US$ por cada 100 de valor nominal (especie D, BYMA) de rendimientos.co, en vivo. TIR y duration calculadas con el precio actual y el flujo de fondos; * = TIR de referencia del ${ON_REF} (sin flujo cargado). Paridad = precio ÷ valor técnico (≈). Ley, cupón y lámina: informe de ONs de Banco Hipotecario al ${ON_REF}. Información, no recomendación.</p></div>`;
+ return h}
+function onDetail(k){const r=onRows().find(x=>x.k==k);if(!r)return;const nx=r.fl[0];
+ const st=(a,b)=>`<div class="stat"><span>${a}</span><b>${b}</b></div>`;
+ mfn=null;$('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" style="max-height:90vh;overflow:auto"><h2>${r.sym} <span class="lb ${r.ley=='NY'?'ny':r.ley=='ARG'?'ar':''}" style="vertical-align:3px">${r.ley?'Ley '+r.ley:'Ley s/d'}</span></h2><div class="m">${esc(r.emi)}${r.vto?' · vence '+fd(r.vto):''}</div>
+ <div class="grid g3" style="gap:8px;margin:10px 0"><div class="card kpi"><div class="k">Precio</div><div class="v">${r.px?f2u(r.px):'—'}</div><div class="s">${r.ch!=null?(r.ch>0?'+':'')+String(r.ch).replace('.',',')+'% hoy':''}</div></div><div class="card kpi"><div class="k">TIR</div><div class="v">${r.tir!=null?pcs(r.tir):r.tirRef?pcs(r.tirRef)+'*':'—'}</div><div class="s">MD ${r.md!=null?r.md.toFixed(2):'—'}</div></div><div class="card kpi"><div class="k">Paridad</div><div class="v">${r.par?pcs(r.par):'—'}</div><div class="s">VT ${r.vt?f2u(r.vt):'—'}</div></div></div>
+ ${st('Cupón',r.cup?String(r.cup).replace('.',',')+'% anual'+(r.freq?' · '+({1:'anual',2:'semestral',4:'trimestral',12:'mensual'}[r.freq]||r.freq+' por año'):''):'—')}${st('Amortización',r.amort=='B'?'Bullet (al vencimiento)':r.amort=='A'?'En cuotas':'—')}${st('Lámina mínima',r.lam?'US$ '+nfu.format(r.lam):'—')}
+ ${st('Compra / venta',(r.bid?f2u(r.bid):'—')+' / '+(r.ask?f2u(r.ask):'—'))}${st('Volumen hoy',r.vol?nfu.format(r.vol):'—')}${nx?st('Próximo pago',fd(nx.d)+' · US$ '+f2u(nx.m)+' c/100 VN'):''}
+ <h3 class="csh">Flujo de fondos por cada 100 VN ${r.fsrc=='cupón'?'<small class="mutc">(armado con el cupón)</small>':''}</h3>
+ <div class="list">${r.fl.length?r.fl.slice(0,40).map(f=>`<div class="stat" style="padding:8px 14px"><span>${fd(f.d)}</span><b>US$ ${f2u(f.m)}</b></div>`).join(''):'<p class="note" style="padding:12px">Sin flujo de fondos cargado para esta ON.</p>'}</div>
+ <div class="hrow2" style="margin-top:12px"><a class="btn" href="https://www.google.com/search?q=${encodeURIComponent(r.k+'O '+r.emi+' obligaciones negociables suplemento de prospecto CNV')}" target="_blank" rel="noopener">Buscar prospecto ↗</a><a class="btn" href="https://www.cnv.gov.ar/SitioWeb/Empresas/Empresas" target="_blank" rel="noopener">Autopista de Información CNV ↗</a></div>
+ <div class="btns"><button data-close="1">Cerrar</button></div></div></div>`}
+document.addEventListener('input',e=>{if(e.target&&e.target.id=='onq'){ONF.q=e.target.value;onfSave();clearTimeout(onsFetch.tq);onsFetch.tq=setTimeout(()=>{const pos=e.target.selectionStart;render();const i=$('#onq');if(i){i.focus();try{i.setSelectionRange(pos,pos)}catch(x){}}},250)}});
 function vMon(){
  if(!MON||!MON.w||!MON.w.length)return liveBar()+none(LIVE.st=='err'?'No pude conectarme a rendimientos.co. Probá con Actualizar.':'Cargando el monitor…');
  const c=MON.cot||{},br=c.mep&&c.ofi?(c.mep/c.ofi-1)*100:null,oc=c.ofi&&c.ofiPrev?(c.ofi/c.ofiPrev-1)*100:null;
@@ -1649,10 +1756,10 @@ function vEst(){const I=S.inv;if(!I)return none('Todavía no hay datos de invers
  +'<div class="note">≈ = estimado desde el CEDEAR y el MEP. Resumen de los term sheets; vale el documento legal.</div>'}
 
 /* ---------- shell ---------- */
-const GRP={g:['g'],i:['i','a','c','e'],r:['r'],m:['d','m']},SUBL={i:'Resumen',a:'Análisis',c:'Cobros',e:'Notas',d:'Dólar',m:'Mundo'};
+const GRP={g:['g'],i:['i','a','c','e'],r:['r'],m:['d','m','o']},SUBL={i:'Resumen',a:'Análisis',c:'Cobros',e:'Notas',d:'Dólar',m:'Mundo',o:'ONs'};
 const grpOf=s=>Object.keys(GRP).find(k=>GRP[k].includes(s))||'i';
 let lastSub={};try{lastSub=JSON.parse(localStorage.getItem('fin-sub')||'{}')}catch(e){}
-const TT={g:['Finanzas personales','Mis gastos'],i:['Inversiones','Cartera'],a:['Inversiones','Análisis de cartera'],c:['Inversiones','Cobros futuros'],r:['Compensación','RSU ExxonMobil'],e:['Inversiones','Notas estructuradas'],m:['Mercados','Monitor global'],d:['Mercados','Dólar · arbitraje']};
+const TT={g:['Finanzas personales','Mis gastos'],i:['Inversiones','Cartera'],a:['Inversiones','Análisis de cartera'],c:['Inversiones','Cobros futuros'],r:['Compensación','RSU ExxonMobil'],e:['Inversiones','Notas estructuradas'],o:['Mercados','Obligaciones negociables'],m:['Mercados','Monitor global'],d:['Mercados','Dólar · arbitraje']};
 function stRender(){const e=$('#st');if(!e)return;const mm={db:['ok','Sincronizado'],local:['bad','Sin sesión · datos de este dispositivo'],err:['bad','Error al sincronizar'],wait:['','Conectando…']}[SB?(SESSION?SYNC:'local'):'local']||['',''];e.className='stx '+mm[0];const lv=LIVE.st=='run'?' · actualizando precios…':LIVE.st=='ok'?' · en vivo '+hhmm(LIVE.at):LIVE.st=='err'?' · sin conexión al mercado':Q&&Q.ts?' · precios '+hhmm(Q.ts):'';e.lastChild.textContent=(!SB?'Sin configurar':mm[1]+(SYNC=='err'&&SYNCERR?' ('+SYNCERR+')':''))+lv;e.title=SYNCERR||''}
 function drawEye(){const b=$('#hidev');if(!b)return;b.setAttribute('aria-pressed',HIDE);b.classList.toggle('on',HIDE);b.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>${HIDE?'<path d="M4 4l16 16"/>':''}</svg>`}
 function render(){drawEye();if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
@@ -1669,12 +1776,12 @@ function render(){drawEye();if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
  $('#yl').textContent=yr;
  if(!S.y[yr])ensure(yr);
  $('#py').disabled=!S.y[yr-1];
- app.innerHTML=g?(tab=='mes'?vMes():tab=='anio'?vAnio():tab=='uva'?vLoan():tab=='alq'?vRent():tab=='auto'?vCars():vGA()):sec=='i'?vInv():sec=='a'?vAna():sec=='c'?vCash():sec=='r'?vRsu():sec=='m'?vMon():sec=='d'?vDol():vEst();
+ app.innerHTML=g?(tab=='mes'?vMes():tab=='anio'?vAnio():tab=='uva'?vLoan():tab=='alq'?vRent():tab=='auto'?vCars():vGA()):sec=='i'?vInv():sec=='a'?vAna():sec=='c'?vCash():sec=='r'?vRsu():sec=='m'?vMon():sec=='o'?vOns():sec=='d'?vDol():vEst();
  $('#mch').hidden=$('#ypr').hidden=!(g&&tab=='mes'&&S&&SESSION);
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'});
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -1714,6 +1821,9 @@ document.addEventListener('click',e=>{
  if(d.unlock)return unlock();
  if(d.notif)return openNotif();
  if(d.gpick)return gPick();
+ if(d.on)return onDetail(d.on);
+ if(d.onf){const [k,v]=d.onf.split(':');ONF[k]=k=='mine'?v=='true':v;onfSave();return render()}
+ if(d.onref){onsFetch(true);return toast('Actualizando ONs…')}
  if(d.car)return carAct(d.car);
  if(d.itg){const a=iCol();return iColSet(a.includes(d.itg)?a.filter(z=>z!=d.itg):[...a,d.itg])}
  if(d.icol)return iColSet(d.icol=='all'?[...CORD]:[]);
@@ -1752,7 +1862,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261123061439';
+const BUILD='20261124010009';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
