@@ -1420,6 +1420,7 @@ async function pushEnable(){const msg=$('#nmsg');const say=s=>{if(msg)msg.textCo
   await putDoc('push',PUSH);say('Enviando notificación de prueba…');await fnCall('test');say('Listo. Te mandé una notificación de prueba.');openNotif(true)}
  catch(e){say(e.message||String(e));const d=$('#nsetup');if(d)d.open=true}}
 async function pushDisable(){const s=await mySub();if(s){try{await s.unsubscribe()}catch(e){}}await loadPush();if(s)PUSH.subs=PUSH.subs.filter(x=>x.endpoint!=s.endpoint);await putDoc('push',PUSH);toast('Notificaciones desactivadas en este dispositivo');openNotif(true)}
+async function pushRes(){const m=$('#nmsg');try{m.textContent='Armando el resumen…';const r=await fnCall('res');m.textContent=r.sent?'Listo: te mandé el resumen de '+r.mes+'.':(r.error||'No hay datos para armar el resumen.')}catch(e){m.textContent=/res|op|desconoc/i.test(e.message)?'Actualizá la función alertas en Supabase para probarlo.':e.message}}
 async function pushTest(){const m=$('#nmsg');try{m.textContent='Enviando…';const r=await fnCall('test');m.textContent='Enviada a '+r.devices+' dispositivo'+(r.devices>1?'s':'')+'.'}catch(e){m.textContent=e.message}}
 async function pushPreview(){const el=$('#nprev');el.innerHTML='<p class="note">Revisando el mercado…</p>';try{const r=await fnCall('preview');el.innerHTML=r.alerts&&r.alerts.length?r.alerts.map(a=>`<div class="stat"><span>${esc(a.title)}</span></div>`).join(''):'<p class="note">Ahora no hay nada para avisarte.</p>'}catch(e){el.innerHTML=`<p class="note">${esc(e.message)}</p>`}}
 function pushSaveCfg(){const c=PUSH.cfg;NCAT.forEach(([k])=>c.on[k]=$('#nc_'+k).checked);['mv','pm','fx','conc','liq'].forEach(k=>{const v=parse($('#nt_'+k).value);if(v>0)c[k]=v});c.priv=$('#npriv').checked;
@@ -1463,7 +1464,7 @@ async function openNotif(keep){if(!FNCODE)fetch('./supabase/functions/alertas/in
  mfn=null;$('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" style="max-height:90vh;overflow:auto"><h2>Notificaciones</h2><div class="m">${n?`Activas en ${n} dispositivo${n>1?'s':''}: ${esc([...new Set(PUSH.subs.map(x=>x.dev))].join(', '))}`:'Todavía no activaste ningún dispositivo'}</div>
  <div class="stat"><span>Este dispositivo</span><b class="${mine?'pos':''}">${mine?'Activadas':'No activadas'}</b></div>
  ${isIOS()&&!isStandalone()?'<p class="note">En el iPhone abrí la app desde el ícono de la pantalla de inicio para poder activarlas.</p>':''}
- <div class="hrow2">${mine?'<button class="btn" data-npush="test">Enviar prueba</button><button class="btn" data-npush="off">Desactivar acá</button>':'<button class="btn" data-npush="on" style="background:var(--acc);color:#fff">Activar en este dispositivo</button>'}<button class="btn" data-npush="prev">¿Qué me avisaría ahora?</button></div>
+ <div class="hrow2">${mine?'<button class="btn" data-npush="test">Enviar prueba</button><button class="btn" data-npush="res">Ver resumen del mes</button><button class="btn" data-npush="off">Desactivar acá</button>':'<button class="btn" data-npush="on" style="background:var(--acc);color:#fff">Activar en este dispositivo</button>'}<button class="btn" data-npush="prev">¿Qué me avisaría ahora?</button></div>
  <p class="note" id="nmsg" role="status"></p><div id="nprev"></div>
  <h3 style="margin:18px 0 6px;font-size:14px">Qué te aviso</h3>
  ${NCAT.map(([k,t2,d])=>`<label class="nck"><input type="checkbox" id="nc_${k}" ${c.on[k]?'checked':''}><span><b>${t2}</b><small>${d}</small></span></label>`).join('')}
@@ -2260,7 +2261,7 @@ document.addEventListener('click',e=>{
  if(d.icol)return iColSet(d.icol=='all'?[...CORD]:[]);
  if(d.carsc){const [i,k]=d.carsc.split(':'),o=carOps()[+i];o.sc=k;if(o.led)carLedger(o,true);save();const y=scrollY;render();scrollTo(0,y);return}
  if(d.gsel!==undefined)return gSet(d.gsel);
- if(d.npush){const k=d.npush;if(k=='on')pushEnable();else if(k=='off')pushDisable();else if(k=='test')pushTest();else if(k=='prev')pushPreview();else if(k=='save')pushSaveCfg();else if(k=='cpfn')copyTxt(FNCODE,'Código');else if(k=='cpsql')copyTxt(pushSQL(),'SQL');return}
+ if(d.npush){const k=d.npush;if(k=='on')pushEnable();else if(k=='off')pushDisable();else if(k=='test')pushTest();else if(k=='res')pushRes();else if(k=='prev')pushPreview();else if(k=='save')pushSaveCfg();else if(k=='cpfn')copyTxt(FNCODE,'Código');else if(k=='cpsql')copyTxt(pushSQL(),'SQL');return}
  if(d.lockafter!=null){try{localStorage.setItem('fin-lockafter',d.lockafter)}catch(x){}openAccount();return}
  if(d.privtoggle){try{localStorage.setItem('fin-priv',privOn()?'0':'1')}catch(x){}openAccount();return}
  if(d.badge){try{localStorage.setItem('fin-badge',d.badge)}catch(x){}badgeSet();openAccount();return}
@@ -2299,7 +2300,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261124221500';
+const BUILD='20261124223000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});

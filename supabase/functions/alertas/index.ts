@@ -153,7 +153,7 @@ function rules(S: Any, cfg: Any, M: Any, st: Any): Alert[] {
   }
 
   // 7) resumen del mes: el día 1 (o hasta el 3 si no se pudo antes), desde las 9
-  if (on.res && +today.slice(8, 10) <= 3 && hh >= 9) {
+  if (on.res && ((+today.slice(8, 10) <= 3 && hh >= 9) || st.forceRes)) {
     const MESL = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
     const cur = today.slice(0, 7), pk = mAdd(cur, -1), ms = S.msum && S.msum[pk], parts: string[] = [];
     const $ = (n: number) => "$ " + nf(Math.round(n));
@@ -211,12 +211,16 @@ Deno.serve(async (req) => {
   const op = body.op || new URL(req.url).searchParams.get("op") || "run";
   try {
     if (op == "key") return json({ key: (await vapid()).publicKey });
-    if (op == "test" || op == "preview") {
+    if (op == "test" || op == "preview" || op == "res") {
       const tok = (req.headers.get("authorization") || "").replace(/^Bearer /i, ""); const { data: u } = await SB.auth.getUser(tok);
       if (!u || !u.user) return json({ error: "Iniciá sesión en la app." }, 401);
       const { data: p } = await SB.from("docs").select("data").eq("user_id", u.user.id).eq("id", "push").maybeSingle();
       if (op == "preview") { const { data: led } = await SB.from("docs").select("data").eq("user_id", u.user.id).eq("id", "ledger").maybeSingle(); const M = await market(); const cfg = { ...DEF, ...((p && p.data && p.data.cfg) || {}) }; const st = (await getState("u:" + u.user.id)) || { sent: {} }; const L = { ...LOAN_DEF, ...((led && led.data && led.data.loan) || {}) }; return json({ ok: M.ok, alerts: led ? rules(led.data, cfg, M, { ...st, daily: null }) : [], loan: loanState(L, M, dISO(nowART())) }); }
       if (!p || !(p.data.subs || []).length) return json({ error: "Este usuario no tiene dispositivos suscriptos." }, 400);
+      if (op == "res") { const { data: led } = await SB.from("docs").select("data").eq("user_id", u.user.id).eq("id", "ledger").maybeSingle(); if (!led) return json({ error: "No encontré tus datos." }, 404);
+        const M = await market(), cfg = { ...DEF, ...(p.data.cfg || {}) }, R = rules(led.data, { ...cfg, on: { res: true } }, M, { sent: {}, forceRes: 1 }).filter((a) => a.cat == "res");
+        if (!R.length) return json({ sent: 0, error: "Todavía no hay un mes cerrado para resumir. Abrí la app una vez para que lo calcule." });
+        await sendTo(u.user.id, p.data, R, await vapid()); return json({ sent: 1, mes: R[0].title.replace("Cómo cerró ", "") }); }
       await sendTo(u.user.id, p.data, [{ key: "test", cat: "test", title: "Notificaciones activadas", body: "Finanzas Gonzo te va a avisar de movimientos fuertes, el crédito UVA y decisiones pendientes.", tag: "test", url: "#" }], await vapid());
       return json({ ok: true, devices: p.data.subs.length });
     }
