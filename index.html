@@ -1739,7 +1739,7 @@ function vHoy(){iolPoll(false);if(!LD)loanFetch(false);const N=nwCalc();nwRecord
  ev.sort((a,b)=>a.d<b.d?-1:1);
  h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>Próximos 30 días</b></div>${ev.length?`<div class="hoyev">${ev.slice(0,12).map(e=>`<div><span class="hd"><b>${e.d.slice(8,10)}</b><small>${MES[+e.d.slice(5,7)-1]}</small></span><span class="ht">${esc(e.t)}</span><b class="${e.c=='up'?'pos':e.c=='dn'?'neg':''}">${e.v}</b></div>`).join('')}</div>`:'<p class="note">Nada agendado en los próximos 30 días.</p>'}</div>`;
  // mercado
- if(P){const mv=P.items.filter(x=>x.c!=null&&x.live&&x.v>100).sort((a,b)=>b.c-a.c),up=mv.slice(0,2),dn=mv.slice(-2).reverse().filter(x=>x.c<0);
+ if(P){const mv=P.items.filter(x=>x.ch!=null&&x.live&&x.v>100).map(x=>({t:x.u||x.t,c:x.ch,v:x.v})).sort((a,b)=>b.c-a.c),up=mv.slice(0,2),dn=mv.slice(-2).reverse().filter(x=>x.c<0);
   h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>Mercado</b><span class="mutc" style="font:500 12px var(--mono)">MEP ${f2u(m)}${DOL&&DOL.t&&DOL.t.blue?' · blue '+f2u(DOL.t.blue.v):''}</span></div>
   <div class="hoymv">${up.filter(x=>x.c>0).map(x=>`<div><b>${esc(x.t)}</b><span class="pos">+${String(x.c.toFixed(2)).replace('.',',')}%</span></div>`).join('')}${dn.map(x=>`<div><b>${esc(x.t)}</b><span class="neg">${String(x.c.toFixed(2)).replace('.',',')}%</span></div>`).join('')}</div></div>`}
  if(ALR&&ALR.items&&ALR.items.length)h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>Últimos avisos</b><button class="btn" data-notif="1">Ver todos</button></div>${ALR.items.slice(0,3).map(a=>`<div class="stat"><span>${esc(a.t)}</span></div>`).join('')}</div>`;
@@ -2031,7 +2031,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261124021134';
+const BUILD='20261124022235';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
