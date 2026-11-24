@@ -1564,7 +1564,7 @@ function onScatter(rows){const P=rows.filter(r=>r.tir!=null&&r.md!=null&&r.tir>-
  let s='';ty.forEach(q=>{s+=`<line class="gl" x1="${L}" x2="${W-Rr}" y1="${Y(q)}" y2="${Y(q)}"/><text class="ax" x="${L-6}" y="${Y(q)+3}" text-anchor="end">${q}%</text>`});tx.forEach(q=>{s+=`<text class="ax" x="${X(q)}" y="${H-8}" text-anchor="middle">${q}</text>`});
  // curva ajustada (log) por ley
  const fit=G=>{if(G.length<3)return'';const a=G.map(r=>Math.log(r.md+.25)),b=G.map(r=>r.tir),n=G.length,ma=a.reduce((p,q)=>p+q,0)/n,mb=b.reduce((p,q)=>p+q,0)/n,sl=a.reduce((p,q,i)=>p+(q-ma)*(b[i]-mb),0)/a.reduce((p,q)=>p+(q-ma)**2,0)||0,ic=mb-sl*ma;
-  const mx=Math.max(...G.map(r=>r.md));let d='';for(let i=0;i<=30;i++){const x=0.1+(mx-0.1)*i/30,yv=ic+sl*Math.log(x+.25);d+=(i?'L':'M')+X(x).toFixed(1)+','+Y(Math.max(ty[0],Math.min(ty[ty.length-1],yv))).toFixed(1)}return d};
+  const mx=Math.max(...G.map(r=>r.md)),mn=Math.min(...G.map(r=>r.md));let d='';for(let i=0;i<=30;i++){const x=mn+(mx-mn)*i/30,yv=ic+sl*Math.log(x+.25);d+=(i?'L':'M')+X(x).toFixed(1)+','+Y(Math.max(ty[0],Math.min(ty[ty.length-1],yv))).toFixed(1)}return d};
  const gN=P.filter(r=>r.ley=='NY'),gA=P.filter(r=>r.ley!='NY');
  [[gA,'var(--c2)'],[gN,'var(--c1)']].forEach(([G,c])=>{const d=fit(G);if(d)s+=`<path d="${d}" fill="none" style="stroke:${c}" stroke-width="1.6" stroke-dasharray="5 4" opacity=".7"/>`});
  P.forEach(r=>{const c=r.ley=='NY'?'var(--c1)':r.ley=='ARG'?'var(--c2)':'var(--mut)';s+=`<g class="hp" data-tip="${tipA({t:r.sym+' · '+r.emi,r:[[c,'TIR',pcs(r.tir)],['','Duration',r.md.toFixed(2).replace('.',',')+' años'],['','Ley',r.ley||'s/d'],['','Precio','US$ '+f2u(r.px)]]})}"><circle cx="${X(r.md)}" cy="${Y(r.tir)}" r="${r.mine?7:5}" style="fill:${c};stroke:${r.mine?'var(--fg)':'var(--panel)'}" stroke-width="${r.mine?2:1.5}"/><text class="axl" x="${X(r.md)+7}" y="${Y(r.tir)-6}" style="fill:var(--mut);font-size:9px">${r.k}</text></g>`});
@@ -1864,7 +1864,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261124010243';
+const BUILD='20261124010253';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
