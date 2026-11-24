@@ -52,6 +52,7 @@
 .rtl{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:13.5px}.rtl span{display:flex;align-items:center;gap:8px;min-width:0}.rtl b{font:600 13.5px var(--mono);white-space:nowrap}
 .rtb{height:6px;border-radius:4px;background:var(--panel2);margin:6px 0 4px;overflow:hidden}.rtb i{display:block;height:100%;border-radius:4px}
 .rtp small{font-size:11.5px}
+.rtg{height:12px;border-radius:7px;background:var(--panel2);margin-top:10px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--line)}.rtg i{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,var(--c1),var(--c3))}.rtg.sm{height:6px;margin-top:6px}.rtg.sm i{background:var(--mut)}
 .rtt{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;gap:6px;padding:9px 14px;border-top:1px solid var(--line);font:500 12.5px var(--mono);align-items:center}.rtt span:not(:first-child){text-align:right}
 .rtt:first-child{border-top:0;font:600 11px var(--sans);color:var(--mut);text-transform:uppercase;letter-spacing:.04em;background:var(--panel2)}
 #privc{position:fixed;inset:0;z-index:140;background:var(--bg);display:grid;place-items:center}
@@ -1788,7 +1789,13 @@ function vHoy(){iolPoll(false);if(!LD)loanFetch(false);const N=nwCalc();nwRecord
  if(ALR&&ALR.items&&ALR.items.length)h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>Últimos avisos</b><button class="btn" data-notif="1">Ver todos</button></div>${ALR.items.slice(0,3).map(a=>a.url&&a.url!='#'?`<button class="stat hoyal" data-goh="${esc(a.url)}"><span>${esc(a.t)}</span><span class="mutc">›</span></button>`:`<div class="stat"><span>${esc(a.t)}</span></div>`).join('')}</div>`;
  return h}
 /* ---------- camino al retiro ---------- */
-const RET_DEF={birth:'',age:50,base:6,spread:2,ap:null,hire:'',sal:null,pct:50,gr:100,unv:'keep'};
+const RET_DEF={birth:'',age:50,base:6,spread:2,ap:null,hire:'',sal:null,pct:50,gr:100,unv:'keep',prop:null,pg:0,lsub:true};
+/* inmuebles cargados en Patrimonio que suman al retiro (por defecto: los departamentos), menos el saldo del hipotecario */
+function retProp(C,endD){const m=mepE(),its=((S.nw&&S.nw.items)||[]).filter(x=>x.t!='l'),pick=C.prop||its.filter(x=>/depto|departamento/i.test(x.n)).map(x=>x.n);
+ const sel=its.filter(x=>pick.includes(x.n)).map(x=>({n:x.n,v:x.cur=='ARS'?x.v/m:x.v})),v0=sel.reduce((a,x)=>a+x.v,0);
+ let debt=()=>0,d0=0;if(C.lsub&&sel.length)try{const L=loan(),uva=LD?LD.uva:L.cap0/L.uva0,M=loanMath(L,uva),r=M.r,c=M.c,P=L.uva0,bal=k=>{const g=Math.pow(1+r,k);return Math.max(0,P*g-c*(g-1)/r)};
+  d0=M.balA/m;const k0=M.k;debt=d=>{if(!M.bal)return 0;const k=Math.min(L.n,Math.max(k0,k0+retMD(TODAY,d)));return d0*bal(k)/M.bal}}catch(e){}
+ return{sel,v0,d0,at:d=>v0*Math.pow(1+C.pg/100,retMD(TODAY,d)/12)-debt(d),debt}}
 const retC=()=>Object.assign({},RET_DEF,S.ret||{});
 const retAdd=(s,mo)=>{const d=new Date(s+'T12:00:00');d.setMonth(d.getMonth()+mo);return d.toISOString().slice(0,10)};
 const retMD=(a,b)=>{const x=new Date(a+'T12:00:00'),y=new Date(b+'T12:00:00');let mo=(y.getFullYear()-x.getFullYear())*12+y.getMonth()-x.getMonth();if(y.getDate()<x.getDate())mo--;return mo};
@@ -1799,18 +1806,18 @@ function retAuto(){const m=mepE(),nm=NOWM();let ap=0,n=0,sal=0;
   R.forEach(x=>{if(x.end!=null&&mo>=x.end)return;if(x.s!='in'&&catOf(x).id=='aho'&&x.p&&x.p[mo])ap+=x.a[mo]||0;if(x.s=='in'&&/^sueldo gonza/i.test(x.n))sal=Math.max(sal,x.a[mo]||0)})}
  return{ap:n?ap/n/m:0,sal:sal/m,n}}
 function retInd(C,endD){if(!C.hire||C.hire>=endD)return null;const mo=retMD(C.hire,endD),yrs=Math.floor(mo/12)+(mo%12>3?1:0),sal=C.sal!=null?C.sal:retAuto().sal;return{yrs,mo,sal,amt:yrs*sal*C.pct/100}}
-function retSim(r,C,endD,A,P0,ind){const R=S.inv&&S.inv.rsu,px0=R?rsuPx():0,nt=R?1-R.tax/100:1,dq=R?(R.div||1.07):0,dy=px0?dq*4/px0:0;
+function retSim(r,C,endD,A,P0,ind,PR){const ex=d=>PR?PR.at(d):0;const R=S.inv&&S.inv.rsu,px0=R?rsuPx():0,nt=R?1-R.tax/100:1,dq=R?(R.div||1.07):0,dy=px0?dq*4/px0:0;
  const rm=Math.pow(1+r/100,1/12)-1,gx=Math.pow(Math.max(.01,(1+r/100)/(1+dy)),1/12)-1,nM=Math.max(1,retMD(TODAY.slice(0,8)+'01',endD.slice(0,8)+'01'));
  const G=R&&R.g?R.g.filter(g=>g.vd>=TODAY).map(g=>({q:g.q,vd:g.vd,gd:'0'})):[];
  if(R&&C.gr>0)for(let y=+TODAY.slice(0,4);y<+endD.slice(0,4)+1;y++){const gd=y+'-11-25';if(gd<TODAY||gd>=endD)continue;G.push({q:C.gr/2,vd:(y+3)+'-11-25',gd,nw:1},{q:C.gr/2,vd:(y+7)+'-11-25',gd,nw:1})}
  const unvAt=(d,px)=>G.filter(g=>g.gd<=d&&g.vd>d).reduce((a,g)=>a+g.q,0)*px*nt;
- let c0=P0,ap=0,rs=0;const pts=[{d:TODAY,v:P0+unvAt(TODAY,px0)}];
+ let c0=P0,ap=0,rs=0;const pts=[{d:TODAY,v:P0+unvAt(TODAY,px0)+ex(TODAY)}];
  for(let i=1;i<=nM;i++){c0*=1+rm;ap=ap*(1+rm)+A;rs*=1+rm;const ms=retAdd(TODAY.slice(0,8)+'01',i).slice(0,7),px=px0*Math.pow(1+gx,i),last=i==nM;
   G.forEach(g=>{if(g.vd.slice(0,7)==ms&&g.vd<endD)rs+=g.q*px*nt});
   if(DIVM.includes(+ms.slice(5,7))){const pd=ms+'-10';if(pd<endD)rs+=G.filter(g=>g.gd<=pd&&g.vd>pd).reduce((a,g)=>a+g.q,0)*dq*nt}
   const d=last?endD:ms+'-15',u=last?(C.unv=='keep'?unvAt(endD,px):0):unvAt(d,px);
-  pts.push({d,v:c0+ap+rs+u+(last&&ind?ind.amt:0),u})}
- const L=pts[pts.length-1];return{pts,tot:L.v,c0,ap,rs,unv:L.u,ind:ind?ind.amt:0,apIn:A*nM,nM,gNew:G.filter(g=>g.nw).reduce((a,g)=>a+g.q,0),gLost:C.unv=='keep'?0:G.filter(g=>g.vd>=endD).reduce((a,g)=>a+g.q,0)}}
+  pts.push({d,v:c0+ap+rs+u+ex(d)+(last&&ind?ind.amt:0),u})}
+ const L=pts[pts.length-1];return{pts,tot:L.v,c0,ap,rs,unv:L.u,ind:ind?ind.amt:0,prop:ex(endD),apIn:A*nM,nM,gNew:G.filter(g=>g.nw).reduce((a,g)=>a+g.q,0),gLost:C.unv=='keep'?0:G.filter(g=>g.vd>=endD).reduce((a,g)=>a+g.q,0)}}
 function retChart(sc,C){const W=370,H=200,L=46,Rr=12,T=14,B=24,base=sc[1].pts,n=base.length,stp=Math.max(1,Math.round(n/36)),idx=[];for(let i=0;i<n;i+=stp)idx.push(i);if(idx[idx.length-1]!=n-1)idx.push(n-1);
  const hi=Math.max(...sc[2].pts.map(p=>p.v)),tk=ticks(0,hi*1.04),mx=tk[tk.length-1],X=k=>L+k*(W-L-Rr)/(idx.length-1),Y=q=>T+(1-q/mx)*(H-T-B);
  const P=s=>idx.map((i,k)=>[X(k),Y(s.pts[i].v)]),cols=['var(--c2)','var(--c1)','var(--c3)'];
@@ -1818,7 +1825,7 @@ function retChart(sc,C){const W=370,H=200,L=46,Rr=12,T=14,B=24,base=sc[1].pts,n=
  const lo=P(sc[0]),up=P(sc[2]);s+=`<path d="M${up.map(p=>p.map(v=>v.toFixed(1)).join(',')).join('L')}L${lo.slice().reverse().map(p=>p.map(v=>v.toFixed(1)).join(',')).join('L')}Z" style="fill:var(--c1)" opacity=".09"/>`;
  sc.forEach((x,j)=>{s+=`<path d="${mono(P(x))}" fill="none" style="stroke:${cols[j]}" stroke-width="${j==1?2.4:1.6}" ${j==1?'':'stroke-dasharray="5 4"'} stroke-linecap="round"/>`});
  // edades en el eje x
- const by=+C.birth.slice(0,4);let lastX=-99;idx.forEach((i,k)=>{const d=base[i].d,a=retMD(C.birth,d)/12;const prev=k?retMD(C.birth,base[idx[k-1]].d)/12:-1;if((Math.floor(a)>Math.floor(prev)||k==idx.length-1)&&X(k)-lastX>26){lastX=X(k);s+=`<text class="ax" x="${X(k)}" y="${H-7}" text-anchor="${k==idx.length-1?'end':'middle'}">${k==idx.length-1?C.age+' años':Math.floor(a)}</text>`}});
+ const by=+C.birth.slice(0,4);let lastX=-99;idx.forEach((i,k)=>{const d=base[i].d,a=retMD(C.birth,d)/12;const prev=k?retMD(C.birth,base[idx[k-1]].d)/12:-1;const isL=k==idx.length-1;if((Math.floor(a)>Math.floor(prev)||isL)&&X(k)-lastX>26&&(isL||X(k)<W-Rr-48)){lastX=X(k);s+=`<text class="ax" x="${X(k)}" y="${H-7}" text-anchor="${k==idx.length-1?'end':'middle'}">${k==idx.length-1?C.age+' años':Math.floor(a)}</text>`}});
  const e=up[up.length-1];s+=`<circle cx="${e[0]}" cy="${e[1]}" r="4" style="fill:${cols[2]};stroke:var(--panel)" stroke-width="2"/><circle cx="${X(idx.length-1)}" cy="${Y(sc[1].tot)}" r="5" style="fill:${cols[1]};stroke:var(--panel)" stroke-width="2"/><circle cx="${lo[lo.length-1][0]}" cy="${lo[lo.length-1][1]}" r="4" style="fill:${cols[0]};stroke:var(--panel)" stroke-width="2"/>`;
  const sw=(W-L-Rr)/(idx.length-1);idx.forEach((i,k)=>{const d=base[i].d,a=retMD(C.birth,d),last=k==idx.length-1;
   const tip={t:(last?'Retiro · ':'')+Math.floor(a/12)+' años · '+MES[+d.slice(5,7)-1]+' '+d.slice(0,4),r:[[cols[2],(C.base+C.spread)+'% anual',usd(sc[2].pts[i].v)],[cols[1],C.base+'% anual',usd(sc[1].pts[i].v)],[cols[0],(C.base-C.spread)+'% anual',usd(sc[0].pts[i].v)]].concat(last&&sc[1].ind?[['','incluye indemnización',usd(sc[1].ind)]]:[])};
@@ -1828,20 +1835,27 @@ function vRet(){const C=retC();
  if(!C.birth)return `<div class="card" style="margin-top:4px"><h3 style="margin:0 0 6px">Camino al retiro</h3><p class="note" style="margin:0 0 12px">Proyecta tu cartera y tus RSU con interés compuesto hasta la edad en que te querés retirar, en tres escenarios, y suma la indemnización de ExxonMobil. Para empezar cargá tu fecha de nacimiento y la de ingreso a la empresa.</p><button class="btn pr" data-retcfg="1">Cargar mis datos</button></div>`;
  const endD=addY(C.birth,C.age);if(endD<=TODAY)return `<div class="card"><p class="note">La edad de retiro ya pasó. Revisá los datos.</p><button class="btn" data-retcfg="1">Editar supuestos</button></div>`;
  let P0=0;try{P0=S.inv?port().T:0}catch(e){}const au=retAuto(),A=C.ap!=null?C.ap:au.ap,ind=retInd(C,endD);
- const sc=[C.base-C.spread,C.base,C.base+C.spread].map(r=>retSim(r,C,endD,A,P0,ind)),b=sc[1],mo=retMD(TODAY,endD),now=retMD(C.birth,TODAY);
+ const PR=retProp(C,endD),sc=[C.base-C.spread,C.base,C.base+C.spread].map(r=>retSim(r,C,endD,A,P0,ind,PR)),b=sc[1],mo=retMD(TODAY,endD),now=retMD(C.birth,TODAY);
  const pf=n=>String(n).replace('.',',');
  let h=`<button class="hero hoyhero" data-retcfg="1"><div class="k">A los ${C.age} · ${fd(endD)} <span class="mutc">supuestos ›</span></div><div class="big"><small>US$</small>${HV(nfu.format(Math.round(b.tot)))}</div><div class="s">entre ${usd(sc[0].tot)} y ${usd(sc[2].tot)} · faltan ${Math.floor(mo/12)} años y ${mo%12} meses · hoy tenés ${Math.floor(now/12)}</div></button>`;
+ {const v0=b.pts[0].v,pg=Math.min(100,v0/b.tot*100),lo=sc[0].tot/b.tot*100,hi=Math.min(100,b.tot/sc[2].tot*100);
+  const t0=C.hire&&C.hire<TODAY?C.hire:null,tt=t0?retMD(t0,endD):0,td=t0?retMD(t0,TODAY):0;
+  h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>Progreso hacia tu meta</b><span class="mutc" style="font:600 13px var(--mono)">${pc0(pg)}</span></div>
+  <div class="rtg"><i style="width:${pg.toFixed(1)}%"></i></div>
+  <div class="rtl" style="margin-top:8px"><span class="mutc">Tenés ${usd(v0)}</span><span class="mutc">meta ${usd(b.tot)} a los ${C.age}</span></div>
+  <p class="note" style="margin:6px 0 0">Te faltan <b>${usd(b.tot-v0)}</b>. Con aportes, RSU e intereses llegás en ${Math.floor(mo/12)} años y ${mo%12} meses; al ${String(C.base-C.spread).replace('.',',')}% llegarías al ${pc0(lo)} de la meta.</p>
+  ${t0?`<div class="rtl" style="margin-top:14px"><span>Carrera en ExxonMobil</span><span class="mutc" style="font:600 12.5px var(--mono)">${Math.floor(td/12)} de ${Math.floor(tt/12)} años</span></div><div class="rtg sm"><i style="width:${(td/tt*100).toFixed(1)}%"></i></div>`:''}</div>`}
  h+=`<div class="grid g3" style="margin-top:12px">
   <div class="card kpi"><div class="k">Indemnización ExxonMobil</div><div class="v">${ind?usd(ind.amt):'—'}</div><div class="s">${ind?`${C.pct}% · ${ind.yrs} años × ${usd(ind.sal)}`:'cargá tu fecha de ingreso'}</div></div>
   <div class="card kpi"><div class="k">Aporte mensual</div><div class="v">${usd(A)}</div><div class="s">${C.ap!=null?'fijado por vos':'promedio invertido últimos 12 meses'}</div></div>
   <div class="card kpi"><div class="k">Podrías retirar por mes</div><div class="v">${usd(b.tot*.04/12)}</div><div class="s">regla del 4% · escenario ${pf(C.base)}%</div></div></div>`;
- h+=`<div class="chart" style="margin-top:12px"><h3>Cómo crece hasta tu retiro</h3><div class="cs">Cartera + RSU en US$, con interés compuesto. El salto final es la indemnización.</div>${retChart(sc,C)}</div>`;
- const parts=[['var(--c1)','Cartera de hoy',P0,b.c0,usd(P0)+' hoy'],['var(--c3)','Aportes mensuales',b.apIn,b.ap,usd(b.apIn)+' aportados'],['var(--c4)','RSU XOM vesteados y dividendos',null,b.rs,'netos del 35%, reinvertidos'+(b.gNew?` · incluye ${nfu.format(b.gNew)} acciones nuevas`:'')],['var(--c5,var(--c2))','RSU sin vestear al retirarte',null,b.unv,C.unv=='keep'?'se mantienen':(b.gLost?nfu.format(b.gLost)+' acciones se pierden':'')],['var(--c2)','Indemnización',null,b.ind,ind?ind.yrs+' años de antigüedad':'sin fecha de ingreso']].filter(p=>p[3]>0||p[1]=='Indemnización');
+ h+=`<div class="chart" style="margin-top:12px"><h3>Cómo crece hasta tu retiro</h3><div class="cs">Cartera, RSU${PR.sel.length?' y depto':''} en US$, con interés compuesto. El salto final es la indemnización.</div>${retChart(sc,C)}</div>`;
+ const parts=[['var(--c1)','Cartera de hoy',P0,b.c0,usd(P0)+' hoy'],['var(--c3)','Aportes mensuales',b.apIn,b.ap,usd(b.apIn)+' aportados'],['var(--c4)','RSU XOM vesteados y dividendos',null,b.rs,'netos del 35%, reinvertidos'+(b.gNew?` · incluye ${nfu.format(b.gNew)} acciones nuevas`:'')],['var(--c5,var(--c2))','RSU sin vestear al retirarte',null,b.unv,C.unv=='keep'?'se mantienen':(b.gLost?nfu.format(b.gLost)+' acciones se pierden':'')],[`var(--c6,var(--c4))`,PR.sel.map(x=>x.n).join(' + ')||'Inmuebles',null,b.prop,PR.sel.length?usd(PR.v0)+' hoy'+(C.pg?' · +'+String(C.pg).replace('.',',')+'% anual':' · valor constante')+(C.lsub&&PR.d0?' · menos saldo del crédito '+usd(PR.debt(endD)):''):''],['var(--c2)','Indemnización',null,b.ind,ind?ind.yrs+' años de antigüedad':'sin fecha de ingreso']].filter(p=>p[3]>0||p[1]=='Indemnización');
  h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>De dónde sale, escenario ${pf(C.base)}%</b></div>${parts.map(p=>`<div class="rtp"><div class="rtl"><span><i class="sw" style="background:${p[0]}"></i>${p[1]}</span><b>${usd(p[3])}</b></div><div class="rtb"><i style="width:${Math.max(.5,p[3]/b.tot*100).toFixed(1)}%;background:${p[0]}"></i></div><small class="mutc">${p[4]}${p[3]&&b.tot?' · '+pc0(p[3]/b.tot*100):''}</small></div>`).join('')}</div>`;
  // tabla por cumpleaños
  const rows=[];for(let a=Math.floor(now/12)+1;a<=C.age;a++){const d=addY(C.birth,a),k=b.pts.findIndex(p=>p.d>=d);rows.push([a,d,k<0?b.pts.length-1:k])}
  h+=`<div class="card" style="margin-top:12px;padding:0;overflow:hidden"><div class="rtt"><span>Edad</span><span>${pf(C.base-C.spread)}%</span><span>${pf(C.base)}%</span><span>${pf(C.base+C.spread)}%</span></div>${rows.map(([a,d,k])=>`<div class="rtt"><span><b>${a}</b> <small class="mutc">${d.slice(0,4)}</small></span><span>${usdS(sc[0].pts[k].v)}</span><span><b>${usdS(sc[1].pts[k].v)}</b></span><span>${usdS(sc[2].pts[k].v)}</span></div>`).join('')}</div>`;
- h+=`<div class="note">Supuestos: rendimiento anual en dólares, compuesto mes a mes. La acción de XOM crece al mismo ritmo menos su dividendo (${pf((rsuPx()?(S.inv.rsu.div||1.07)*4/rsuPx()*100:0).toFixed(1))}% anual), y cada vesting y dividendo entra neto del ${S.inv&&S.inv.rsu?S.inv.rsu.tax:35}% y se reinvierte. ${C.gr>0?`Supone que ExxonMobil te sigue dando ${nfu.format(C.gr)} RSU cada noviembre (mitad a 3 años, mitad a 7). `:''}La indemnización sigue el art. 245 de la LCT (un mejor sueldo mensual por año, fracción de más de 3 meses cuenta como año), sin tope de convenio y exenta de Ganancias; se calcula sobre ${C.sal!=null?'el sueldo que cargaste':'tu mejor sueldo neto de los últimos 12 meses, pero la ley usa el bruto: cargalo en supuestos para afinar'}. No incluye inmuebles, autos ni jubilación estatal.</div>`;
+ h+=`<div class="note">Supuestos: rendimiento anual en dólares, compuesto mes a mes. La acción de XOM crece al mismo ritmo menos su dividendo (${pf((rsuPx()?(S.inv.rsu.div||1.07)*4/rsuPx()*100:0).toFixed(1))}% anual), y cada vesting y dividendo entra neto del ${S.inv&&S.inv.rsu?S.inv.rsu.tax:35}% y se reinvierte. ${C.gr>0?`Supone que ExxonMobil te sigue dando ${nfu.format(C.gr)} RSU cada noviembre (mitad a 3 años, mitad a 7). `:''}La indemnización sigue el art. 245 de la LCT (un mejor sueldo mensual por año, fracción de más de 3 meses cuenta como año), sin tope de convenio y exenta de Ganancias; se calcula sobre ${C.sal!=null?'el sueldo que cargaste':'tu mejor sueldo neto de los últimos 12 meses, pero la ley usa el bruto: cargalo en supuestos para afinar'}. ${PR.sel.length?'Inmuebles: '+PR.sel.map(x=>esc(x.n)).join(', ')+(C.lsub&&PR.d0?', menos el saldo del hipotecario UVA que queda a esa fecha (en dólares, suponiendo que la UVA acompaña al dólar)':'')+'; el alquiler no se suma porque paga el crédito.':'Sin inmuebles: elegilos en supuestos.'} No incluye autos ni jubilación estatal.</div>`;
  return h}
 function retCfg(){const C=retC(),au=retAuto();mfn=null;
  $('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" style="max-height:88vh;overflow:auto"><h2>Supuestos del retiro</h2><div class="m">Se guardan en tu cuenta. Dejá vacío para usar el valor sugerido.</div>
@@ -1851,11 +1865,13 @@ function retCfg(){const C=retC(),au=retAuto();mfn=null;
  <div><label for="rt6">Ingreso a ExxonMobil</label><input class="inp" type="date" id="rt6" value="${esc(C.hire)}"></div><div><label for="rt8">% de la indemnización</label><input class="inp" type="text" inputmode="decimal" id="rt8" value="${C.pct}"></div>
  <div><label for="rt7">Mejor sueldo mensual bruto US$</label><input class="inp" type="text" inputmode="decimal" id="rt7" value="${C.sal!=null?C.sal:''}" placeholder="${nfu.format(Math.round(au.sal))} (neto, sugerido)"></div>
  <div><label for="rt10">RSU sin vestear al retirarte</label><select class="inp" id="rt10"><option value="keep"${C.unv=='keep'?' selected':''}>Se mantienen</option><option value="lose"${C.unv=='lose'?' selected':''}>Se pierden</option></select></div></div>
+ ${(()=>{const its=((S.nw&&S.nw.items)||[]).filter(x=>x.t!='l'),pick=C.prop||its.filter(x=>/depto|departamento/i.test(x.n)).map(x=>x.n);return its.length?`<label style="margin-top:14px">Bienes que suman al retiro</label>${its.map((x,i)=>`<label class="nck"><input type="checkbox" class="rtpr" value="${esc(x.n)}" ${pick.includes(x.n)?'checked':''}><span><b>${esc(x.n)}</b><small>${x.cur=='ARS'?money(x.v):usd(x.v)}</small></span></label>`).join('')}
+ <div class="grid g2" style="gap:10px"><div><label for="rt11">Revalorización % anual</label><input class="inp" type="text" inputmode="decimal" id="rt11" value="${String(C.pg).replace('.',',')}"></div><div><label class="nck" style="margin-top:24px"><input type="checkbox" id="rt12" ${C.lsub?'checked':''}><span><b>Restar el hipotecario</b></span></label></div></div>`:''})()}
  <p class="note">El aporte sugerido es el promedio de lo que pagaste en Ahorro e inversión los últimos 12 meses, pasado a dólares al MEP de hoy. El sueldo sugerido es tu mejor "Sueldo Gonza" del último año; la indemnización legal se calcula sobre el bruto.</p>
  <div class="btns"><button data-close="1">Cancelar</button><button class="pr" data-retsave="1">Guardar</button></div></div></div>`}
 function retSave(){const v=id=>$('#'+id).value,C=retC(),b=v('rt1');if(!/^\d{4}-\d{2}-\d{2}$/.test(b))return toast('Cargá tu fecha de nacimiento.');
  const age=retNum(v('rt2'));if(!age||age<30||age>80)return toast('Revisá la edad de retiro.');
- S.ret={birth:b,age:Math.round(age),base:retNum(v('rt3'))??6,spread:Math.abs(retNum(v('rt4'))??2),ap:retNum(v('rt5')),hire:/^\d{4}-\d{2}-\d{2}$/.test(v('rt6'))?v('rt6'):'',sal:retNum(v('rt7')),pct:retNum(v('rt8'))??50,gr:Math.max(0,Math.round(retNum(v('rt9'))??0)),unv:v('rt10')};
+ S.ret={birth:b,age:Math.round(age),base:retNum(v('rt3'))??6,spread:Math.abs(retNum(v('rt4'))??2),ap:retNum(v('rt5')),hire:/^\d{4}-\d{2}-\d{2}$/.test(v('rt6'))?v('rt6'):'',sal:retNum(v('rt7')),pct:retNum(v('rt8'))??50,gr:Math.max(0,Math.round(retNum(v('rt9'))??0)),unv:v('rt10'),prop:$('.rtpr')?[...document.querySelectorAll('.rtpr')].filter(i=>i.checked).map(i=>i.value):C.prop,pg:$('#rt11')?retNum(v('rt11'))??0:C.pg,lsub:$('#rt12')?$('#rt12').checked:C.lsub};
  save();closeSheet();render();toast('Supuestos guardados')}
 /* ---------- copias de seguridad diarias (en tu Supabase) ---------- */
 async function backupDaily(force){if(!SB||!SESSION||!S||!S.y)return;const id='bk:'+TODAY;
@@ -2150,7 +2166,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261124035500';
+const BUILD='20261124040500';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
