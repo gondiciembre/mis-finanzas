@@ -1818,7 +1818,7 @@ function onDetail(k){const r=onRows().find(x=>x.k==k);if(!r)return;const nx=r.fl
  <h3 class="csh" style="margin-top:18px">Calculadora</h3><div class="grid g2" style="gap:10px"><div><label for="onc1">Invertir US$</label><input class="inp" id="onc1" inputmode="decimal" value="${(()=>{try{return localStorage.getItem('fin-oncalc')||'1000'}catch(e){return'1000'}})()}" oninput="onCalc('${k}')"></div><div><label for="onc2">Precio cada 100 VN</label><input class="inp" id="onc2" inputmode="decimal" value="${String(r.ask||r.px||'').replace('.',',')}" oninput="onCalc('${k}')"></div></div><div id="oncout"></div>
  <div id="onbyma"></div>
  <div class="hrow2" style="margin-top:14px"><span class="mutc" style="font-size:12.5px">${r.leyU?'Ley marcada por vos:':ONMETA[k]&&ONMETA[k][1]?'Ley del informe. Corregir:':'¿Sabés la ley? Marcala:'}</span><button class="btn" data-onley="${k}:NY">Ley NY</button><button class="btn" data-onley="${k}:ARG">Ley ARG</button>${r.leyU?`<button class="btn" data-onley="${k}:">Quitar</button>`:''}</div>
- <div class="hrow2"><a class="btn" href="https://www.google.com/search?q=${encodeURIComponent(r.k+'O '+r.emi+' obligaciones negociables suplemento de prospecto')}" target="_blank" rel="noopener">Buscar prospecto ↗</a><a class="btn" href="https://www.cnv.gov.ar/SitioWeb/Empresas/Empresas" target="_blank" rel="noopener">CNV ↗</a></div>
+ <div class="hrow2"><a class="btn" href="https://www.google.com/search?q=${encodeURIComponent(r.k+'O '+r.emi+' obligaciones negociables suplemento de prospecto')}" target="_blank" rel="noopener">Buscar prospecto ↗</a><a class="btn" href="https://www.tradingview.com/symbols/BCBA-${encodeURIComponent(r.sym)}/" target="_blank" rel="noopener">Condiciones en TradingView ↗</a><a class="btn" href="https://www.cnv.gov.ar/SitioWeb/Empresas/Empresas" target="_blank" rel="noopener">CNV ↗</a></div>
  <div class="btns"><button data-close="1">Cerrar</button></div></div></div>`;
  onCalc(k);const bx=$('#onbyma');if(bx){if(BYMA[k])bx.innerHTML=bymaBox(k,BYMA[k].d);else{bx.innerHTML='<p class="note">Buscando la ficha en BYMA…</p>';bymaFicha(k).then(x=>{const b2=$('#onbyma');if(b2)b2.innerHTML=x?bymaBox(k,x):''})}}}
 document.addEventListener('change',e=>{if(e.target&&e.target.id=='onsort'){ONF.sort=e.target.value;onfSave();render()}});
@@ -2272,7 +2272,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261124160000';
+const BUILD='20261124161500';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
