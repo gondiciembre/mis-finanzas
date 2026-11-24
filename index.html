@@ -1116,7 +1116,8 @@ const TY={r:'Renta',k:'Capital',p:'Cupón condicional',q:'Capital al vencimiento
 
 /* cotizaciones: Q (tenencias, en vivo o de la tarea), CAT (todo el mercado en D) */
 let CAT=null,MON=null,HIST=null,histDoc=null,catDoc=null,monDoc=null,qDoc=null,mcpNS=null;
-const qU=k=>(Q&&Q.usd&&Q.usd[k])||(CAT&&CAT.usd&&CAT.usd[k])||null;
+const iolF=k=>{const q=IOLQ[k];return q&&q.c!=null&&Date.now()-q.at<4*60e3?q:null};
+const qU=k=>{const q=iolF(k);return (q?[q.c,q.ch]:null)||(Q&&Q.usd&&Q.usd[k])||(CAT&&CAT.usd&&CAT.usd[k])||null};
 const qA=k=>Q&&((Q.ars&&Q.ars[k])||(Q.px&&Q.px[k]!=null?[Q.px[k],Q.ch&&Q.ch[k]]:null))||null;
 const qS=k=>{if(!Q||!Q.us||Q.us[k]==null)return null;return Array.isArray(Q.us[k])?Q.us[k]:[Q.us[k],Q.usch&&Q.usch[k]]};
 const newer=mt=>!!(!Q||!Q.ts||(mt&&mt>Q.ts));
@@ -1392,9 +1393,49 @@ async function openNotif(keep){if(!FNCODE)fetch('./supabase/functions/alertas/in
 function goHash(h){h=String(h||location.hash).replace(/^#/,'');const M={cartera:['i'],analisis:['a'],cobros:['c'],notas:['e'],rsu:['r'],dolar:['d'],mundo:['m'],credito:['g','uva'],alquiler:['g','alq'],gastos:['g','mes'],avisos:['n']}[h];if(!M||!S)return;
  if(M[0]=='n'){openNotif();}else{sec=M[0];if(M[1])tab=M[1];try{localStorage.setItem('gastos-sec',sec)}catch(e){}closeSheet();render();scrollTo(0,0)}try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}
 addEventListener('hashchange',()=>goHash());
+/* ---------- IOL: cotizaciones en tiempo real (vía función "iol" de tu Supabase) ---------- */
+let IOLQ={},IOLst={st:'off',at:0,err:'',n:0};try{IOLQ=JSON.parse(localStorage.getItem('fin-iolq')||'{}')}catch(e){}
+const iolOn=()=>!!(S&&S.iol&&S.iol.on);
+async function fnCallN(name,body){const {data,error}=await SB.functions.invoke(name,{body});if(error){let m=error.message||'';try{const j=await error.context.json();m=j.error||m}catch(e){}
+ if(/Failed to send|not found|404|FunctionsFetchError|FunctionsRelayError/i.test(m+error.name))m=`No encuentro la función "${name}" en Supabase. Hacé los pasos de configuración.`;throw new Error(m)}if(data&&data.error)throw new Error(data.error);return data}
+function iolSyms(){const s=new Set();((S.inv&&S.inv.pos)||[]).forEach(h=>{if(h.k=='est'||h.k=='fci')return;const k=dtk(h);if(/D$/.test(k))s.add(k)});
+ if(sec=='o'&&ONS){try{const r=onRows();const q=ONF.q.trim().toLowerCase();r.filter(x=>(ONF.ley=='all'||(ONF.ley=='NY'?x.ley=='NY':ONF.ley=='ARG'?x.ley=='ARG':!x.ley))&&(!q||x.k.toLowerCase().includes(q)||x.emi.toLowerCase().includes(q))).slice(0,60).forEach(x=>s.add(x.sym))}catch(e){}}
+ return [...s].slice(0,110).map(k=>k+'|BCBA|T1')}
+async function iolPoll(force){if(!iolOn()||!SESSION||IOLst.st=='run')return;if(!force&&Date.now()-IOLst.at<25e3)return;IOLst={...IOLst,st:'run'};
+ try{const r=await fnCallN('iol',{op:'quotes',symbols:iolSyms()});const now=Date.now();Object.entries(r.quotes||{}).forEach(([k,q])=>IOLQ[k]={...q,at:now});IOLst={st:'ok',at:now,n:r.n||0,err:''};try{localStorage.setItem('fin-iolq',JSON.stringify(IOLQ))}catch(e){}}
+ catch(e){IOLst={st:'err',at:Date.now(),err:e.message||String(e),n:0}}
+ const ae=document.activeElement;if(S&&!$('#ov').innerHTML&&!(ae&&/INPUT|SELECT|TEXTAREA/.test(ae.tagName))&&['i','a','c','e','o'].includes(sec)){const y=scrollY;render();scrollTo(0,y)}else if($('#iolst'))iolSheet(true)}
+setInterval(()=>{if(document.visibilityState=='visible')iolPoll(false)},30e3);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')iolPoll(false)});
+let IOLCODE='';
+const iolSQL=()=>`-- Finanzas Gonzo · IOL (correr una vez en Supabase → SQL Editor)
+create table if not exists public.push_state (id text primary key, data jsonb not null default '{}'::jsonb, updated_at timestamptz default now());
+alter table public.push_state enable row level security;
+grant all on table public.push_state to service_role;`;
+function iolSheet(keep){if(!IOLCODE)fetch('./supabase/functions/iol/index.ts',{cache:'no-store'}).then(r=>r.ok?r.text():'').then(s=>IOLCODE=s).catch(()=>{});
+ const on=iolOn(),s=IOLst,ago=s.at?Math.round((Date.now()-s.at)/1000):null;
+ const html=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" style="max-height:90vh;overflow:auto"><h2>Cotizaciones en tiempo real · IOL</h2><div class="m">Precios de BYMA en tiempo real desde tu cuenta de IOL, para tu cartera y las ONs</div>
+ <div class="stat" id="iolst"><span>Estado</span><b class="${s.st=='ok'?'pos':s.st=='err'?'neg':''}">${!on?'Apagado':s.st=='ok'?`✓ ${s.n} precios · hace ${ago}s`:s.st=='err'?'Error':s.st=='run'?'Consultando…':'Sin datos todavía'}</b></div>
+ ${s.st=='err'&&on?`<p class="note" style="color:var(--dn)">${esc(s.err)}</p>`:''}
+ <div class="hrow2"><button class="btn" data-iol="${on?'off':'on'}" ${on?'':'style="background:var(--acc);color:#fff"'}>${on?'Apagar':'Activar'}</button>${on?'<button class="btn" data-iol="test">Probar conexión</button>':''}</div>
+ <p class="note" id="iolmsg" role="status"></p>
+ <p class="note">Con esto activado, los precios de tu cartera y de las ONs salen de IOL cada 30 segundos mientras la app está abierta. Si IOL no responde, se usa rendimientos.co como siempre.</p>
+ <details ${on&&s.st=='ok'?'':'open'}><summary style="cursor:pointer;font-weight:600">Configuración (una sola vez)</summary>
+ <ol class="nsteps"><li><b>Tabla de estado.</b> Si ya hiciste los pasos de las notificaciones, saltealo. Si no, en Supabase → <b>SQL Editor</b> pegá esto y tocá <b>Run</b>.<br><button class="btn" data-iol="cpsql">Copiar SQL</button></li>
+ <li><b>Crear la función.</b> En Supabase → <b>Edge Functions → Deploy a new function → Via Editor</b>, nombre <code>iol</code>, pegá este código y <b>Deploy</b>. Dejá activada la verificación JWT.<br><button class="btn" data-iol="cpfn">Copiar código de la función</button></li>
+ <li><b>Tus credenciales de IOL.</b> En Supabase → <b>Edge Functions → Secrets</b> agregá <code>IOL_USER</code> con tu usuario de IOL y <code>IOL_PASS</code> con tu contraseña. Quedan solo en tu Supabase: nunca en la app ni en GitHub.</li>
+ <li><b>Activar.</b> Volvé acá, tocá <b>Activar</b> y después <b>Probar conexión</b>.</li></ol></details>
+ <div class="btns"><button data-close="1">Cerrar</button></div></div></div>`;
+ if(keep&&!$('#iolst'))return;mfn=null;$('#ov').innerHTML=html}
+async function iolAct(k){const m=$('#iolmsg'),say=s=>{if(m)m.textContent=s};
+ if(k=='cpfn')return copyTxt(IOLCODE,'Código');if(k=='cpsql')return copyTxt(iolSQL(),'SQL');
+ if(k=='on'||k=='off'){S.iol={...(S.iol||{}),on:k=='on'};save();if(k=='off'){IOLQ={};IOLst={st:'off',at:0,err:'',n:0}}iolSheet();if(k=='on'){say('Conectando con IOL…');await iolCheck(say)}return}
+ if(k=='test'){say('Probando…');await iolCheck(say)}}
+async function iolCheck(say){try{await fnCallN('iol',{op:'check'});say('✓ IOL aceptó tus credenciales. Trayendo precios…');await iolPoll(true);say(IOLst.st=='ok'?`✓ Listo: ${IOLst.n} precios en tiempo real.`:IOLst.err);iolSheet()}catch(e){say(e.message);IOLst={st:'err',at:Date.now(),err:e.message,n:0}}}
 function openAccount(){const em=SESSION&&SESSION.user&&SESSION.user.email||'';$('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true"><h2>Cuenta</h2><div class="m">${esc(em)} · ${SYNC=='db'?'sincronizado':'sin sincronizar'}</div>
  <div class="list" style="margin-top:6px"><button class="li" data-export="1"><div class="l1"><b>Exportar copia</b><small>Descarga un JSON con todos tus datos</small></div></button>
  <label class="li" style="cursor:pointer"><div class="l1"><b>Importar copia</b><small>Reemplaza los datos actuales por los del archivo</small></div><input type="file" id="impf" accept="application/json,.json" hidden></label>
+ <button class="li" data-iol="open"><div class="l1"><b>Cotizaciones en tiempo real</b><small>${iolOn()?(IOLst.st=='ok'?'IOL activo':'IOL activado'):'Conectá tu cuenta de IOL'}</small></div>${iolOn()&&IOLst.st=='ok'?'<span class="pill up">● IOL</span>':''}</button>
  <button class="li" data-notif="1"><div class="l1"><b>Notificaciones</b><small>Subas y bajas, crédito UVA, cobros y decisiones</small></div>${ALR&&ALR.u>(+localStorage.getItem('fin-alseen')||0)?'<span class="pill up">Nuevas</span>':''}</button>
  <button class="li" data-locktoggle="1"><div class="l1"><b>Bloqueo con Face ID / Touch ID</b><small>${lockCfg()?'Activado en este dispositivo · tocá para desactivar':'Pedirlo al abrir la app en este dispositivo'}</small></div><span class="pill ${lockCfg()?'up':'nt'}">${lockCfg()?'ON':'OFF'}</span></button>
  <button class="li" data-logout="1"><div class="l1"><b>Cerrar sesión</b><small>En este dispositivo</small></div></button></div>
@@ -1430,7 +1471,7 @@ function liveBar(){const st=LIVE.st=='run'?['nt','Actualizando…']:LIVE.st=='ok
  return `<div class="hrow2" style="margin-top:0;margin-bottom:12px"><span class="pill ${st[0]}">${st[1]}</span><button class="btn" data-refresh="1">↻ Actualizar</button><button class="btn" data-addtk="1">+ Agregar ticker</button></div>`}
 function iCol(){try{return JSON.parse(localStorage.getItem('fin-icol')||'[]')}catch(e){return[]}}
 function iColSet(a){try{localStorage.setItem('fin-icol',JSON.stringify(a))}catch(e){}const y=scrollY;render();scrollTo(0,y)}
-function vInv(){const I=S.inv;if(!I)return none('Todavía no hay datos de inversiones.');
+function vInv(){iolPoll(false);const I=S.inv;if(!I)return none('Todavía no hay datos de inversiones.');
  const P=port(),{T,D,by,m}=P,cost=I.cost||0,res=T*m-cost,np=P.items.filter(x=>x.np);
  recordHist(T,m);
  const inc=flows().filter(f=>f.ty=='r'&&f.d<=addY(TODAY,1)).reduce((a,f)=>a+f.x,0);
@@ -1570,11 +1611,11 @@ const onEmi=k=>{const e=ONEMI.find(([p])=>k.startsWith(p));return e?e[1]:null};
 function onRows(){if(!ONS)return[];const keys=new Set(Object.keys(ONMETA));Object.entries(ONS.conf||{}).forEach(([k,v])=>keys.add((v.ticker_d912||k+'D').replace(/D$/,'')));
  Object.values(ONS.L).forEach(x=>{if(x.c>0&&/D$/.test(x.symbol))keys.add(x.symbol.slice(0,-1))});
  const mine=new Set(((S.inv&&S.inv.pos)||[]).filter(h=>h.k=='on').map(h=>dtk(h).replace(/D$/,'')));
- return [...keys].map(k=>{const m=ONMETA[k],sym=k+'D',lv=ONS.L[sym],F=onFlows(k,m,ONS.conf),px=lv&&lv.c;
+ return [...keys].map(k=>{const m=ONMETA[k],sym=k+'D',iq=iolF(sym),lv0=ONS.L[sym],lv=iq?{...(lv0||{}),c:iq.c,pct_change:iq.ch!=null?iq.ch:lv0&&lv0.pct_change,px_bid:iq.bid??(lv0&&lv0.px_bid),px_ask:iq.ask??(lv0&&lv0.px_ask),v:iq.vol??(lv0&&lv0.v),iol:1}:lv0,F=onFlows(k,m,ONS.conf),px=lv&&lv.c;
   let y=px&&F?onYield(px,F.fl):null;if(y&&(y.tir<1&&y.md>0.5||y.tir>30))y=null;const lo=(S.onLey||{})[k];let vt=null,par=null;
   if(m&&m[4]=='B'&&m[5]&&m[6]&&F&&F.fl.length){const per=12/m[6],last=addMo(F.fl[0].d,-per),days=Math.max(0,(Date.parse(TODAY)-Date.parse(last))/864e5);vt=100+m[5]*days/365}else if(m&&m[7])vt=m[7];
   if(vt&&px)par=px/vt*100;
-  return{k,sym,emi:(m&&m[0])||(F&&F.name)||onEmi(k)||'—',ley:lo||(m?m[1]:null),leyU:!!lo,lam:m&&m[2],vto:(m&&m[3])||(F&&F.vto)||(F&&F.fl.length?F.fl[F.fl.length-1].d:null),amort:m&&m[4],cup:m&&m[5],freq:m&&m[6],px,ch:lv?lv.pct_change:null,vol:lv?lv.v||0:0,ops:lv?lv.q_op||0:0,bid:lv&&lv.px_bid,ask:lv&&lv.px_ask,
+  return{k,sym,emi:(m&&m[0])||(F&&F.name)||onEmi(k)||'—',ley:lo||(m?m[1]:null),leyU:!!lo,lam:m&&m[2],vto:(m&&m[3])||(F&&F.vto)||(F&&F.fl.length?F.fl[F.fl.length-1].d:null),amort:m&&m[4],cup:m&&m[5],freq:m&&m[6],px,ch:lv?lv.pct_change:null,vol:lv?lv.v||0:0,ops:lv?lv.q_op||0:0,iol:!!(lv&&lv.iol),bid:lv&&lv.px_bid,ask:lv&&lv.px_ask,
    tir:y?y.tir:null,md:y?y.md:null,tirRef:m&&m[8],par,vt,fl:F?F.fl:[],fsrc:F&&F.src,mine:mine.has(k)}}).filter(r=>r.px||r.mine)}
 const onTir=r=>r.tir!=null?r.tir:r.tirRef;
 function onScatter(rows){const P=rows.filter(r=>r.tir!=null&&r.md!=null&&r.tir>0&&r.tir<20&&r.md<15);if(P.length<2)return'<p class="note">Con estos filtros no hay suficientes ONs con TIR para dibujar la curva.</p>';
@@ -1589,7 +1630,7 @@ function onScatter(rows){const P=rows.filter(r=>r.tir!=null&&r.md!=null&&r.tir>0
  P.filter(r=>!r.mine).forEach(r=>{s+=`<g class="hp" data-tip="${tipA({t:r.sym+' · '+r.emi,r:[[col(r),'TIR',pcs(r.tir)],['','Duration',r.md.toFixed(1).replace('.',',')+' años'],['','Precio','US$ '+f2u(r.px)],['','Ley',r.ley||'sin dato']]})}" data-on="${r.k}"><circle cx="${X(r.md)}" cy="${Y(r.tir)}" r="12" fill="transparent"/><circle cx="${X(r.md)}" cy="${Y(r.tir)}" r="4.5" style="fill:${col(r)};stroke:var(--panel)" stroke-width="1.5" opacity=".9"/></g>`});
  P.filter(r=>r.mine).forEach(r=>{s+=`<g class="hp" data-tip="${tipA({t:r.sym+' · en tu cartera',r:[[col(r),'TIR',pcs(r.tir)],['','Duration',r.md.toFixed(1).replace('.',',')+' años'],['','Precio','US$ '+f2u(r.px)]]})}" data-on="${r.k}"><circle cx="${X(r.md)}" cy="${Y(r.tir)}" r="7" style="fill:${col(r)};stroke:var(--fg)" stroke-width="2"/><text x="${X(r.md)}" y="${Y(r.tir)-11}" text-anchor="middle" style="fill:var(--fg);font:700 9px var(--mono);paint-order:stroke;stroke:var(--panel);stroke-width:3px">${r.k}</text></g>`});
  return `<svg viewBox="0 0 ${W} ${H}" class="oncurve" role="img" aria-label="Curva de ONs: TIR contra duration">${s}</svg>`}
-function vOns(){onsFetch(false);if(!loanTimer)loanLoop();
+function vOns(){onsFetch(false);iolPoll(false);if(!loanTimer)loanLoop();
  if(!ONS)return '<div class="empty">Cargando ONs…</div>';
  const all=onRows(),q=ONF.q.trim().toLowerCase();
  const byLey=r=>ONF.ley=='all'||(ONF.ley=='NY'?r.ley=='NY':ONF.ley=='ARG'?r.ley=='ARG':!r.ley);
@@ -1600,7 +1641,7 @@ function vOns(){onsFetch(false);if(!loanTimer)loanLoop();
  const cnt=l=>all.filter(r=>l=='all'?1:l=='NY'?r.ley=='NY':l=='ARG'?r.ley=='ARG':!r.ley).length;
  let h=`<div class="onhead"><input class="inp onsearch" type="search" id="onq" placeholder="Buscar ticker o empresa…" value="${esc(ONF.q)}" autocomplete="off">
   <div class="seg onseg">${seg('ley','NY','Ley NY',cnt('NY'))}${seg('ley','ARG','Ley ARG',cnt('ARG'))}${seg('ley','all','Todas',cnt('all'))}</div>
-  <div class="onbar"><button class="gchip${ONF.mine?' on':''}" data-onf="mine:${!ONF.mine}">★ Mis ONs ${mine.length?`<small>${mine.length}</small>`:''}</button>${ONF.ley!='sd'&&cnt('sd')?`<button class="gchip" data-onf="ley:sd">Sin ley (${cnt('sd')})</button>`:''}<label class="onsort"><span>Ordenar</span><select id="onsort" aria-label="Ordenar por">${[['tir','Mayor TIR'],['md','Menor duration'],['vto','Vencimiento'],['par','Menor paridad'],['vol','Más volumen'],['ch','Mejor del día']].map(([v,l])=>`<option value="${v}"${ONF.sort==v?' selected':''}>${l}</option>`).join('')}</select></label><span class="onlive"><i></i>en vivo</span></div></div>`;
+  <div class="onbar"><button class="gchip${ONF.mine?' on':''}" data-onf="mine:${!ONF.mine}">★ Mis ONs ${mine.length?`<small>${mine.length}</small>`:''}</button>${ONF.ley!='sd'&&cnt('sd')?`<button class="gchip" data-onf="ley:sd">Sin ley (${cnt('sd')})</button>`:''}<label class="onsort"><span>Ordenar</span><select id="onsort" aria-label="Ordenar por">${[['tir','Mayor TIR'],['md','Menor duration'],['vto','Vencimiento'],['par','Menor paridad'],['vol','Más volumen'],['ch','Mejor del día']].map(([v,l])=>`<option value="${v}"${ONF.sort==v?' selected':''}>${l}</option>`).join('')}</select></label><span class="onlive"><i></i>${iolOn()&&IOLst.st=='ok'?'IOL tiempo real':'en vivo'}</span></div></div>`;
  h+=`<div class="onkpis"><div><small>ONs</small><b>${rows.length}</b><span>${wT.length} con TIR</span></div><div><small>TIR promedio</small><b>${avg!=null?pcs(avg):'—'}</b><span>${ONF.ley=='all'?'todas':ONF.ley=='sd'?'sin ley':'ley '+ONF.ley}</span></div><div><small>Mayor TIR</small><b>${best?pcs(best.tir):'—'}</b><span>${best?best.sym:''}</span></div></div>`;
  h+=`<div class="chart" style="margin-top:12px"><h3>Curva de rendimientos</h3><div class="cs">cada punto es una ON · tocalo para ver el detalle · ★ = en tu cartera</div>${onScatter(rows)}${legend([['var(--c1)','Ley NY'],['var(--c2)','Ley ARG'],['var(--mut)','Sin dato de ley']])}</div>`;
  h+=`<div class="sh" style="margin-top:20px"><h2>${ONF.mine?'Mis ONs':'Obligaciones negociables'}</h2><span class="m">US$ cada 100 VN</span></div><div class="oncards">${rows.map(r=>{const t=onTir(r);return `<button class="onc" data-on="${r.k}">
@@ -1805,7 +1846,7 @@ function render(){drawEye();if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'});
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -1843,6 +1884,7 @@ document.addEventListener('click',e=>{
  if(d.catsave)return saveCats();
  if(d.catdel)return delCat(d.catdel,t);
  if(d.unlock)return unlock();
+ if(d.iol){if(d.iol=='open')return iolSheet();return iolAct(d.iol)}
  if(d.notif)return openNotif();
  if(d.gpick)return gPick();
  if(d.onley){const [k,v]=d.onley.split(':');S.onLey=S.onLey||{};if(v)S.onLey[k]=v;else delete S.onLey[k];save();closeSheet();render();return onDetail(k)}
@@ -1887,7 +1929,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261124011123';
+const BUILD='20261124014636';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
