@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Finanzas Gonzo</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -62,6 +62,9 @@
 .hoymv .tlg{width:20px;height:20px;font-size:8px;margin-right:7px;vertical-align:middle}.hoymv .tlg.two img{width:14px;height:14px}.hoymv b{display:flex;align-items:center}
 .ocm{padding:8px 0;border-top:1px solid var(--line)}.ocl{display:flex;justify-content:space-between;font-size:13.5px}.ocl b{font:600 13.5px var(--mono)}.ocb{display:flex;height:8px;border-radius:5px;background:var(--panel2);overflow:hidden;margin:5px 0 3px}.ocb i{display:block;height:100%}.ocm small{font-size:11.5px}
 .oft{font:500 12.5px var(--mono);border:1px solid var(--line);border-radius:12px;overflow:hidden}.oft>div{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr .9fr;gap:6px;padding:7px 10px;border-top:1px solid var(--line)}.oft.two>div{grid-template-columns:1fr 1fr}.oft>div span:not(:first-child){text-align:right}.oft .ofh{border-top:0;background:var(--panel2);font:600 10.5px var(--sans);text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}.oft .oftt{background:var(--panel2);font-weight:700}
+/* pantalla fija en el iPhone: sin zoom ni desplazamiento lateral */
+html,body{overflow-x:clip;overscroll-behavior-x:none;touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (pointer:coarse){input,select,textarea,.inp,.sheet select.inp,.csim .inp,.sheet .crow input.inp,.sheet .crow select.inp{font-size:16px!important}}
 #privc{position:fixed;inset:0;z-index:140;background:var(--bg);display:grid;place-items:center}
 #privc img{border-radius:18px;opacity:.9}
 .chipr{display:flex;flex-wrap:wrap;gap:6px;width:100%}
@@ -1285,6 +1288,10 @@ function drawLock(){let el=$('#lock');
  <button class="lklink" data-logout="1">Cerrar sesión</button></div>`}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='hidden'){hiddenAt=Date.now()}else if(lockCfg()&&SESSION&&hiddenAt&&Date.now()-hiddenAt>=lockAfter()){lockNow();unlock()}});
 
+/* ---------- sin zoom en el iPhone (pellizco y doble toque) ---------- */
+['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>{if(e.touches.length>1||(e.scale&&e.scale!==1))e.preventDefault()},{passive:false});
+{let lastT=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-lastT<300&&!e.target.closest('input,select,textarea,button,a,[data-hp],[data-tk],label'))e.preventDefault();lastT=n},{passive:false})}
 /* ---------- tapar la app al salir (privacidad en el selector de apps) ---------- */
 const privOn=()=>{try{return localStorage.getItem('fin-priv')!='0'}catch(e){return true}};
 function privCover(on){let el=$('#privc');if(on&&privOn()&&S&&SESSION){if(!el){el=document.createElement('div');el.id='privc';el.setAttribute('aria-hidden','true');el.innerHTML='<img src="icon-192.png" alt="" width="72" height="72">';document.body.appendChild(el)}el.hidden=false}else if(el)el.hidden=true}
@@ -2282,7 +2289,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261124190000';
+const BUILD='20261124194500';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
