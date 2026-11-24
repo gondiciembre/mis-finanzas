@@ -1,9 +1,9 @@
 /* Finanzas Gonzo · service worker: avisos push, número en el ícono y uso sin conexión.
-   Nunca guarda nada de Supabase (tus datos y tu sesión): solo la app, la librería y los íconos. */
-const V = 'fin-app-2', META = 'fin-meta';
+   Nunca guarda nada de Supabase (tus datos y tu sesión): solo la app, la librería, los íconos y los logos de las acciones. */
+const V = 'fin-app-3', META = 'fin-meta';
 const CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';
 const SHELL = ['./', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'favicon-32.png', CDN];
-const STATIC_HOSTS = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
+const STATIC_HOSTS = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com', 'static.svvytrdr.com'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => Promise.allSettled(SHELL.map(u => c.add(new Request(u, { cache: 'reload' }))))).then(() => self.skipWaiting()));
