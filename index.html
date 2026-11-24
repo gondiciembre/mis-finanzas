@@ -48,6 +48,12 @@
 .prev{margin-top:10px;border:1px solid var(--line2);border-radius:10px;padding:8px 12px;background:var(--bg);display:grid;gap:4px;font:500 13px var(--mono)}
 .prev:empty{display:none}.prev .pr1{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.prev .pr1>span:first-child{color:var(--mut);font-family:var(--sans)}.prev .pr1.s{opacity:.85}
 .prev .prw{color:var(--dn);font:600 12.5px var(--sans);margin-top:2px}
+.rtp{padding:9px 0;border-top:1px solid var(--line)}.rtp:first-of-type{border-top:0}
+.rtl{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:13.5px}.rtl span{display:flex;align-items:center;gap:8px;min-width:0}.rtl b{font:600 13.5px var(--mono);white-space:nowrap}
+.rtb{height:6px;border-radius:4px;background:var(--panel2);margin:6px 0 4px;overflow:hidden}.rtb i{display:block;height:100%;border-radius:4px}
+.rtp small{font-size:11.5px}
+.rtt{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;gap:6px;padding:9px 14px;border-top:1px solid var(--line);font:500 12.5px var(--mono);align-items:center}.rtt span:not(:first-child){text-align:right}
+.rtt:first-child{border-top:0;font:600 11px var(--sans);color:var(--mut);text-transform:uppercase;letter-spacing:.04em;background:var(--panel2)}
 #privc{position:fixed;inset:0;z-index:140;background:var(--bg);display:grid;place-items:center}
 #privc img{border-radius:18px;opacity:.9}
 .chipr{display:flex;flex-wrap:wrap;gap:6px;width:100%}
@@ -1435,7 +1441,7 @@ async function openNotif(keep){if(!FNCODE)fetch('./supabase/functions/alertas/in
  <li><b>Programar la revisión.</b> En <b>SQL Editor</b> pegá esto y tocá <b>Run</b>. Ya tiene la dirección de tu proyecto.<br><button class="btn" data-npush="cpsql">Copiar SQL</button></li>
  <li><b>Activar.</b> Volvé acá y tocá <b>Activar en este dispositivo</b> en cada iPhone o compu donde quieras recibirlas.</li></ol></details>
  </div></div>`;seenAlerts()}
-function goHash(h){h=String(h||location.hash).replace(/^#/,'');let tg='';if(h.includes('~'))[h,tg]=h.split('~');const M={hoy:['h'],patrimonio:['p'],ons:['o'],autos:['g','auto'],cartera:['i'],analisis:['a'],cobros:['c'],notas:['e'],rsu:['r'],dolar:['d'],mundo:['m'],credito:['g','uva'],alquiler:['g','alq'],gastos:['g','mes'],avisos:['n']}[h];if(!M||!S)return;
+function goHash(h){h=String(h||location.hash).replace(/^#/,'');let tg='';if(h.includes('~'))[h,tg]=h.split('~');const M={retiro:['j'],hoy:['h'],patrimonio:['p'],ons:['o'],autos:['g','auto'],cartera:['i'],analisis:['a'],cobros:['c'],notas:['e'],rsu:['r'],dolar:['d'],mundo:['m'],credito:['g','uva'],alquiler:['g','alq'],gastos:['g','mes'],avisos:['n']}[h];if(!M||!S)return;
  if(M[0]=='n'){openNotif();}else{sec=M[0];if(M[1])tab=M[1];try{localStorage.setItem('gastos-sec',sec)}catch(e){}closeSheet();render();scrollTo(0,0);const mt=/^(mv|conc|cob)-(.+)$/.exec(tg);if(mt&&sec=='i')focusTk(mt[2])}try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}
 addEventListener('hashchange',()=>goHash());
 /* ---------- IOL: cotizaciones en tiempo real (vía función "iol" de tu Supabase) ---------- */
@@ -1781,6 +1787,76 @@ function vHoy(){iolPoll(false);if(!LD)loanFetch(false);const N=nwCalc();nwRecord
   <div class="hoymv">${up.filter(x=>x.c>0).map(x=>`<div><b>${esc(x.t)}</b><span class="pos">+${String(x.c.toFixed(2)).replace('.',',')}%</span></div>`).join('')}${dn.map(x=>`<div><b>${esc(x.t)}</b><span class="neg">${String(x.c.toFixed(2)).replace('.',',')}%</span></div>`).join('')}</div></div>`}
  if(ALR&&ALR.items&&ALR.items.length)h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>Últimos avisos</b><button class="btn" data-notif="1">Ver todos</button></div>${ALR.items.slice(0,3).map(a=>a.url&&a.url!='#'?`<button class="stat hoyal" data-goh="${esc(a.url)}"><span>${esc(a.t)}</span><span class="mutc">›</span></button>`:`<div class="stat"><span>${esc(a.t)}</span></div>`).join('')}</div>`;
  return h}
+/* ---------- camino al retiro ---------- */
+const RET_DEF={birth:'',age:50,base:6,spread:2,ap:null,hire:'',sal:null,pct:50,gr:100,unv:'keep'};
+const retC=()=>Object.assign({},RET_DEF,S.ret||{});
+const retAdd=(s,mo)=>{const d=new Date(s+'T12:00:00');d.setMonth(d.getMonth()+mo);return d.toISOString().slice(0,10)};
+const retMD=(a,b)=>{const x=new Date(a+'T12:00:00'),y=new Date(b+'T12:00:00');let mo=(y.getFullYear()-x.getFullYear())*12+y.getMonth()-x.getMonth();if(y.getDate()<x.getDate())mo--;return mo};
+const retNum=v=>{v=String(v==null?'':v).trim().replace(/US\$|\$|%|\s/g,'');if(!v)return null;v=v.replace(/\.(?=\d{3}(\D|$))/g,'').replace(',','.');const n=+v;return isFinite(n)?n:null};
+/* sugeridos: aporte = promedio de lo invertido en los últimos 12 meses; sueldo = el mejor de los últimos 12 */
+function retAuto(){const m=mepE(),nm=NOWM();let ap=0,n=0,sal=0;
+ for(let k=0;k<12;k++){let y=nm.y,mo=nm.m-1-k;while(mo<0){mo+=12;y--}const R=S.y&&S.y[y];if(!R)continue;n++;
+  R.forEach(x=>{if(x.end!=null&&mo>=x.end)return;if(x.s!='in'&&catOf(x).id=='aho'&&x.p&&x.p[mo])ap+=x.a[mo]||0;if(x.s=='in'&&/^sueldo gonza/i.test(x.n))sal=Math.max(sal,x.a[mo]||0)})}
+ return{ap:n?ap/n/m:0,sal:sal/m,n}}
+function retInd(C,endD){if(!C.hire||C.hire>=endD)return null;const mo=retMD(C.hire,endD),yrs=Math.floor(mo/12)+(mo%12>3?1:0),sal=C.sal!=null?C.sal:retAuto().sal;return{yrs,mo,sal,amt:yrs*sal*C.pct/100}}
+function retSim(r,C,endD,A,P0,ind){const R=S.inv&&S.inv.rsu,px0=R?rsuPx():0,nt=R?1-R.tax/100:1,dq=R?(R.div||1.07):0,dy=px0?dq*4/px0:0;
+ const rm=Math.pow(1+r/100,1/12)-1,gx=Math.pow(Math.max(.01,(1+r/100)/(1+dy)),1/12)-1,nM=Math.max(1,retMD(TODAY.slice(0,8)+'01',endD.slice(0,8)+'01'));
+ const G=R&&R.g?R.g.filter(g=>g.vd>=TODAY).map(g=>({q:g.q,vd:g.vd,gd:'0'})):[];
+ if(R&&C.gr>0)for(let y=+TODAY.slice(0,4);y<+endD.slice(0,4)+1;y++){const gd=y+'-11-25';if(gd<TODAY||gd>=endD)continue;G.push({q:C.gr/2,vd:(y+3)+'-11-25',gd,nw:1},{q:C.gr/2,vd:(y+7)+'-11-25',gd,nw:1})}
+ const unvAt=(d,px)=>G.filter(g=>g.gd<=d&&g.vd>d).reduce((a,g)=>a+g.q,0)*px*nt;
+ let c0=P0,ap=0,rs=0;const pts=[{d:TODAY,v:P0+unvAt(TODAY,px0)}];
+ for(let i=1;i<=nM;i++){c0*=1+rm;ap=ap*(1+rm)+A;rs*=1+rm;const ms=retAdd(TODAY.slice(0,8)+'01',i).slice(0,7),px=px0*Math.pow(1+gx,i),last=i==nM;
+  G.forEach(g=>{if(g.vd.slice(0,7)==ms&&g.vd<endD)rs+=g.q*px*nt});
+  if(DIVM.includes(+ms.slice(5,7))){const pd=ms+'-10';if(pd<endD)rs+=G.filter(g=>g.gd<=pd&&g.vd>pd).reduce((a,g)=>a+g.q,0)*dq*nt}
+  const d=last?endD:ms+'-15',u=last?(C.unv=='keep'?unvAt(endD,px):0):unvAt(d,px);
+  pts.push({d,v:c0+ap+rs+u+(last&&ind?ind.amt:0),u})}
+ const L=pts[pts.length-1];return{pts,tot:L.v,c0,ap,rs,unv:L.u,ind:ind?ind.amt:0,apIn:A*nM,nM,gNew:G.filter(g=>g.nw).reduce((a,g)=>a+g.q,0),gLost:C.unv=='keep'?0:G.filter(g=>g.vd>=endD).reduce((a,g)=>a+g.q,0)}}
+function retChart(sc,C){const W=370,H=200,L=46,Rr=12,T=14,B=24,base=sc[1].pts,n=base.length,stp=Math.max(1,Math.round(n/36)),idx=[];for(let i=0;i<n;i+=stp)idx.push(i);if(idx[idx.length-1]!=n-1)idx.push(n-1);
+ const hi=Math.max(...sc[2].pts.map(p=>p.v)),tk=ticks(0,hi*1.04),mx=tk[tk.length-1],X=k=>L+k*(W-L-Rr)/(idx.length-1),Y=q=>T+(1-q/mx)*(H-T-B);
+ const P=s=>idx.map((i,k)=>[X(k),Y(s.pts[i].v)]),cols=['var(--c2)','var(--c1)','var(--c3)'];
+ let s='';tk.forEach(q=>{s+=`<line class="gl" x1="${L}" x2="${W-Rr}" y1="${Y(q)}" y2="${Y(q)}"/><text class="ax" x="${L-8}" y="${Y(q)+3}" text-anchor="end">${usdS(q).replace('US$ ','')}</text>`});
+ const lo=P(sc[0]),up=P(sc[2]);s+=`<path d="M${up.map(p=>p.map(v=>v.toFixed(1)).join(',')).join('L')}L${lo.slice().reverse().map(p=>p.map(v=>v.toFixed(1)).join(',')).join('L')}Z" style="fill:var(--c1)" opacity=".09"/>`;
+ sc.forEach((x,j)=>{s+=`<path d="${mono(P(x))}" fill="none" style="stroke:${cols[j]}" stroke-width="${j==1?2.4:1.6}" ${j==1?'':'stroke-dasharray="5 4"'} stroke-linecap="round"/>`});
+ // edades en el eje x
+ const by=+C.birth.slice(0,4);let lastX=-99;idx.forEach((i,k)=>{const d=base[i].d,a=retMD(C.birth,d)/12;const prev=k?retMD(C.birth,base[idx[k-1]].d)/12:-1;if((Math.floor(a)>Math.floor(prev)||k==idx.length-1)&&X(k)-lastX>26){lastX=X(k);s+=`<text class="ax" x="${X(k)}" y="${H-7}" text-anchor="${k==idx.length-1?'end':'middle'}">${k==idx.length-1?C.age+' años':Math.floor(a)}</text>`}});
+ const e=up[up.length-1];s+=`<circle cx="${e[0]}" cy="${e[1]}" r="4" style="fill:${cols[2]};stroke:var(--panel)" stroke-width="2"/><circle cx="${X(idx.length-1)}" cy="${Y(sc[1].tot)}" r="5" style="fill:${cols[1]};stroke:var(--panel)" stroke-width="2"/><circle cx="${lo[lo.length-1][0]}" cy="${lo[lo.length-1][1]}" r="4" style="fill:${cols[0]};stroke:var(--panel)" stroke-width="2"/>`;
+ const sw=(W-L-Rr)/(idx.length-1);idx.forEach((i,k)=>{const d=base[i].d,a=retMD(C.birth,d),last=k==idx.length-1;
+  const tip={t:(last?'Retiro · ':'')+Math.floor(a/12)+' años · '+MES[+d.slice(5,7)-1]+' '+d.slice(0,4),r:[[cols[2],(C.base+C.spread)+'% anual',usd(sc[2].pts[i].v)],[cols[1],C.base+'% anual',usd(sc[1].pts[i].v)],[cols[0],(C.base-C.spread)+'% anual',usd(sc[0].pts[i].v)]].concat(last&&sc[1].ind?[['','incluye indemnización',usd(sc[1].ind)]]:[])};
+  s+=`<g class="hp" data-tip="${tipA(tip)}"><rect x="${X(k)-sw/2}" y="${T}" width="${sw}" height="${H-T-B}" fill="transparent"/><line class="xh" x1="${X(k)}" x2="${X(k)}" y1="${T}" y2="${H-B}"/><circle class="hd" cx="${X(k)}" cy="${Y(sc[1].pts[i].v)}" r="4.5" style="fill:${cols[1]};stroke:var(--panel)" stroke-width="2"/></g>`});
+ return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Proyección del patrimonio invertido hasta el retiro, tres escenarios">${s}</svg>`+legend([[cols[2],(C.base+C.spread)+'% anual'],[cols[1],C.base+'% anual · base'],[cols[0],(C.base-C.spread)+'% anual']])}
+function vRet(){const C=retC();
+ if(!C.birth)return `<div class="card" style="margin-top:4px"><h3 style="margin:0 0 6px">Camino al retiro</h3><p class="note" style="margin:0 0 12px">Proyecta tu cartera y tus RSU con interés compuesto hasta la edad en que te querés retirar, en tres escenarios, y suma la indemnización de ExxonMobil. Para empezar cargá tu fecha de nacimiento y la de ingreso a la empresa.</p><button class="btn pr" data-retcfg="1">Cargar mis datos</button></div>`;
+ const endD=addY(C.birth,C.age);if(endD<=TODAY)return `<div class="card"><p class="note">La edad de retiro ya pasó. Revisá los datos.</p><button class="btn" data-retcfg="1">Editar supuestos</button></div>`;
+ let P0=0;try{P0=S.inv?port().T:0}catch(e){}const au=retAuto(),A=C.ap!=null?C.ap:au.ap,ind=retInd(C,endD);
+ const sc=[C.base-C.spread,C.base,C.base+C.spread].map(r=>retSim(r,C,endD,A,P0,ind)),b=sc[1],mo=retMD(TODAY,endD),now=retMD(C.birth,TODAY);
+ const pf=n=>String(n).replace('.',',');
+ let h=`<button class="hero hoyhero" data-retcfg="1"><div class="k">A los ${C.age} · ${fd(endD)} <span class="mutc">supuestos ›</span></div><div class="big"><small>US$</small>${HV(nfu.format(Math.round(b.tot)))}</div><div class="s">entre ${usd(sc[0].tot)} y ${usd(sc[2].tot)} · faltan ${Math.floor(mo/12)} años y ${mo%12} meses · hoy tenés ${Math.floor(now/12)}</div></button>`;
+ h+=`<div class="grid g3" style="margin-top:12px">
+  <div class="card kpi"><div class="k">Indemnización ExxonMobil</div><div class="v">${ind?usd(ind.amt):'—'}</div><div class="s">${ind?`${C.pct}% · ${ind.yrs} años × ${usd(ind.sal)}`:'cargá tu fecha de ingreso'}</div></div>
+  <div class="card kpi"><div class="k">Aporte mensual</div><div class="v">${usd(A)}</div><div class="s">${C.ap!=null?'fijado por vos':'promedio invertido últimos 12 meses'}</div></div>
+  <div class="card kpi"><div class="k">Podrías retirar por mes</div><div class="v">${usd(b.tot*.04/12)}</div><div class="s">regla del 4% · escenario ${pf(C.base)}%</div></div></div>`;
+ h+=`<div class="chart" style="margin-top:12px"><h3>Cómo crece hasta tu retiro</h3><div class="cs">Cartera + RSU en US$, con interés compuesto. El salto final es la indemnización.</div>${retChart(sc,C)}</div>`;
+ const parts=[['var(--c1)','Cartera de hoy',P0,b.c0,usd(P0)+' hoy'],['var(--c3)','Aportes mensuales',b.apIn,b.ap,usd(b.apIn)+' aportados'],['var(--c4)','RSU XOM vesteados y dividendos',null,b.rs,'netos del 35%, reinvertidos'+(b.gNew?` · incluye ${nfu.format(b.gNew)} acciones nuevas`:'')],['var(--c5,var(--c2))','RSU sin vestear al retirarte',null,b.unv,C.unv=='keep'?'se mantienen':(b.gLost?nfu.format(b.gLost)+' acciones se pierden':'')],['var(--c2)','Indemnización',null,b.ind,ind?ind.yrs+' años de antigüedad':'sin fecha de ingreso']].filter(p=>p[3]>0||p[1]=='Indemnización');
+ h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>De dónde sale, escenario ${pf(C.base)}%</b></div>${parts.map(p=>`<div class="rtp"><div class="rtl"><span><i class="sw" style="background:${p[0]}"></i>${p[1]}</span><b>${usd(p[3])}</b></div><div class="rtb"><i style="width:${Math.max(.5,p[3]/b.tot*100).toFixed(1)}%;background:${p[0]}"></i></div><small class="mutc">${p[4]}${p[3]&&b.tot?' · '+pc0(p[3]/b.tot*100):''}</small></div>`).join('')}</div>`;
+ // tabla por cumpleaños
+ const rows=[];for(let a=Math.floor(now/12)+1;a<=C.age;a++){const d=addY(C.birth,a),k=b.pts.findIndex(p=>p.d>=d);rows.push([a,d,k<0?b.pts.length-1:k])}
+ h+=`<div class="card" style="margin-top:12px;padding:0;overflow:hidden"><div class="rtt"><span>Edad</span><span>${pf(C.base-C.spread)}%</span><span>${pf(C.base)}%</span><span>${pf(C.base+C.spread)}%</span></div>${rows.map(([a,d,k])=>`<div class="rtt"><span><b>${a}</b> <small class="mutc">${d.slice(0,4)}</small></span><span>${usdS(sc[0].pts[k].v)}</span><span><b>${usdS(sc[1].pts[k].v)}</b></span><span>${usdS(sc[2].pts[k].v)}</span></div>`).join('')}</div>`;
+ h+=`<div class="note">Supuestos: rendimiento anual en dólares, compuesto mes a mes. La acción de XOM crece al mismo ritmo menos su dividendo (${pf((rsuPx()?(S.inv.rsu.div||1.07)*4/rsuPx()*100:0).toFixed(1))}% anual), y cada vesting y dividendo entra neto del ${S.inv&&S.inv.rsu?S.inv.rsu.tax:35}% y se reinvierte. ${C.gr>0?`Supone que ExxonMobil te sigue dando ${nfu.format(C.gr)} RSU cada noviembre (mitad a 3 años, mitad a 7). `:''}La indemnización sigue el art. 245 de la LCT (un mejor sueldo mensual por año, fracción de más de 3 meses cuenta como año), sin tope de convenio y exenta de Ganancias; se calcula sobre ${C.sal!=null?'el sueldo que cargaste':'tu mejor sueldo neto de los últimos 12 meses, pero la ley usa el bruto: cargalo en supuestos para afinar'}. No incluye inmuebles, autos ni jubilación estatal.</div>`;
+ return h}
+function retCfg(){const C=retC(),au=retAuto();mfn=null;
+ $('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" style="max-height:88vh;overflow:auto"><h2>Supuestos del retiro</h2><div class="m">Se guardan en tu cuenta. Dejá vacío para usar el valor sugerido.</div>
+ <div class="grid g2" style="gap:10px"><div><label for="rt1">Fecha de nacimiento</label><input class="inp" type="date" id="rt1" value="${esc(C.birth)}"></div><div><label for="rt2">Edad de retiro</label><input class="inp" type="text" inputmode="numeric" id="rt2" value="${C.age}"></div>
+ <div><label for="rt3">Rendimiento base % anual</label><input class="inp" type="text" inputmode="decimal" id="rt3" value="${String(C.base).replace('.',',')}"></div><div><label for="rt4">Escenarios ± %</label><input class="inp" type="text" inputmode="decimal" id="rt4" value="${String(C.spread).replace('.',',')}"></div>
+ <div><label for="rt5">Aporte mensual US$</label><input class="inp" type="text" inputmode="decimal" id="rt5" value="${C.ap!=null?C.ap:''}" placeholder="${nfu.format(Math.round(au.ap))} sugerido"></div><div><label for="rt9">Nuevos RSU por año</label><input class="inp" type="text" inputmode="numeric" id="rt9" value="${C.gr}"></div>
+ <div><label for="rt6">Ingreso a ExxonMobil</label><input class="inp" type="date" id="rt6" value="${esc(C.hire)}"></div><div><label for="rt8">% de la indemnización</label><input class="inp" type="text" inputmode="decimal" id="rt8" value="${C.pct}"></div>
+ <div><label for="rt7">Mejor sueldo mensual bruto US$</label><input class="inp" type="text" inputmode="decimal" id="rt7" value="${C.sal!=null?C.sal:''}" placeholder="${nfu.format(Math.round(au.sal))} (neto, sugerido)"></div>
+ <div><label for="rt10">RSU sin vestear al retirarte</label><select class="inp" id="rt10"><option value="keep"${C.unv=='keep'?' selected':''}>Se mantienen</option><option value="lose"${C.unv=='lose'?' selected':''}>Se pierden</option></select></div></div>
+ <p class="note">El aporte sugerido es el promedio de lo que pagaste en Ahorro e inversión los últimos 12 meses, pasado a dólares al MEP de hoy. El sueldo sugerido es tu mejor "Sueldo Gonza" del último año; la indemnización legal se calcula sobre el bruto.</p>
+ <div class="btns"><button data-close="1">Cancelar</button><button class="pr" data-retsave="1">Guardar</button></div></div></div>`}
+function retSave(){const v=id=>$('#'+id).value,C=retC(),b=v('rt1');if(!/^\d{4}-\d{2}-\d{2}$/.test(b))return toast('Cargá tu fecha de nacimiento.');
+ const age=retNum(v('rt2'));if(!age||age<30||age>80)return toast('Revisá la edad de retiro.');
+ S.ret={birth:b,age:Math.round(age),base:retNum(v('rt3'))??6,spread:Math.abs(retNum(v('rt4'))??2),ap:retNum(v('rt5')),hire:/^\d{4}-\d{2}-\d{2}$/.test(v('rt6'))?v('rt6'):'',sal:retNum(v('rt7')),pct:retNum(v('rt8'))??50,gr:Math.max(0,Math.round(retNum(v('rt9'))??0)),unv:v('rt10')};
+ save();closeSheet();render();toast('Supuestos guardados')}
 /* ---------- copias de seguridad diarias (en tu Supabase) ---------- */
 async function backupDaily(force){if(!SB||!SESSION||!S||!S.y)return;const id='bk:'+TODAY;
  try{if(!force){const {data}=await SB.from('docs').select('id').eq('id',id).maybeSingle();if(data)return}
@@ -1953,10 +2029,10 @@ function vEst(){const I=S.inv;if(!I)return none('Todavía no hay datos de invers
  +'<div class="note">≈ = estimado desde el CEDEAR y el MEP. Resumen de los term sheets; vale el documento legal.</div>'}
 
 /* ---------- shell ---------- */
-const GRP={h:['h','p'],g:['g'],i:['i','a','c','e'],r:['r'],m:['d','m','o']},SUBL={h:'Hoy',p:'Patrimonio',i:'Resumen',a:'Análisis',c:'Cobros',e:'Notas',d:'Dólar',m:'Mundo',o:'ONs'};
+const GRP={h:['h','p','j'],g:['g'],i:['i','a','c','e'],r:['r'],m:['d','m','o']},SUBL={h:'Hoy',p:'Patrimonio',j:'Retiro',i:'Resumen',a:'Análisis',c:'Cobros',e:'Notas',d:'Dólar',m:'Mundo',o:'ONs'};
 const grpOf=s=>Object.keys(GRP).find(k=>GRP[k].includes(s))||'i';
 let lastSub={};try{lastSub=JSON.parse(localStorage.getItem('fin-sub')||'{}')}catch(e){}
-const TT={h:['Inicio','Hola, Gonza'],p:['Inicio','Patrimonio neto'],g:['Finanzas personales','Mis gastos'],i:['Inversiones','Cartera'],a:['Inversiones','Análisis de cartera'],c:['Inversiones','Cobros futuros'],r:['Compensación','RSU ExxonMobil'],e:['Inversiones','Notas estructuradas'],o:['Mercados','Obligaciones negociables'],m:['Mercados','Monitor global'],d:['Mercados','Dólar · arbitraje']};
+const TT={j:['Inicio','Camino al retiro'],h:['Inicio','Hola, Gonza'],p:['Inicio','Patrimonio neto'],g:['Finanzas personales','Mis gastos'],i:['Inversiones','Cartera'],a:['Inversiones','Análisis de cartera'],c:['Inversiones','Cobros futuros'],r:['Compensación','RSU ExxonMobil'],e:['Inversiones','Notas estructuradas'],o:['Mercados','Obligaciones negociables'],m:['Mercados','Monitor global'],d:['Mercados','Dólar · arbitraje']};
 function stRender(){const e=$('#st');if(!e)return;const mm={db:['ok','Sincronizado'],local:['bad','Sin sesión · datos de este dispositivo'],err:['bad','Error al sincronizar'],wait:['','Conectando…'],off:['bad',DIRTY?'Sin conexión · tus cambios se suben al volver':'Sin conexión · últimos datos guardados']}[SB?(SESSION?(navigator.onLine===false?'off':SYNC):'local'):'local']||['',''];e.className='stx '+mm[0];const lv=LIVE.st=='run'?' · actualizando precios…':LIVE.st=='ok'?' · en vivo '+hhmm(LIVE.at):LIVE.st=='err'?' · sin conexión al mercado':Q&&Q.ts?' · precios '+hhmm(Q.ts):'';e.lastChild.textContent=(!SB?'Sin configurar':mm[1]+(SYNC=='err'&&navigator.onLine!==false&&SYNCERR?' ('+SYNCERR+')':''))+lv;e.title=SYNCERR||''}
 function drawEye(){const b=$('#hidev');if(!b)return;b.setAttribute('aria-pressed',HIDE);b.classList.toggle('on',HIDE);b.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>${HIDE?'<path d="M4 4l16 16"/>':''}</svg>`}
 function render(){drawEye();badgeSet();if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
@@ -1973,12 +2049,12 @@ function render(){drawEye();badgeSet();if(S&&S.y&&sec=='g')try{loanAuto()}catch(
  $('#yl').textContent=yr;
  if(!S.y[yr])ensure(yr);
  $('#py').disabled=!S.y[yr-1];
- app.innerHTML=g?(tab=='mes'?vMes():tab=='anio'?vAnio():tab=='uva'?vLoan():tab=='alq'?vRent():tab=='auto'?vCars():vGA()):sec=='i'?vInv():sec=='a'?vAna():sec=='c'?vCash():sec=='r'?vRsu():sec=='h'?vHoy():sec=='p'?vNW():sec=='m'?vMon():sec=='o'?vOns():sec=='d'?vDol():vEst();
+ app.innerHTML=g?(tab=='mes'?vMes():tab=='anio'?vAnio():tab=='uva'?vLoan():tab=='alq'?vRent():tab=='auto'?vCars():vGA()):sec=='i'?vInv():sec=='a'?vAna():sec=='c'?vCash():sec=='r'?vRsu():sec=='h'?vHoy():sec=='p'?vNW():sec=='j'?vRet():sec=='m'?vMon():sec=='o'?vOns():sec=='d'?vDol():vEst();
  $('#mch').hidden=$('#ypr').hidden=!(g&&tab=='mes'&&S&&SESSION);
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'});
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -2039,6 +2115,8 @@ document.addEventListener('click',e=>{
  if(d.lockafter!=null){try{localStorage.setItem('fin-lockafter',d.lockafter)}catch(x){}openAccount();return}
  if(d.privtoggle){try{localStorage.setItem('fin-priv',privOn()?'0':'1')}catch(x){}openAccount();return}
  if(d.badge){try{localStorage.setItem('fin-badge',d.badge)}catch(x){}badgeSet();openAccount();return}
+ if(d.retcfg)return retCfg();
+ if(d.retsave)return retSave();
  if(d.goh){closeSheet();goHash(d.goh);return}
  if(d.locktoggle){if(lockCfg()){lockDisable();openAccount()}else lockEnable().then(()=>openAccount());return}
  if(d.cost){const I=S.inv;mod('Total invertido','ARS, como figura en el resumen de tu broker ("Total de la inversión").',[['f0','Total invertido ARS',I.cost||'']],v=>{I.cost=parse(v[0])||0});return}
@@ -2072,7 +2150,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261124031500';
+const BUILD='20261124035500';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
