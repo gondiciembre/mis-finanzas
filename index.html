@@ -48,6 +48,14 @@
 .prev{margin-top:10px;border:1px solid var(--line2);border-radius:10px;padding:8px 12px;background:var(--bg);display:grid;gap:4px;font:500 13px var(--mono)}
 .prev:empty{display:none}.prev .pr1{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.prev .pr1>span:first-child{color:var(--mut);font-family:var(--sans)}.prev .pr1.s{opacity:.85}
 .prev .prw{color:var(--dn);font:600 12.5px var(--sans);margin-top:2px}
+#privc{position:fixed;inset:0;z-index:140;background:var(--bg);display:grid;place-items:center}
+#privc img{border-radius:18px;opacity:.9}
+.chipr{display:flex;flex-wrap:wrap;gap:6px;width:100%}
+.opt{font:500 12.5px var(--sans);padding:7px 12px;border-radius:999px;border:1px solid var(--line2);background:transparent;color:var(--mut);cursor:pointer}
+.opt.on{background:var(--acc-s);color:var(--acc);border-color:var(--acc)}
+.hr.flash{animation:flash 2.4s ease}
+@keyframes flash{0%,40%{background:color-mix(in srgb,var(--acc) 22%,transparent)}100%{background:transparent}}
+button.stat.hoyal{width:100%;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
 #lock{position:fixed;inset:0;z-index:120;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
 .locked body>.wrap,.locked #nav{visibility:hidden}
 .lkbox{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;max-width:320px;color:var(--fg)}
@@ -1231,7 +1239,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='
 function toast(m){let el=$('#toast');if(!el){el=document.createElement('div');el.id='toast';el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)}el.textContent=m;el.hidden=false;clearTimeout(el._t);el._t=setTimeout(()=>el.hidden=true,6000)}
 
 /* ---------- bloqueo con Face ID / Touch ID (WebAuthn, por dispositivo) ---------- */
-const LK='fin-lock',LOCK_AFTER=3*60*1000;
+const LK='fin-lock';const lockAfter=()=>{try{const v=localStorage.getItem('fin-lockafter');return v==null?3*60e3:+v}catch(e){return 3*60e3}};
 let LOCKED=false,hiddenAt=0;
 const lockCfg=()=>{try{return JSON.parse(localStorage.getItem(LK)||'null')}catch(e){return null}};
 const b64=a=>btoa(String.fromCharCode(...new Uint8Array(a))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -1259,7 +1267,33 @@ function drawLock(){let el=$('#lock');
  el.innerHTML=`<div class="lkbox"><svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
  <h2>Finanzas Gonzo</h2><p>Bloqueada en este dispositivo</p><button class="lkbtn" data-unlock="1">Desbloquear con Face ID / Touch ID</button><p class="lkm" id="lkmsg" role="status"></p>
  <button class="lklink" data-logout="1">Cerrar sesión</button></div>`}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='hidden'){hiddenAt=Date.now()}else if(lockCfg()&&SESSION&&hiddenAt&&Date.now()-hiddenAt>LOCK_AFTER){lockNow();unlock()}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='hidden'){hiddenAt=Date.now()}else if(lockCfg()&&SESSION&&hiddenAt&&Date.now()-hiddenAt>=lockAfter()){lockNow();unlock()}});
+
+/* ---------- tapar la app al salir (privacidad en el selector de apps) ---------- */
+const privOn=()=>{try{return localStorage.getItem('fin-priv')!='0'}catch(e){return true}};
+function privCover(on){let el=$('#privc');if(on&&privOn()&&S&&SESSION){if(!el){el=document.createElement('div');el.id='privc';el.setAttribute('aria-hidden','true');el.innerHTML='<img src="icon-192.png" alt="" width="72" height="72">';document.body.appendChild(el)}el.hidden=false}else if(el)el.hidden=true}
+document.addEventListener('visibilitychange',()=>{privCover(document.visibilityState=='hidden');if(document.visibilityState=='hidden')badgeSet()});
+addEventListener('pagehide',()=>privCover(true));addEventListener('pageshow',()=>privCover(false));
+try{if(matchMedia('(pointer:coarse)').matches){addEventListener('blur',()=>privCover(true));addEventListener('focus',()=>privCover(false))}}catch(e){}
+/* ---------- número en el ícono de la app ---------- */
+const badgeMode=()=>{try{return localStorage.getItem('fin-badge')||'all'}catch(e){return'all'}};
+function badgeCount(){const md=badgeMode();if(md=='off')return 0;let n=0,seen=0;try{seen=+localStorage.getItem('fin-alseen')||0}catch(e){}
+ if(ALR&&ALR.items)n+=ALR.items.filter(a=>(a.ts||0)>seen).length;
+ if(md=='all'&&S&&S.y){const nm=NOWM();(S.y[nm.y]||[]).forEach(x=>{if(x.end!=null&&nm.m>=x.end)return;if((x.a[nm.m]||0)&&!x.p[nm.m])n++})}return n}
+let badgeT=null;
+function badgeSet(){clearTimeout(badgeT);badgeT=setTimeout(async()=>{if(!S||!SESSION)return;const n=badgeCount();
+ try{if('setAppBadge' in navigator){if(n)await navigator.setAppBadge(n);else await navigator.clearAppBadge()}}catch(e){}
+ try{const c=await caches.open('fin-meta');await c.put(new URL('./__badge',document.baseURI).href,new Response(String(n)))}catch(e){}},300)}
+/* ---------- abrir la tenencia de un aviso ---------- */
+function focusTk(tk){tk=String(tk||'').toUpperCase();if(!tk||!S||!S.inv)return;let P=null;try{P=port()}catch(e){return}
+ const x=P.items.find(i=>String(i.u||i.t).toUpperCase()==tk||String(i.t).toUpperCase()==tk);if(!x)return;
+ const a=iCol();if(a.includes(x.c)){try{localStorage.setItem('fin-icol',JSON.stringify(a.filter(k=>k!=x.c)))}catch(e){}render()}
+ setTimeout(()=>{const el=[...document.querySelectorAll('[data-tk]')].find(b=>b.dataset.tk.split('|').includes(tk));if(!el)return;el.scrollIntoView({block:'center',behavior:'smooth'});el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),2400)},120)}
+/* ---------- sin conexión: reintentar al volver ---------- */
+let DIRTY=false;try{DIRTY=localStorage.getItem('fin-dirty')=='1'}catch(e){}
+const setDirty=v=>{DIRTY=v;try{v?localStorage.setItem('fin-dirty','1'):localStorage.removeItem('fin-dirty')}catch(e){}};
+addEventListener('online',async()=>{stRender();liveFetch(false);if(SESSION&&SESSION.offline&&SB){try{const {data}=await SB.auth.getSession();SESSION=data.session}catch(e){}if(!SESSION)return render()}if(SESSION&&(DIRTY||SYNC=='err'||SYNC=='wait'))loadRemote()});
+addEventListener('offline',()=>stRender());
 
 /* ---------- sincronización: Supabase (login + base con RLS) ---------- */
 const SBK='fin-sb';let SB=null,SESSION=null,RT=null,ledT=null,histPend=false;
@@ -1268,9 +1302,9 @@ const cp=o=>JSON.parse(JSON.stringify(o));
 function sbClient(){const c=sbConf();if(!c||!c.url||!c.key||!window.supabase)return null;
  try{return window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}catch(e){return null}}
 async function getDoc(id){const {data,error}=await SB.from('docs').select('data').eq('id',id).maybeSingle();if(error)throw error;return data?data.data:null}
-async function putDoc(id,obj){if(!SB||!SESSION)return;
- const {error}=await SB.from('docs').upsert({user_id:SESSION.user.id,id,data:obj,updated_at:new Date().toISOString()},{onConflict:'user_id,id'});
- if(error){SYNC='err';SYNCERR=error.message;stRender()}else if(SYNC!='db'){SYNC='db';SYNCERR='';stRender()}}
+async function putDoc(id,obj){if(!SB||!SESSION)return;if(id=='ledger')setDirty(true);
+ let error=null;try{({error}=await SB.from('docs').upsert({user_id:SESSION.user.id,id,data:obj,updated_at:new Date().toISOString()},{onConflict:'user_id,id'}))}catch(e){error=e}
+ if(error){if(id=='ledger')setDirty(true);SYNC='err';SYNCERR=error.message;stRender()}else{if(id=='ledger')setDirty(false);if(SYNC!='db'){SYNC='db';SYNCERR='';stRender()}}}
 let SYNCERR='';
 function save(){if(!S)return;S.u=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
  clearTimeout(ledT);ledT=setTimeout(()=>putDoc('ledger',cp(S)),700)}
@@ -1283,7 +1317,7 @@ async function loadRemote(){
  if(!SB||!SESSION)return;SYNC='wait';stRender();
  try{
   const [d,h]=await Promise.all([getDoc('ledger'),getDoc('history')]);
-  if(d){if(!S||(d.u||0)>=(S.u||0))S=d;else putDoc('ledger',cp(S))}else if(S&&S.y)putDoc('ledger',cp(S));
+  if(d){if(!S||(d.u||0)>=(S.u||0)){if(DIRTY&&S&&S.y&&(d.u||0)>(S.u||0)){try{await SB.from('docs').upsert({user_id:SESSION.user.id,id:'bk:'+TODAY+'-sin-conexion',data:{at:Date.now(),s:cp(S)},updated_at:new Date().toISOString()},{onConflict:'user_id,id'})}catch(e){}toast('Había cambios más nuevos en otro dispositivo. Lo que cargaste sin conexión quedó en Copias de seguridad.')}S=d;setDirty(false)}else putDoc('ledger',cp(S))}else if(S&&S.y)putDoc('ledger',cp(S));
   HIST=HIST||{pts:{}};if(h&&h.pts){HIST.pts=Object.assign({},h.pts,HIST.pts)}
   try{localStorage.setItem(KEY,JSON.stringify(S));localStorage.setItem('fin-hist',JSON.stringify(HIST))}catch(e){}
   SYNC='db';
@@ -1337,7 +1371,7 @@ let PUSH=null,ALR=null,FNCODE='';
 const pushOK=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
 const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 const isIOS=()=>/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform=='MacIntel'&&navigator.maxTouchPoints>1);
-if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.go)goHash(e.data.go)})}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{});navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.go)goHash(e.data.go)})}
 const devName=()=>{const u=navigator.userAgent;return /iPhone/.test(u)?'iPhone':/iPad/.test(u)?'iPad':/Android/.test(u)?'Android':/Mac/.test(u)?'Mac':/Windows/.test(u)?'Windows':'Navegador'};
 async function fnCall(op){const {data,error}=await SB.functions.invoke('alertas',{body:{op}});if(error){let m=error.message||'';try{const j=await error.context.json();m=j.error||m}catch(e){}
  if(/Failed to send|not found|404|FunctionsFetchError|FunctionsHttpError/i.test(m+error.name))m='No encuentro la función "alertas" en Supabase. Hacé los pasos de configuración del servidor.';throw new Error(m)}return data}
@@ -1375,7 +1409,7 @@ function copyTxt(s,label){if(!s){toast('Todavía no cargó, probá de nuevo en u
  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(s).then(ok,()=>fallbackCopy(s,ok));else fallbackCopy(s,ok)}
 function fallbackCopy(s,ok){const a=document.createElement('textarea');a.value=s;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();try{document.execCommand('copy');ok()}catch(e){toast('No pude copiar')}a.remove()}
 function seenAlerts(){try{localStorage.setItem('fin-alseen',String(ALR&&ALR.u||Date.now()))}catch(e){}drawBell()}
-function drawBell(){const b=$('#acct');if(!b)return;let seen=0;try{seen=+localStorage.getItem('fin-alseen')||0}catch(e){}b.classList.toggle('dot',!!(ALR&&ALR.u>seen&&ALR.items&&ALR.items.length))}
+function drawBell(){const b=$('#acct');if(!b)return;let seen=0;try{seen=+localStorage.getItem('fin-alseen')||0}catch(e){}b.classList.toggle('dot',!!(ALR&&ALR.u>seen&&ALR.items&&ALR.items.length));badgeSet()}
 async function openNotif(keep){if(!FNCODE)fetch('./supabase/functions/alertas/index.ts',{cache:'no-store'}).then(r=>r.ok?r.text():'').then(s=>FNCODE=s).catch(()=>{});
  if(!keep){$('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" style="max-height:90vh;overflow:auto"><h2>Notificaciones</h2><div class="m">Cargando…</div></div></div>`}
  await loadPush();try{ALR=await getDoc('alerts')}catch(e){}const s=pushOK()?await mySub():null,mine=s&&PUSH.subs.some(x=>x.endpoint==s.endpoint),c=PUSH.cfg,n=PUSH.subs.length;
@@ -1394,15 +1428,15 @@ async function openNotif(keep){if(!FNCODE)fetch('./supabase/functions/alertas/in
  <label class="nck"><input type="checkbox" id="npriv" ${c.priv!==false?'checked':''}><span><b>Ocultar montos</b><small>las notificaciones muestran % y tickers, sin tu patrimonio</small></span></label>
  <div class="btns"><button data-close="1">Cerrar</button><button class="pr" data-npush="save">Guardar</button></div>
  <h3 style="margin:18px 0 6px;font-size:14px">Últimos avisos</h3>
- ${ALR&&ALR.items&&ALR.items.length?`<div class="list">${ALR.items.slice(0,15).map(a=>`<div class="li" style="cursor:default"><div class="l1"><b>${esc(a.t)}</b><small>${fmtT(a.ts)} · ${esc(a.b)}</small></div></div>`).join('')}</div>`:'<p class="note">Todavía no hubo avisos.</p>'}
+ ${ALR&&ALR.items&&ALR.items.length?`<div class="list">${ALR.items.slice(0,15).map(a=>a.url&&a.url!='#'?`<button class="li" data-goh="${esc(a.url)}"><div class="l1"><b>${esc(a.t)}</b><small>${fmtT(a.ts)} · ${esc(a.b)}</small></div><span class="mutc">›</span></button>`:`<div class="li" style="cursor:default"><div class="l1"><b>${esc(a.t)}</b><small>${fmtT(a.ts)} · ${esc(a.b)}</small></div></div>`).join('')}</div>`:'<p class="note">Todavía no hubo avisos.</p>'}
  <details id="nsetup" style="margin-top:16px"${n?'':' open'}><summary style="cursor:pointer;font-weight:600">Configuración del servidor (una sola vez)</summary>
  <p class="note">Las alertas las revisa tu Supabase cada 30 minutos, aunque la app esté cerrada.</p>
  <ol class="nsteps"><li><b>Crear la función.</b> En Supabase entrá a <b>Edge Functions → Deploy a new function → Via Editor</b>. Ponele de nombre <code>alertas</code>, borrá el código de ejemplo, pegá este y tocá <b>Deploy</b>. Después, en <b>Details</b> de la función, desactivá <b>Enforce JWT verification</b> (o "Verify JWT") y guardá: así la revisión automática puede llamarla. La función igual verifica tu sesión para las pruebas.<br><button class="btn" data-npush="cpfn">Copiar código de la función</button></li>
  <li><b>Programar la revisión.</b> En <b>SQL Editor</b> pegá esto y tocá <b>Run</b>. Ya tiene la dirección de tu proyecto.<br><button class="btn" data-npush="cpsql">Copiar SQL</button></li>
  <li><b>Activar.</b> Volvé acá y tocá <b>Activar en este dispositivo</b> en cada iPhone o compu donde quieras recibirlas.</li></ol></details>
  </div></div>`;seenAlerts()}
-function goHash(h){h=String(h||location.hash).replace(/^#/,'');const M={cartera:['i'],analisis:['a'],cobros:['c'],notas:['e'],rsu:['r'],dolar:['d'],mundo:['m'],credito:['g','uva'],alquiler:['g','alq'],gastos:['g','mes'],avisos:['n']}[h];if(!M||!S)return;
- if(M[0]=='n'){openNotif();}else{sec=M[0];if(M[1])tab=M[1];try{localStorage.setItem('gastos-sec',sec)}catch(e){}closeSheet();render();scrollTo(0,0)}try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}
+function goHash(h){h=String(h||location.hash).replace(/^#/,'');let tg='';if(h.includes('~'))[h,tg]=h.split('~');const M={hoy:['h'],patrimonio:['p'],ons:['o'],autos:['g','auto'],cartera:['i'],analisis:['a'],cobros:['c'],notas:['e'],rsu:['r'],dolar:['d'],mundo:['m'],credito:['g','uva'],alquiler:['g','alq'],gastos:['g','mes'],avisos:['n']}[h];if(!M||!S)return;
+ if(M[0]=='n'){openNotif();}else{sec=M[0];if(M[1])tab=M[1];try{localStorage.setItem('gastos-sec',sec)}catch(e){}closeSheet();render();scrollTo(0,0);const mt=/^(mv|conc|cob)-(.+)$/.exec(tg);if(mt&&sec=='i')focusTk(mt[2])}try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}
 addEventListener('hashchange',()=>goHash());
 /* ---------- IOL: cotizaciones en tiempo real (vía función "iol" de tu Supabase) ---------- */
 let IOLQ={},IOLst={st:'off',at:0,err:'',n:0};try{IOLQ=JSON.parse(localStorage.getItem('fin-iolq')||'{}')}catch(e){}
@@ -1450,6 +1484,9 @@ function openAccount(){const em=SESSION&&SESSION.user&&SESSION.user.email||'';$(
  <button class="li" data-iol="open"><div class="l1"><b>Cotizaciones en tiempo real</b><small>${iolOn()?(IOLst.st=='ok'?'IOL activo':'IOL activado'):'Conectá tu cuenta de IOL'}</small></div>${iolOn()&&IOLst.st=='ok'?'<span class="pill up">● IOL</span>':''}</button>
  <button class="li" data-notif="1"><div class="l1"><b>Notificaciones</b><small>Subas y bajas, crédito UVA, cobros y decisiones</small></div>${ALR&&ALR.u>(+localStorage.getItem('fin-alseen')||0)?'<span class="pill up">Nuevas</span>':''}</button>
  <button class="li" data-locktoggle="1"><div class="l1"><b>Bloqueo con Face ID / Touch ID</b><small>${lockCfg()?'Activado en este dispositivo · tocá para desactivar':'Pedirlo al abrir la app en este dispositivo'}</small></div><span class="pill ${lockCfg()?'up':'nt'}">${lockCfg()?'ON':'OFF'}</span></button>
+${lockCfg()?`<div class="li" style="cursor:default;flex-wrap:wrap;gap:8px"><div class="l1"><b>Bloquear después de</b><small>Tiempo fuera de la app antes de pedir Face ID</small></div><div class="chipr">${[[0,'Al salir'],[60e3,'1 min'],[3*60e3,'3 min'],[15*60e3,'15 min']].map(([v,l])=>`<button class="opt${lockAfter()==v?' on':''}" data-lockafter="${v}">${l}</button>`).join('')}</div></div>`:''}
+ <button class="li" data-privtoggle="1"><div class="l1"><b>Tapar la app al salir</b><small>Oculta todo en el selector de apps del iPhone</small></div><span class="pill ${privOn()?'up':'nt'}">${privOn()?'ON':'OFF'}</span></button>
+ <div class="li" style="cursor:default;flex-wrap:wrap;gap:8px"><div class="l1"><b>Número en el ícono</b><small>${'setAppBadge' in navigator?'Se ve en la app instalada en la pantalla de inicio':'Este navegador no lo muestra; sí la app instalada en el iPhone'}</small></div><div class="chipr">${[['all','Pendientes y avisos'],['al','Solo avisos'],['off','Apagado']].map(([v,l])=>`<button class="opt${badgeMode()==v?' on':''}" data-badge="${v}">${l}</button>`).join('')}</div></div>
  <button class="li" data-logout="1"><div class="l1"><b>Cerrar sesión</b><small>En este dispositivo</small></div></button></div>
  <div class="btns"><button data-close="1">Cerrar</button></div><p class="note" id="imsg" role="status"></p></div></div>`}
 function doExport(){const blob=new Blob([JSON.stringify({app:'mis-finanzas',v:1,ledger:S,history:HIST},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mis-finanzas-'+TODAY+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
@@ -1509,7 +1546,7 @@ function vInv(){iolPoll(false);const I=S.inv;if(!I)return none('Todavía no hay 
    const inner=`<div class="t1"><div class="tk">${esc(x.t)} ${tagS}</div><div class="nm">${esc(x.n)}${tagN} · ${qty}${x.h&&x.h.per>1?' VN':''}</div></div>
    <div class="c nm2">${esc(x.n)}${tagN}</div><div class="c">${qty}</div><div class="c">${pxs}${x.h&&x.h.per>1?'<small class="mutc"> /100</small>':''}</div><div class="c"><b>${x.np?'<span class="mutc">s/p</span>':usd(x.v)}</b></div><div class="c ${x.ch==null?'mutc':sgn(x.ch)}">${x.ch==null?'—':pct(x.ch,2)}</div><div class="c mutc">${pc0(x.v/T*100)}</div>
    <div class="vv">${x.np?'<b class="mutc">Sin precio</b><small>'+(x.h.k=='est'?'VN US$ '+nfu.format(x.h.q):'tocá para cargar')+'</small>':`<b>${usd(x.v)}</b><small>${x.cash?'':pxs+' · '}<span class="${x.ch==null?'':sgn(x.ch)}">${x.ch==null?'—':pct(x.ch,2)}</span> · ${pc0(x.v/T*100)}</small>`}</div>`;
-   return x.i>=0?`<button class="hr" data-hp="${x.i}">${inner}</button>`:`<button class="hr" data-cash="${x.ci}">${inner}</button>`}).join('')+'</div>'});
+   const tkA=esc(String(x.u||x.t).toUpperCase()+'|'+String(x.t).toUpperCase());return x.i>=0?`<button class="hr" data-hp="${x.i}" data-tk="${tkA}">${inner}</button>`:`<button class="hr" data-cash="${x.ci}" data-tk="${tkA}">${inner}</button>`}).join('')+'</div>'});
  h+='</div>';
  h+=`<div style="margin-top:18px">${histChart(T)}</div>`;
  return h+`<div class="note">Precios en D (dólar MEP) directos de BYMA vía ${esc(Q&&Q.src||'rendimientos.co')}; los bonos y ONs cotizan cada 100 VN. Se actualizan al abrir la app y cada minuto mientras está abierta. Sin cotización en D (TMVE8, BPB8D, FCI, notas): pesos ÷ MEP o último resumen de Cocos. ${np.length?np.length+' sin precio no suman al total. ':''}${cost?'Resultado contra lo invertido ('+money(cost)+'), tocalo para cambiarlo.':''} Tocá una tenencia para cambiar la cantidad, registrar una compra o venta, o eliminarla.</div>`}
@@ -1742,7 +1779,7 @@ function vHoy(){iolPoll(false);if(!LD)loanFetch(false);const N=nwCalc();nwRecord
  if(P){const mv=P.items.filter(x=>x.ch!=null&&x.live&&x.v>100).map(x=>({t:x.u||x.t,c:x.ch,v:x.v})).sort((a,b)=>b.c-a.c),up=mv.slice(0,2),dn=mv.slice(-2).reverse().filter(x=>x.c<0);
   h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>Mercado</b><span class="mutc" style="font:500 12px var(--mono)">MEP ${f2u(m)}${DOL&&DOL.t&&DOL.t.blue?' · blue '+f2u(DOL.t.blue.v):''}</span></div>
   <div class="hoymv">${up.filter(x=>x.c>0).map(x=>`<div><b>${esc(x.t)}</b><span class="pos">+${String(x.c.toFixed(2)).replace('.',',')}%</span></div>`).join('')}${dn.map(x=>`<div><b>${esc(x.t)}</b><span class="neg">${String(x.c.toFixed(2)).replace('.',',')}%</span></div>`).join('')}</div></div>`}
- if(ALR&&ALR.items&&ALR.items.length)h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>Últimos avisos</b><button class="btn" data-notif="1">Ver todos</button></div>${ALR.items.slice(0,3).map(a=>`<div class="stat"><span>${esc(a.t)}</span></div>`).join('')}</div>`;
+ if(ALR&&ALR.items&&ALR.items.length)h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>Últimos avisos</b><button class="btn" data-notif="1">Ver todos</button></div>${ALR.items.slice(0,3).map(a=>a.url&&a.url!='#'?`<button class="stat hoyal" data-goh="${esc(a.url)}"><span>${esc(a.t)}</span><span class="mutc">›</span></button>`:`<div class="stat"><span>${esc(a.t)}</span></div>`).join('')}</div>`;
  return h}
 /* ---------- copias de seguridad diarias (en tu Supabase) ---------- */
 async function backupDaily(force){if(!SB||!SESSION||!S||!S.y)return;const id='bk:'+TODAY;
@@ -1920,9 +1957,9 @@ const GRP={h:['h','p'],g:['g'],i:['i','a','c','e'],r:['r'],m:['d','m','o']},SUBL
 const grpOf=s=>Object.keys(GRP).find(k=>GRP[k].includes(s))||'i';
 let lastSub={};try{lastSub=JSON.parse(localStorage.getItem('fin-sub')||'{}')}catch(e){}
 const TT={h:['Inicio','Hola, Gonza'],p:['Inicio','Patrimonio neto'],g:['Finanzas personales','Mis gastos'],i:['Inversiones','Cartera'],a:['Inversiones','Análisis de cartera'],c:['Inversiones','Cobros futuros'],r:['Compensación','RSU ExxonMobil'],e:['Inversiones','Notas estructuradas'],o:['Mercados','Obligaciones negociables'],m:['Mercados','Monitor global'],d:['Mercados','Dólar · arbitraje']};
-function stRender(){const e=$('#st');if(!e)return;const mm={db:['ok','Sincronizado'],local:['bad','Sin sesión · datos de este dispositivo'],err:['bad','Error al sincronizar'],wait:['','Conectando…']}[SB?(SESSION?SYNC:'local'):'local']||['',''];e.className='stx '+mm[0];const lv=LIVE.st=='run'?' · actualizando precios…':LIVE.st=='ok'?' · en vivo '+hhmm(LIVE.at):LIVE.st=='err'?' · sin conexión al mercado':Q&&Q.ts?' · precios '+hhmm(Q.ts):'';e.lastChild.textContent=(!SB?'Sin configurar':mm[1]+(SYNC=='err'&&SYNCERR?' ('+SYNCERR+')':''))+lv;e.title=SYNCERR||''}
+function stRender(){const e=$('#st');if(!e)return;const mm={db:['ok','Sincronizado'],local:['bad','Sin sesión · datos de este dispositivo'],err:['bad','Error al sincronizar'],wait:['','Conectando…'],off:['bad',DIRTY?'Sin conexión · tus cambios se suben al volver':'Sin conexión · últimos datos guardados']}[SB?(SESSION?(navigator.onLine===false?'off':SYNC):'local'):'local']||['',''];e.className='stx '+mm[0];const lv=LIVE.st=='run'?' · actualizando precios…':LIVE.st=='ok'?' · en vivo '+hhmm(LIVE.at):LIVE.st=='err'?' · sin conexión al mercado':Q&&Q.ts?' · precios '+hhmm(Q.ts):'';e.lastChild.textContent=(!SB?'Sin configurar':mm[1]+(SYNC=='err'&&navigator.onLine!==false&&SYNCERR?' ('+SYNCERR+')':''))+lv;e.title=SYNCERR||''}
 function drawEye(){const b=$('#hidev');if(!b)return;b.setAttribute('aria-pressed',HIDE);b.classList.toggle('on',HIDE);b.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>${HIDE?'<path d="M4 4l16 16"/>':''}</svg>`}
-function render(){drawEye();if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
+function render(){drawEye();badgeSet();if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
  $('#eb').textContent=TT[sec][0];$('#ht').textContent=TT[sec][1];stRender();
  const g=sec=='g';$('#yrw').hidden=!g;$('#tabs').hidden=!g;$('#mch').hidden=$('#ypr').hidden=true;
  const gr=grpOf(sec);document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.grp==gr));
@@ -1941,7 +1978,7 @@ function render(){drawEye();if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'});
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -1999,6 +2036,10 @@ document.addEventListener('click',e=>{
  if(d.carsc){const [i,k]=d.carsc.split(':'),o=carOps()[+i];o.sc=k;if(o.led)carLedger(o,true);save();const y=scrollY;render();scrollTo(0,y);return}
  if(d.gsel!==undefined)return gSet(d.gsel);
  if(d.npush){const k=d.npush;if(k=='on')pushEnable();else if(k=='off')pushDisable();else if(k=='test')pushTest();else if(k=='prev')pushPreview();else if(k=='save')pushSaveCfg();else if(k=='cpfn')copyTxt(FNCODE,'Código');else if(k=='cpsql')copyTxt(pushSQL(),'SQL');return}
+ if(d.lockafter!=null){try{localStorage.setItem('fin-lockafter',d.lockafter)}catch(x){}openAccount();return}
+ if(d.privtoggle){try{localStorage.setItem('fin-priv',privOn()?'0':'1')}catch(x){}openAccount();return}
+ if(d.badge){try{localStorage.setItem('fin-badge',d.badge)}catch(x){}badgeSet();openAccount();return}
+ if(d.goh){closeSheet();goHash(d.goh);return}
  if(d.locktoggle){if(lockCfg()){lockDisable();openAccount()}else lockEnable().then(()=>openAccount());return}
  if(d.cost){const I=S.inv;mod('Total invertido','ARS, como figura en el resumen de tu broker ("Total de la inversión").',[['f0','Total invertido ARS',I.cost||'']],v=>{I.cost=parse(v[0])||0});return}
  if(d.dolref){dolFetch().then(()=>{render();toast(DOL?'Cotizaciones del dólar actualizadas':'No pude traer las cotizaciones')});return}
@@ -2031,7 +2072,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261124022235';
+const BUILD='20261124031500';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
@@ -2046,10 +2087,12 @@ async function boot(){
  SB=sbClient();
  if(SB){try{const {data}=await SB.auth.getSession();SESSION=data.session}catch(e){}
   SB.auth.onAuthStateChange((ev,s)=>{const had=!!SESSION;SESSION=s;if(ev=='SIGNED_OUT')render();else if(!had&&s)loadRemote()})}
- SYNC=SESSION?'wait':'local';
+ // sin conexión y con la sesión vencida: abrir igual con los datos guardados en el teléfono
+ if(SB&&!SESSION&&navigator.onLine===false&&S){try{const k=Object.keys(localStorage).find(k=>/^sb-.+-auth-token$/.test(k));const v=k&&JSON.parse(localStorage.getItem(k));if(v&&v.user)SESSION={user:v.user,offline:true}}catch(e){}}
+ SYNC=SESSION?(SESSION.offline?'err':'wait'):'local';
  if(SESSION&&lockCfg()){LOCKED=true;drawLock();unlock()}
  render();liveFetch(true);liveLoop();
- if(SESSION)await loadRemote()}
+ if(SESSION&&!SESSION.offline)await loadRemote()}
 boot();
 
 /* swipe lateral entre submenús del módulo */
