@@ -97,7 +97,7 @@ function rentAt(S: Any, C: Any, k: string) { if (k < C.start || (C.end && k > C.
 
 // ---------- reglas ----------
 type Alert = { key: string; cat: string; title: string; body: string; tag?: string; url?: string };
-const DEF = { on: { mv: true, fx: true, uva: true, cob: true, rot: true, crd: true }, mv: 5, pm: 2, fx: 2, conc: 20, liq: 10, priv: true };
+const DEF = { on: { mv: true, fx: true, uva: true, cob: true, rot: true, crd: true, res: true }, mv: 5, pm: 2, fx: 2, conc: 20, liq: 10, priv: true };
 function rules(S: Any, cfg: Any, M: Any, st: Any): Alert[] {
   const A: Alert[] = [], now = nowART(), today = dISO(now), hh = now.getUTCHours() + now.getUTCMinutes() / 60, wd = now.getUTCDay(), mkt = wd >= 1 && wd <= 5 && hh >= 11 && hh <= 17.2;
   const on = { ...DEF.on, ...(cfg.on || {}) }, priv = cfg.priv !== false, money = (n: number) => priv ? "" : " (US$ " + nf(Math.round(n)) + ")", ars = (n: number) => priv ? "" : " · $ " + nf(Math.round(n));
@@ -150,6 +150,25 @@ function rules(S: Any, cfg: Any, M: Any, st: Any): Alert[] {
         if (C.start < nx && (!C.end || nx <= C.end) && mDiff(C.start, nx) % (C.every || 3) == 0 && +today.slice(8) >= 25) A.push({ key: `radj:${C.name}:${nx}`, cat: "crd", title: `Ajusta el alquiler de ${C.name}`, body: `Desde ${nx.slice(5)}/${nx.slice(0, 4)} corresponde el ajuste${ars(rentAt(S, C, nx))} estimado. Avisale al inquilino.`, tag: "rent", url: "#alquiler" });
       });
     }
+  }
+
+  // 7) resumen del mes: el día 1 (o hasta el 3 si no se pudo antes), desde las 9
+  if (on.res && +today.slice(8, 10) <= 3 && hh >= 9) {
+    const MESL = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    const cur = today.slice(0, 7), pk = mAdd(cur, -1), ms = S.msum && S.msum[pk], parts: string[] = [];
+    const $ = (n: number) => "$ " + nf(Math.round(n));
+    if (ms && ms.i) {
+      if (!ms.pend) { const r = ms.real / ms.i * 100, d = ms.est ? (ms.real - ms.est) / Math.abs(ms.est) * 100 : 0;
+        parts.push(`Ahorraste el ${nf(r, 0)}% de tus ingresos` + (priv ? "" : ` (${$(ms.real)})`) + (Math.abs(d) >= 3 ? `, ${nf(Math.abs(d), 0)}% ${d > 0 ? "más" : "menos"} de lo estimado` : ", lo que habías estimado"));
+      } else parts.push(`Te quedaron ${ms.pend} concepto${ms.pend > 1 ? "s" : ""} sin confirmar` + (priv ? "" : `; estimado de ahorro ${$(ms.est)}`));
+      if (ms.aD) parts.push(`Invertiste ${priv ? "en " + MESL[+pk.slice(5, 7) - 1] : $(ms.aD)}` + (ms.mep && !priv ? ` (≈ US$ ${nf(Math.round(ms.aD / ms.mep))})` : ""));
+    }
+    const H = S.nwh || {}, ks = Object.keys(H).sort(), at = (lim: string) => { const k = ks.filter((x) => x <= lim).pop(); return k ? H[k][0] : null; };
+    const e1 = at(pk + "-31"), e0 = at(mAdd(pk, -1) + "-31");
+    if (e1 != null && e0) { const ch = (e1 - e0) / Math.abs(e0) * 100; parts.push(`Patrimonio ${pc(ch)} en el mes` + (priv ? "" : ` (US$ ${nf(Math.round(e1))})`)); }
+    if (I) { const F = flows(I, cur + "-01", M.us.XOM ? M.us.XOM[0] : null).filter((f) => f.d.slice(0, 7) == cur), tot = F.reduce((a, f) => a + f.x, 0);
+      if (F.length) parts.push(`En ${MESL[+cur.slice(5, 7) - 1]} cobrás ${F.length} pago${F.length > 1 ? "s" : ""}` + (priv ? "" : ` por US$ ${nf(Math.round(tot))}`)); }
+    if (parts.length) A.push({ key: `res:${pk}`, cat: "res", title: `Cómo cerró ${MESL[+pk.slice(5, 7) - 1]}`, body: parts.join(" · ") + ".", tag: "res-" + pk, url: "#gastos" });
   }
   return A;
 }

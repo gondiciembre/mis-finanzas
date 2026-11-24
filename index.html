@@ -674,7 +674,17 @@ function bilFix(){if(S.bil&&S.bil.mig1)return false;S.bil={...(S.bil||{}),on:fal
  Object.keys(S.y).map(Number).sort((a,b)=>a-b).forEach(y=>{const x=S.y[y].find(z=>z.n==BIL_DEF.name);if(x){delete x.bil;for(let m=0;m<12;m++){if(ymK(y,m)<'2026-12'||x.p[m])continue;x.a[m]=500000}x.rep=true}
   if(y>fy&&S.y[y-1])S.o[y]=Math.round(bal(11,y-1).est)});return true}
 function srcAuto(){let ch=false;Object.keys(S.y).forEach(y=>S.y[y].forEach(x=>{if(!x.src)return;Object.entries(x.src).forEach(([m,s])=>{m=+m;if(x.p[m])return;const v=Math.round(s.r.reduce((a,n)=>{const z=S.y[y].find(q=>q.n==n&&q.s=='in');return a+(z?z.a[m]||0:0)},0)+(s.x||0));if((x.a[m]||0)!=v){x.a[m]=v;ch=true}})}));return ch}
-function loanAuto(){if(!S||!S.y)return false;let ch=false;try{ch=bilFix()}catch(e){}try{ch=rentAuto()}catch(e){}try{ch=loanAutoQ()||ch}catch(e){}try{ch=rsuAuto()||ch}catch(e){}try{ch=sacAuto()||ch}catch(e){}try{ch=patAuto()||ch}catch(e){}try{ch=srcAuto()||ch}catch(e){}try{ch=bilAuto()||ch}catch(e){}if(ch)save();return ch}
+/* cierre de cada mes para el resumen del día 1 (lo lee el servidor de avisos) */
+function msumOf(y,m){const rows=S.y&&S.y[y];if(!rows)return null;const B=bilCfg(),by={i:0,u:0,g:0,a:0},dn={i:0,u:0,g:0,a:0},pd={i:0,g:0};
+ rows.forEach(x=>{if(x.end!=null&&m>=x.end)return;if(x.bil&&B.on&&ymK(y,m)>=B.from)return;const v=x.a[m]||0,ty=catOf(x).t;if(!(ty in by))return;by[ty]+=v;if(x.p[m])dn[ty]+=v;else if(v&&ty in pd)pd[ty]++});
+ const r=n=>Math.round(n);return{i:r(by.i),g:r(by.g),a:r(by.a),aD:r(dn.a),est:r(by.i-by.g),real:r(dn.i-dn.g),pend:pd.i+pd.g,mep:Math.round(mepE()*100)/100}}
+function msumAuto(){const nm=NOWM();let ch=false;S.msum=S.msum||{};
+ for(const k of [-1,0]){let y=nm.y,m=nm.m+k;if(m<0){m+=12;y--}const v=msumOf(y,m);if(!v)continue;const key=ymK(y,m),old=S.msum[key];
+  if(k==-1&&old&&old.fin)continue; // un mes cerrado y ya resumido no se recalcula
+  if(k==-1&&+TODAY.slice(8,10)>=3)v.fin=1;
+  if(JSON.stringify({...old,mep:0})!=JSON.stringify({...v,mep:0})){S.msum[key]=v;ch=true}}
+ Object.keys(S.msum).sort().slice(0,-14).forEach(k=>{delete S.msum[k];ch=true});return ch}
+function loanAuto(){if(!S||!S.y)return false;let ch=false;try{ch=bilFix()}catch(e){}try{ch=rentAuto()}catch(e){}try{ch=loanAutoQ()||ch}catch(e){}try{ch=rsuAuto()||ch}catch(e){}try{ch=sacAuto()||ch}catch(e){}try{ch=patAuto()||ch}catch(e){}try{ch=srcAuto()||ch}catch(e){}try{ch=bilAuto()||ch}catch(e){}try{ch=msumAuto()||ch}catch(e){}if(ch)save();return ch}
 function loanMath(L,uva){const r=L.tna/1200,n=L.n,P=L.uva0,c=P*r/(1-Math.pow(1+r,-n));
  let k=0;const d0=new Date(L.first+'T12:00:00');for(let i=0;i<n;i++){const d=new Date(d0);d.setMonth(d0.getMonth()+i);if(d.toISOString().slice(0,10)<=TODAY)k++;else break}
  const g=Math.pow(1+r,k),bal=P*g-c*(g-1)/r,intRest=c*(n-k)-bal;
@@ -1388,8 +1398,8 @@ function vImport(){return `<div class="card" style="max-width:560px;margin:20px 
  <label class="btn" style="cursor:pointer;margin-top:8px">Elegir archivo<input type="file" id="impf" accept="application/json,.json" hidden></label>
  <div class="btns" style="max-width:320px"><button data-start="1">Empezar de cero</button></div><p class="note" id="imsg" role="status"></p></div>`}
 /* ---------- notificaciones push ---------- */
-const NDEF={on:{mv:true,fx:true,uva:true,cob:true,rot:true,crd:true},mv:5,pm:2,fx:2,conc:20,liq:10,priv:true};
-const NCAT=[['mv','Subas y bajas abruptas','tus tenencias, la cartera total y XOM, en horario de mercado'],['fx','Dólar MEP y blue','cuando se mueven fuerte en el día'],['uva','Cancelación del crédito','cuando el indicador entra o sale de la zona favorable'],['cob','Cobros próximos','cupones, amortizaciones, notas y vestings para decidir la reinversión'],['rot','Rotación de cartera','concentración excesiva o demasiada liquidez (resumen semanal)'],['crd','Crédito y alquileres','débito de la cuota, ajustes y vencimientos de contratos']];
+const NDEF={on:{mv:true,fx:true,uva:true,cob:true,rot:true,crd:true,res:true},mv:5,pm:2,fx:2,conc:20,liq:10,priv:true};
+const NCAT=[['mv','Subas y bajas abruptas','tus tenencias, la cartera total y XOM, en horario de mercado'],['fx','Dólar MEP y blue','cuando se mueven fuerte en el día'],['uva','Cancelación del crédito','cuando el indicador entra o sale de la zona favorable'],['cob','Cobros próximos','cupones, amortizaciones, notas y vestings para decidir la reinversión'],['rot','Rotación de cartera','concentración excesiva o demasiada liquidez (resumen semanal)'],['crd','Crédito y alquileres','débito de la cuota, ajustes y vencimientos de contratos'],['res','Resumen del mes','el día 1: cuánto ahorraste, cómo te fue y qué cobrás ese mes']];
 let PUSH=null,ALR=null,FNCODE='';
 const pushOK=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
 const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
@@ -2289,7 +2299,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261124194500';
+const BUILD='20261124221500';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
