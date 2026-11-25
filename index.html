@@ -65,6 +65,12 @@
 /* pantalla fija en el iPhone: sin zoom ni desplazamiento lateral */
 html,body{overflow-x:clip;overscroll-behavior-x:none;touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media (pointer:coarse){input,select,textarea,.inp,.sheet select.inp,.csim .inp,.sheet .crow input.inp,.sheet .crow select.inp{font-size:16px!important}}
+.wxrow{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.wxl{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 11px;color:inherit;font:500 13px var(--sans);cursor:pointer;white-space:nowrap}.wxl b{font:700 14px var(--mono)}.wxl .mutc{font:500 12px var(--mono)}.wxi{font-size:16px;line-height:1}
+.wxnow{display:flex;align-items:center;gap:14px;margin-top:10px}.wxbig{font-size:48px;line-height:1}.wxt{font:700 40px/1 var(--mono)}
+.wxh{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}.wxh>div{flex:0 0 54px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:12px;background:var(--panel2)}.wxh small{font:500 11px var(--mono);color:var(--mut)}.wxh span{font-size:18px}.wxh b{font:600 13px var(--mono)}
+.wxp{color:var(--c1);font:600 11px var(--mono)}
+.wxd{display:grid;grid-template-columns:62px 1fr 40px 76px;gap:8px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}.wxd b{font:600 13.5px var(--mono);text-align:right}.wxd .wxp{text-align:right}
 #privc{position:fixed;inset:0;z-index:140;background:var(--bg);display:grid;place-items:center}
 #privc img{border-radius:18px;opacity:.9}
 .chipr{display:flex;flex-wrap:wrap;gap:6px;width:100%}
@@ -1892,7 +1898,7 @@ function nwSave(i,t){const v=parse($('#nwv').value),n=$('#nwn').value.trim();if(
 function vHoy(){iolPoll(false);if(!LD)loanFetch(false);const N=nwCalc();nwRecord(N);const nm=NOWM(),m=N.m,d0=new Date(TODAY+'T12:00:00');
  const dia=d0.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});let P=null;try{P=S.inv?port():null}catch(e){}
  const dP=P&&P.T?P.D/(P.T-P.D)*100:null;
- let h=`<div class="hoyh">${dia.charAt(0).toUpperCase()+dia.slice(1)}</div>
+ let h=`<div class="hoyh wxrow"><span>${dia.charAt(0).toUpperCase()+dia.slice(1)}</span>${wxLine()}</div>
  <button class="hero hoyhero" data-sec="p"><div class="k">Patrimonio neto <span class="mutc">ver detalle ›</span></div><div class="big"><small>US$</small>${HV(nfu.format(Math.round(N.net)))}</div><div class="s">activos ${usd(N.ta)} · deudas ${usd(N.tl)}</div></button>`;
  // este mes
  const t=S.y[nm.y]?tot(nm.m,nm.y):null,b=S.y[nm.y]?bal(nm.m,nm.y).real:0,pend=[];if(S.y[nm.y])S.y[nm.y].forEach(x=>{if(x.end!=null&&nm.m>=x.end)return;const a=x.a[nm.m]||0;if(a&&!x.p[nm.m])pend.push({n:x.n,a,in:x.s=='in'})});
@@ -2002,6 +2008,34 @@ function retSave(){const v=id=>$('#'+id).value,C=retC(),b=v('rt1');if(!/^\d{4}-\
  const age=retNum(v('rt2'));if(!age||age<30||age>80)return toast('Revisá la edad de retiro.');
  S.ret={birth:b,age:Math.round(age),base:retNum(v('rt3'))??6,spread:Math.abs(retNum(v('rt4'))??2),ap:retNum(v('rt5')),hire:/^\d{4}-\d{2}-\d{2}$/.test(v('rt6'))?v('rt6'):'',sal:retNum(v('rt7')),pct:retNum(v('rt8'))??50,gr:Math.max(0,Math.round(retNum(v('rt9'))??0)),unv:v('rt10'),prop:$('.rtpr')?[...document.querySelectorAll('.rtpr')].filter(i=>i.checked).map(i=>i.value):C.prop,pg:$('#rt11')?retNum(v('rt11'))??0:C.pg,lsub:$('#rt12')?$('#rt12').checked:C.lsub};
  save();closeSheet();render();toast('Supuestos guardados')}
+/* ---------- clima (Open-Meteo, gratis y sin clave). La ciudad se guarda en tu cuenta, no en el código ---------- */
+let WX=null;try{WX=JSON.parse(localStorage.getItem('fin-wx')||'null')}catch(e){}
+const WXC={0:['☀️','Despejado'],1:['🌤️','Mayormente despejado'],2:['⛅','Parcialmente nublado'],3:['☁️','Nublado'],45:['🌫️','Niebla'],48:['🌫️','Niebla'],51:['🌦️','Llovizna'],53:['🌦️','Llovizna'],55:['🌦️','Llovizna intensa'],56:['🌧️','Llovizna helada'],57:['🌧️','Llovizna helada'],61:['🌧️','Lluvia débil'],63:['🌧️','Lluvia'],65:['🌧️','Lluvia fuerte'],66:['🌧️','Lluvia helada'],67:['🌧️','Lluvia helada'],71:['🌨️','Nieve'],73:['🌨️','Nieve'],75:['🌨️','Nieve'],77:['🌨️','Nieve'],80:['🌦️','Chaparrones'],81:['🌧️','Chaparrones'],82:['⛈️','Chaparrones fuertes'],85:['🌨️','Nieve'],86:['🌨️','Nieve'],95:['⛈️','Tormenta'],96:['⛈️','Tormenta con granizo'],99:['⛈️','Tormenta con granizo']};
+const wxI=(c,day)=>{const x=WXC[c]||['🌡️',''];return day===0&&(c==0||c==1)?['🌙',x[1]]:x};
+let wxBusy=false;
+async function wxFetch(force){const L=S&&S.wx;if(!L||wxBusy)return;if(!force&&WX&&WX.k==L.lat+','+L.lon&&Date.now()-WX.ts<15*60e3)return;wxBusy=true;
+ try{const u=`https://api.open-meteo.com/v1/forecast?latitude=${L.lat}&longitude=${L.lon}&current=temperature_2m,apparent_temperature,weather_code,is_day,relative_humidity_2m,wind_speed_10m,precipitation&hourly=temperature_2m,precipitation_probability,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&timezone=America%2FArgentina%2FBuenos_Aires&forecast_days=5`;
+  const j=await fetch(u).then(r=>r.json());if(j&&j.current){WX={k:L.lat+','+L.lon,ts:Date.now(),c:j.current,h:j.hourly,d:j.daily};try{localStorage.setItem('fin-wx',JSON.stringify(WX))}catch(e){}const el=$('#wxl');if(el)el.outerHTML=wxLine();if($('.sheet[data-wxs]'))wxSheet()}}catch(e){}wxBusy=false}
+function wxLine(){const L=S&&S.wx;if(!L)return`<button class="wxl" id="wxl" data-wxcfg="1" aria-label="Agregar el clima">＋ clima</button>`;
+ if(!WX||!WX.c){wxFetch();return`<span class="wxl" id="wxl">…</span>`}if(Date.now()-WX.ts>15*60e3)setTimeout(()=>wxFetch(),50);
+ const c=WX.c,i=wxI(c.weather_code,c.is_day),d=WX.d;return`<button class="wxl" id="wxl" data-wx="1" aria-label="Clima en ${esc(L.n)}: ${Math.round(c.temperature_2m)} grados, ${i[1]}"><span class="wxi">${i[0]}</span><b>${Math.round(c.temperature_2m)}°</b><span class="mutc">${d?Math.round(d.temperature_2m_max[0])+'° / '+Math.round(d.temperature_2m_min[0])+'°':''}</span></button>`}
+function wxSheet(){const L=S.wx;if(!WX||!WX.c)return wxFetch(true);const c=WX.c,i=wxI(c.weather_code,c.is_day),H=WX.h,D=WX.d,now=Date.now();mfn=null;
+ const hs=[];for(let k=0;k<H.time.length&&hs.length<12;k++){const t=Date.parse(H.time[k]+':00-03:00');if(t<now-36e5)continue;hs.push(k)}
+ const DN=['dom','lun','mar','mié','jue','vie','sáb'];
+ $('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" data-wxs="1" role="dialog" aria-modal="true" aria-label="Clima"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">${esc(L.n)}</h2><button class="btn" data-wxcfg="1">Cambiar ciudad</button></div>
+ <div class="wxnow"><span class="wxbig">${i[0]}</span><div><div class="wxt">${Math.round(c.temperature_2m)}°</div><div class="mutc">${i[1]} · sensación ${Math.round(c.apparent_temperature)}°</div></div></div>
+ <div class="grid g3" style="gap:8px;margin:10px 0"><div class="card kpi"><div class="k">Humedad</div><div class="v" style="font-size:18px">${Math.round(c.relative_humidity_2m)}%</div></div><div class="card kpi"><div class="k">Viento</div><div class="v" style="font-size:18px">${Math.round(c.wind_speed_10m)} km/h</div></div><div class="card kpi"><div class="k">Lluvia hoy</div><div class="v" style="font-size:18px">${D.precipitation_probability_max[0]??0}%</div></div></div>
+ <h3 class="csh">Próximas horas</h3><div class="wxh">${hs.map(k=>{const t=H.time[k].slice(11,16),ic=wxI(H.weather_code[k],H.is_day[k]);return`<div><small>${t}</small><span>${ic[0]}</span><b>${Math.round(H.temperature_2m[k])}°</b><small class="wxp">${H.precipitation_probability[k]?H.precipitation_probability[k]+'%':''}</small></div>`}).join('')}</div>
+ <h3 class="csh">Próximos días</h3>${D.time.map((t,k)=>{const d=new Date(t+'T12:00:00'),ic=wxI(D.weather_code[k]);return`<div class="wxd"><span>${k?DN[d.getDay()]+' '+d.getDate():'Hoy'}</span><span>${ic[0]} <small class="mutc">${ic[1]}</small></span><span class="wxp">${D.precipitation_probability_max[k]?D.precipitation_probability_max[k]+'%':''}</span><b>${Math.round(D.temperature_2m_max[k])}° <span class="mutc">${Math.round(D.temperature_2m_min[k])}°</span></b></div>`}).join('')}
+ <p class="note">Sol: ${D.sunrise[0].slice(11,16)} a ${D.sunset[0].slice(11,16)} · Datos de Open-Meteo, actualizados ${new Date(WX.ts).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false})}</p>
+ <div class="btns"><button data-close="1">Cerrar</button></div></div></div>`}
+function wxCfg(){mfn=null;$('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true"><h2>Ciudad del clima</h2><div class="m">Se guarda en tu cuenta. Escribí la ciudad y elegila de la lista.</div>
+ <input class="inp" id="wxq" placeholder="Ej.: Belén de Escobar" value="${esc(S.wx?S.wx.n:'')}" oninput="wxSearch()"><div id="wxr" style="margin-top:8px"></div>
+ <div class="btns">${S.wx?'<button data-wxoff="1">Quitar clima</button>':''}<button data-close="1">Cancelar</button></div></div></div>`;setTimeout(()=>{const q=$('#wxq');q&&q.focus();wxSearch()},50)}
+let wxST=null;function wxSearch(){clearTimeout(wxST);wxST=setTimeout(async()=>{const q=($('#wxq')||{}).value||'';const box=$('#wxr');if(!box)return;if(q.trim().length<3){box.innerHTML='';return}
+ try{const j=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=6&language=es&countryCode=AR&name='+encodeURIComponent(q.trim())).then(r=>r.json());
+  box.innerHTML=(j.results||[]).map(r=>`<button class="li" data-wxpick="${esc(JSON.stringify({n:r.name,lat:+r.latitude.toFixed(3),lon:+r.longitude.toFixed(3)}))}"><div class="l1"><b>${esc(r.name)}</b><small>${esc([r.admin2,r.admin1].filter(Boolean).join(', '))}</small></div></button>`).join('')||'<p class="note">No encontré esa ciudad.</p>'}catch(e){box.innerHTML='<p class="note">No pude buscar ahora.</p>'}},300)}
+
 /* ---------- copias de seguridad diarias (en tu Supabase) ---------- */
 async function backupDaily(force){if(!SB||!SESSION||!S||!S.y)return;const id='bk:'+TODAY;
  try{if(!force){const {data}=await SB.from('docs').select('id').eq('id',id).maybeSingle();if(data)return}
@@ -2199,7 +2233,7 @@ function render(){drawEye();badgeSet();if(S&&S.y&&sec=='g')try{loanAuto()}catch(
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'});
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -2246,6 +2280,10 @@ document.addEventListener('click',e=>{
  if(d.bks)return openBackups();
  if(d.iol){if(d.iol=='open')return iolSheet();return iolAct(d.iol)}
  if(d.inbox)return openInbox();
+ if(d.wxcfg)return wxCfg();
+ if(d.wxpick){S.wx=JSON.parse(d.wxpick);WX=null;save();closeSheet();render();wxFetch(true);return}
+ if(d.wxoff){delete S.wx;save();closeSheet();render();return}
+ if(d.wx&&e.target.closest('#wxl'))return wxSheet();
  if(d.oncmode){const [kk,v]=d.oncmode.split(':');try{localStorage.setItem('fin-oncmode',v)}catch(x){}const sc=$('.sheet')&&$('.sheet').scrollTop;onDetail(kk);if($('.sheet'))$('.sheet').scrollTop=sc;return}
  if(d.oncond)return onCondForm(d.oncond);
  if(d.oncsave)return onCondSave(d.oncsave);
@@ -2300,7 +2338,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261124223000';
+const BUILD='20261125001500';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
