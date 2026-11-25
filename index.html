@@ -1665,7 +1665,7 @@ function vDol(){const A=arbS(),r=arbCalc(A.sell,A.buy,A.amt,A.fee),f2=n=>n==null
  <div class="hero"><div class="k">Resultado</div>${rp?`<div class="big ${rp.g<0?'neg':'pos'}"><small>$</small>${HV((rp.g>=0?'+':'−')+nfu.format(Math.round(Math.abs(rp.g))))}</div><div class="s"><span class="pill ${sgn(rp.g)}">${pct(rp.pc,2)}</span></div>
   <div class="stat" style="margin-top:14px"><span>Comprás a ${f2(rp.b)}</span><b>US$ ${f2(rp.usd)}</b></div>
   <div class="stat"><span>Vendés a ${f2(rp.a)}</span><b>${money(rp.back)}</b></div>
-  <div class="stat"><span>Terminás con</span><b>${money(rp.back)}</b></div>`:'<div class="note">Faltan cotizaciones para calcular.</div>'}</div></div></div>`}
+  <div class="stat"><span>Brecha ${DOLK[P.sell][0]} compra / ${DOLK[P.buy][0]} venta</span><b>${pct((rp.a/rp.b-1)*100,2)}</b></div>`:'<div class="note">Faltan cotizaciones para calcular.</div>'}</div></div></div>`}
  {const m=dq('mep','v').p,c=dq('ccl','v').p,mc=dq('mep','c').p,cc=dq('ccl','c').p;if(m&&c){const cj=(c/m-1)*100,cjc=mc&&cc?(cc/mc-1)*100:null;
   h+=`<div class="sec"><div class="sh"><h2>Canje CCL / MEP</h2><span class="m">cuánto más vale el dólar afuera que el dólar local</span></div><div class="hero"><div class="k">Canje</div><div class="big ${cj<0?'neg':''}">${pct(cj,2)}</div><div class="s">CCL ${f2(c)} / MEP ${f2(m)} (precios de venta)${cjc!=null?` · con precios de compra ${pct(cjc,2)}`:''}</div>
   <div class="note" style="margin-top:10px">${cj>=0?`Pasar dólares MEP al exterior (a CCL) te cuesta un ${pc0(Math.abs(cj))} aprox.; traerlos del exterior y venderlos como MEP te deja ese ${pc0(Math.abs(cj))} a favor.`:`Hoy el MEP vale más que el CCL: traer dólares del exterior conviene menos que mandarlos afuera.`}</div></div></div>`}}
@@ -2396,7 +2396,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261125141500';
+const BUILD='20261125143000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
