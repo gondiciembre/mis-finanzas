@@ -80,6 +80,7 @@ html,body{overflow-x:clip;overscroll-behavior-x:none;touch-action:pan-x pan-y;-w
 .dchw .dch .ax{font-size:11px}.dchw .dch .gl{opacity:.6}.dsum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 10px}.dsum small{display:block;font:600 10.5px var(--sans);color:var(--mut);text-transform:uppercase;letter-spacing:.04em}.dsum b{font:700 14px var(--mono)}
 /* iPhone: nombres largos en 2 líneas, botones cómodos de tocar */
 @media (max-width:480px){.tw td:first-child,.tw th:first-child{white-space:normal;line-height:1.25;word-break:break-word}.addm{min-height:26px;padding:3px 9px}.nwi small,.brief .note{font-size:12px}}
+.alnk{font-size:inherit;color:var(--acc);text-decoration:none;font-weight:600;padding:2px 0}
 #privc{position:fixed;inset:0;z-index:140;background:var(--bg);display:grid;place-items:center}
 #privc img{border-radius:18px;opacity:.9}
 .chipr{display:flex;flex-wrap:wrap;gap:6px;width:100%}
@@ -988,11 +989,15 @@ function vMes(){
    <div class="gpb"><i style="width:${sum?dn/sum*100:0}%;background:${cc}"></i></div>`;
   if(!closed){h+=`<div class="list">`;
    for(const [x,i] of rs){const a=x.a[mo]||0,d=x.p[mo],lab=isIn||x.s=='in'?['Cobrado','Estimado']:['Pagado','Estimado'];
-    h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${x.src&&x.src[mo]?(d?lab[0]+' · ':'')+'Suma: '+x.src[mo].r.join(' + ')+(x.src[mo].x?' + '+money(x.src[mo].x):''):d?lab[0]:!d&&x.bil&&bilCfg().on&&ymK(yr,mo)>=bilCfg().from?'Estimado · lo que queda disponible':!d&&x.a[mo]&&x.sac?'Estimado · 50% del mejor sueldo '+(mo<6?'ene–jun':'jul–dic'):!d&&x.a[mo]&&x.pat&&ymK(yr,mo)>=NOWK&&carOps().some(o=>o.patG)?'Estimado · patente PBA del auto nuevo':!d&&x.a[mo]&&x.rsu&&ymK(yr,mo)>=NOWK?'Estimado · '+(x.vd&&x.vd[ymK(yr,mo)]?fd(x.vd[ymK(yr,mo)]).slice(0,5)+' · ':'')+'neto 35% × MEP '+f2u(mepE()):!d&&x.a[mo]&&x.uva&&LD?'Estimado · UVA en vivo + inflación':!d&&x.a[mo]&&x.alq&&contractFor(x.n,ymK(yr,mo))?'Estimado · contrato':lab[1]}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
+    h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${x.src&&x.src[mo]?(d?lab[0]+' · ':'')+'Suma: '+x.src[mo].r.join(' + ')+(x.src[mo].x?' + '+money(x.src[mo].x):''):d?lab[0]:!d&&x.bil&&bilCfg().on&&ymK(yr,mo)>=bilCfg().from?'Estimado · lo que queda disponible':!d&&x.a[mo]&&x.sac?'Estimado · 50% del mejor sueldo '+(mo<6?'ene–jun':'jul–dic'):!d&&x.a[mo]&&x.pat&&ymK(yr,mo)>=NOWK&&carOps().some(o=>o.patG)?'Estimado · patente PBA del auto nuevo':!d&&x.a[mo]&&x.rsu&&ymK(yr,mo)>=NOWK?'Estimado · '+(x.vd&&x.vd[ymK(yr,mo)]?fd(x.vd[ymK(yr,mo)]).slice(0,5)+' · ':'')+'neto 35% × MEP '+f2u(mepE()):!d&&x.a[mo]&&x.uva&&LD?'Estimado · UVA en vivo + inflación':!d&&x.a[mo]&&x.alq&&contractFor(x.n,ymK(yr,mo))?'Estimado · contrato':!d&&x.dom&&S.dom&&S.dom.emps&&S.dom.emps.some(e=>ymK(yr,mo)>=e.from)?domDesc(ymK(yr,mo)):lab[1]}${(()=>{const g=autoGo(x);return g?` · <button class="lnk alnk" data-goto="${g[0]}|${g[1]}">ver en ${g[2]} ›</button>`:''})()}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
    h+=`<button class="add" data-add="${secFor(c,rs)}" data-addc="${esc(c.id)}">+ Agregar en ${esc(c.n)}</button></div>`}
   h+=`</div>`}
  if(curSec)h+=`</div>`;
  return h}
+/* conceptos calculados solos: de dónde salen y adónde ir a ver el cálculo */
+function autoGo(x){return x.dom?['g','dom','Personal']:x.uva&&LD?['g','uva','Crédito']:x.alq?['g','alq','Alquiler']:x.pat?['g','auto','Autos']:x.rsu?['r','','RSU']:null}
+function domDesc(k){const D=S.dom;if(!D||!D.emps)return'Estimado';const A=D.emps.filter(e=>domAct(e,k));if(!A.length)return'Estimado · sin personal vigente';
+ return'Estimado según el empleado vigente · '+A.map(e=>{const r=domRate(e,k);return esc(e.n.split(' ')[0])+(r?`: ${String(r.hd).replace('.',',')} h × ${String(r.dw).replace('.',',')} días · ${money(r.ph)}/h`:'')}).join(' · ')}
 function vAnio(){
  let h=`<div class="gbar" style="margin-top:0;margin-bottom:10px"><span>Por categoría</span><div><button class="btn" data-gcol="all">Contraer todo</button><button class="btn" data-gcol="none">Expandir todo</button></div></div>`;
  h+='<div class="tw"><table><tr><th></th>'+MES.map(m=>`<th>${m}</th>`).join('')+'</tr>';
@@ -2382,7 +2387,7 @@ function render(){drawEye();badgeSet();{const v=sec+'|'+tab,a=$('#app');if(a&&v!
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c){const pr=c.parentElement;if(pr&&pr.scrollWidth>pr.clientWidth)pr.scrollLeft=c.offsetLeft-pr.offsetLeft-pr.clientWidth/2+c.offsetWidth/2}
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff],[data-newsf],[data-newsr],[data-domed],[data-domsave],[data-domdel],[data-dombaja],[data-domre],[data-domraise],[data-domrsave],[data-domrdel]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff],[data-newsf],[data-newsr],[data-domed],[data-domsave],[data-domdel],[data-dombaja],[data-domre],[data-domraise],[data-domrsave],[data-domrdel],[data-goto]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -2429,6 +2434,7 @@ document.addEventListener('click',e=>{
  if(d.bks)return openBackups();
  if(d.iol){if(d.iol=='open')return iolSheet();return iolAct(d.iol)}
  if(d.inbox)return openInbox();
+ if(d.goto){const [sc,tb]=d.goto.split('|');sec=sc;if(tb)tab=tb;try{localStorage.setItem('gastos-sec',sec)}catch(x){}closeSheet();render();scrollTo(0,0);return}
  if(d.domraise!==undefined)return domRaise(+d.domraise);
  if(d.domrsave!==undefined)return domRSave(+d.domrsave);
  if(d.domrdel){const [i,f]=d.domrdel.split('|'),e=domS().emps[+i];e.r=e.r.filter(x=>x.f!=f);domAuto();save();render();return toast('Aumento quitado')}
@@ -2497,7 +2503,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261125203000';
+const BUILD='20261125204500';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
