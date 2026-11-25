@@ -689,7 +689,7 @@ function msumAuto(){const nm=NOWM();let ch=false;S.msum=S.msum||{};
  for(const k of [-1,0]){let y=nm.y,m=nm.m+k;if(m<0){m+=12;y--}const v=msumOf(y,m);if(!v)continue;const key=ymK(y,m),old=S.msum[key];
   if(k==-1&&old&&old.fin)continue; // un mes cerrado y ya resumido no se recalcula
   if(k==-1&&+TODAY.slice(8,10)>=3)v.fin=1;
-  if(JSON.stringify({...old,mep:0})!=JSON.stringify({...v,mep:0})){S.msum[key]=v;ch=true}}
+  const sk=o=>o?JSON.stringify(Object.keys(o).filter(k=>k!='mep').sort().map(k=>[k,o[k]])):'';if(sk(old)!=sk(v)){S.msum[key]=v;ch=true}}
  Object.keys(S.msum).sort().slice(0,-14).forEach(k=>{delete S.msum[k];ch=true});return ch}
 function loanAuto(){if(!S||!S.y)return false;let ch=false;try{ch=bilFix()}catch(e){}try{ch=rentAuto()}catch(e){}try{ch=loanAutoQ()||ch}catch(e){}try{ch=rsuAuto()||ch}catch(e){}try{ch=sacAuto()||ch}catch(e){}try{ch=patAuto()||ch}catch(e){}try{ch=srcAuto()||ch}catch(e){}try{ch=bilAuto()||ch}catch(e){}try{ch=msumAuto()||ch}catch(e){}if(ch)save();return ch}
 function loanMath(L,uva){const r=L.tna/1200,n=L.n,P=L.uva0,c=P*r/(1-Math.pow(1+r,-n));
@@ -2231,7 +2231,7 @@ function render(){drawEye();badgeSet();if(S&&S.y&&sec=='g')try{loanAuto()}catch(
  $('#py').disabled=!S.y[yr-1];
  app.innerHTML=g?(tab=='mes'?vMes():tab=='anio'?vAnio():tab=='uva'?vLoan():tab=='alq'?vRent():tab=='auto'?vCars():vGA()):sec=='i'?vInv():sec=='a'?vAna():sec=='c'?vCash():sec=='r'?vRsu():sec=='h'?vHoy():sec=='p'?vNW():sec=='j'?vRet():sec=='m'?vMon():sec=='o'?vOns():sec=='d'?vDol():vEst();
  $('#mch').hidden=$('#ypr').hidden=!(g&&tab=='mes'&&S&&SESSION);
- const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c&&c.scrollIntoView)c.scrollIntoView({inline:'center',block:'nearest'});
+ const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c){const pr=c.parentElement;if(pr&&pr.scrollWidth>pr.clientWidth)pr.scrollLeft=c.offsetLeft-pr.offsetLeft-pr.clientWidth/2+c.offsetWidth/2}
 }
 document.addEventListener('click',e=>{
  const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
@@ -2339,7 +2339,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261125003000';
+const BUILD='20261125004500';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
