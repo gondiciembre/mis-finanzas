@@ -69,6 +69,7 @@ html,body{overflow-x:clip;overscroll-behavior-x:none;touch-action:pan-x pan-y;-w
 .wxl{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 11px;color:inherit;font:500 13px var(--sans);cursor:pointer;white-space:nowrap}.wxl b{font:700 14px var(--mono)}.wxl .mutc{font:500 12px var(--mono)}.wxi{font-size:16px;line-height:1}
 .wxnow{display:flex;align-items:center;gap:14px;margin-top:10px}.wxbig{font-size:48px;line-height:1}.wxt{font:700 40px/1 var(--mono)}
 .wxh{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}.wxh>div{flex:0 0 54px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:12px;background:var(--panel2)}.wxh small{font:500 11px var(--mono);color:var(--mut)}.wxh span{font-size:18px}.wxh b{font:600 13px var(--mono)}
+.wxk{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}.wxk .kpi{padding:10px 12px}.wxk .k{font-size:10px}
 .wxp{color:var(--c1);font:600 11px var(--mono)}
 .wxd{display:grid;grid-template-columns:62px 1fr 40px 76px;gap:8px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}.wxd b{font:600 13.5px var(--mono);text-align:right}.wxd .wxp{text-align:right}
 #privc{position:fixed;inset:0;z-index:140;background:var(--bg);display:grid;place-items:center}
@@ -2024,7 +2025,7 @@ function wxSheet(){const L=S.wx;if(!WX||!WX.c)return wxFetch(true);const c=WX.c,
  const DN=['dom','lun','mar','mié','jue','vie','sáb'];
  $('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" data-wxs="1" role="dialog" aria-modal="true" aria-label="Clima"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">${esc(L.n)}</h2><button class="btn" data-wxcfg="1">Cambiar ciudad</button></div>
  <div class="wxnow"><span class="wxbig">${i[0]}</span><div><div class="wxt">${Math.round(c.temperature_2m)}°</div><div class="mutc">${i[1]} · sensación ${Math.round(c.apparent_temperature)}°</div></div></div>
- <div class="grid g3" style="gap:8px;margin:10px 0"><div class="card kpi"><div class="k">Humedad</div><div class="v" style="font-size:18px">${Math.round(c.relative_humidity_2m)}%</div></div><div class="card kpi"><div class="k">Viento</div><div class="v" style="font-size:18px">${Math.round(c.wind_speed_10m)} km/h</div></div><div class="card kpi"><div class="k">Lluvia hoy</div><div class="v" style="font-size:18px">${D.precipitation_probability_max[0]??0}%</div></div></div>
+ <div class="wxk"><div class="card kpi"><div class="k">Humedad</div><div class="v" style="font-size:18px">${Math.round(c.relative_humidity_2m)}%</div></div><div class="card kpi"><div class="k">Viento</div><div class="v" style="font-size:18px">${Math.round(c.wind_speed_10m)} km/h</div></div><div class="card kpi"><div class="k">Lluvia hoy</div><div class="v" style="font-size:18px">${D.precipitation_probability_max[0]??0}%</div></div></div>
  <h3 class="csh">Próximas horas</h3><div class="wxh">${hs.map(k=>{const t=H.time[k].slice(11,16),ic=wxI(H.weather_code[k],H.is_day[k]);return`<div><small>${t}</small><span>${ic[0]}</span><b>${Math.round(H.temperature_2m[k])}°</b><small class="wxp">${H.precipitation_probability[k]?H.precipitation_probability[k]+'%':''}</small></div>`}).join('')}</div>
  <h3 class="csh">Próximos días</h3>${D.time.map((t,k)=>{const d=new Date(t+'T12:00:00'),ic=wxI(D.weather_code[k]);return`<div class="wxd"><span>${k?DN[d.getDay()]+' '+d.getDate():'Hoy'}</span><span>${ic[0]} <small class="mutc">${ic[1]}</small></span><span class="wxp">${D.precipitation_probability_max[k]?D.precipitation_probability_max[k]+'%':''}</span><b>${Math.round(D.temperature_2m_max[k])}° <span class="mutc">${Math.round(D.temperature_2m_min[k])}°</span></b></div>`}).join('')}
  <p class="note">Sol: ${D.sunrise[0].slice(11,16)} a ${D.sunset[0].slice(11,16)} · Datos de Open-Meteo, actualizados ${new Date(WX.ts).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false})}</p>
@@ -2338,7 +2339,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261125001500';
+const BUILD='20261125003000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
