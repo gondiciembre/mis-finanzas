@@ -2105,7 +2105,11 @@ const domRate=(E,k)=>{const R=(E.r||[]).filter(r=>r.f<=k).sort((a,b)=>a.f<b.f?-1
 const domAct=(E,k)=>E.from<=k&&(!E.to||k<=E.to);
 const domMon=r=>r?r.hd*r.dw*WPM*r.ph:0;
 function domAt(k){const D=domS();return D.emps.filter(E=>domAct(E,k)).reduce((a,E)=>a+domMon(domRate(E,k)),0)}
-function domAuto(){const D=S.dom;if(!D||!D.emps||!D.emps.length||!D.row)return false;let ch=false;const first=D.emps.map(E=>E.from).sort()[0];
+/* el primer valor de la hora siempre arranca en el alta (si se mueve el alta, se mueve con ella) */
+function domNorm(e){if(!e||!e.from)return false;e.r=(e.r||[]).slice().sort((a,b)=>a.f<b.f?-1:1);let ch=false;const pre=e.r.filter(x=>x.f<e.from);
+ if(pre.length){const keep=pre[pre.length-1],has=e.r.some(x=>x.f==e.from);e.r=e.r.filter(x=>x.f>=e.from);if(!has)e.r.unshift({...keep,f:e.from});ch=true}
+ else if(e.r.length&&e.r[0].f>e.from){e.r[0].f=e.from;ch=true}return ch}
+function domAuto(){const D=S.dom;if(!D||!D.emps||!D.emps.length||!D.row)return false;let ch=false;D.emps.forEach(e=>{if(domNorm(e))ch=true});const first=D.emps.map(E=>E.from).sort()[0];
  Object.keys(S.y).forEach(y=>{for(let m=0;m<12;m++){const k=ymK(+y,m);if(k<first)continue;const [x,nw]=rowIn(y,D.row,{s:'out',c:'sm'});if(!x)return;if(nw)ch=true;x.dom=1;if(x.p[m])continue;
   const v=Math.round(domAt(k));if((x.a[m]||0)!=v){x.a[m]=v;ch=true}}});return ch}
 /* inflación mensual INDEC (argentinadatos) para saber cuándo hace falta un aumento */
@@ -2115,7 +2119,7 @@ const infM=k=>INFM&&INFM.m[k]!=null?[INFM.m[k]/100,1]:[infl(),0];
 function infAcc(from,to){let f=1,est=0;for(let k=mAdd(from,1);k<=to;k=mAdd(k,1)){const [v,real]=infM(k);f*=1+v;if(!real)est++}return{f,est}}
 function domNeed(e){const r=domRate(e,NOWK);if(!r)return null;const A=infAcc(r.f,NOWK),acc=(A.f-1)*100,lvl=acc>=10?['dn','Requiere aumento']:acc>=5?['w','Conviene revisar']:['up','Al día'];
  return{r,acc,est:A.est,lvl,sug:Math.ceil(r.ph*A.f/100)*100,months:mDiff(r.f,NOWK)}}
-function domChart(){const D=domS();if(!D.emps.length)return'';const first=D.emps.map(e=>e.from).sort()[0],start=mDiff(first,NOWK)>5?mAdd(NOWK,-5):first,end=mAdd(NOWK,6),ks=[];for(let k=start;k<=end;k=mAdd(k,1))ks.push(k);
+function domChart(){const D=domS();if(!D.emps.length)return'';const first=D.emps.map(e=>e.from).sort()[0],start=mDiff(first,NOWK)>5?mAdd(NOWK,-5):first<NOWK?first:NOWK,end=mAdd(first>NOWK?first:NOWK,6),ks=[];for(let k=start;k<=end;k=mAdd(k,1))ks.push(k);
  const paid=k=>{const y=+k.slice(0,4),m=+k.slice(5,7)-1,x=S.y[y]&&S.y[y].find(z=>z.n==D.row);return x&&x.p[m]?x.a[m]||0:null};
  const pay=ks.map(k=>{const p=paid(k);return p!=null?p:Math.round(domAt(k))});
  // pago "empatado" con la inflación desde el último aumento vigente en cada mes
@@ -2128,8 +2132,8 @@ function domChart(){const D=domS();if(!D.emps.length)return'';const first=D.emps
  const pts=keep.map((v,i)=>v?[L+bw*i+bw/2,Y(v)]:null).filter(Boolean);if(pts.length>1)s+=`<path d="M${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join('L')}" fill="none" style="stroke:var(--c2)" stroke-width="2" stroke-dasharray="5 4" pointer-events="none"/>`;
  const nx=L+bw*ks.indexOf(NOWK);s+=`<line x1="${nx}" x2="${nx}" y1="${T}" y2="${H-B}" style="stroke:var(--fg)" opacity=".25" stroke-dasharray="2 3"/>`;
  const sv=`<svg class="dch" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:100%;height:auto" role="img" aria-label="Pagos mensuales al personal doméstico y valor para empatar la inflación">${s}</svg>`;
- const iN=ks.indexOf(NOWK),i6=Math.min(ks.length-1,iN+6),gap=pay[i6]?keep[i6]/pay[i6]-1:0;
- return`<div class="chart dchw" style="margin-top:12px"><h3>Pagos mensuales</h3><div class="dsum"><div><small>Este mes</small><b>${money(pay[iN])}</b></div><div><small>${mLab(ks[i6])}</small><b>${money(pay[i6])}</b></div><div><small>Atraso en ${mLab(ks[i6])}</small><b class="${gap>=.1?'neg':gap>=.05?'':'pos'}">${gap>0?pc0(gap*100):'—'}</b></div></div>${sv}${legend([['var(--c1)','Pago'],['var(--c2)','Para empatar inflación']])}</div>`}
+ const iN=Math.max(0,ks.indexOf(NOWK)),i6=Math.min(ks.length-1,iN+6),gap=pay[i6]?keep[i6]/pay[i6]-1:0;
+ return`<div class="chart dchw" style="margin-top:12px"><h3>Pagos mensuales</h3><div class="dsum"><div><small>Este mes</small><b>${pay[iN]?money(pay[iN]):'—'}</b></div><div><small>${mLab(ks[i6])}</small><b>${money(pay[i6])}</b></div><div><small>Atraso en ${mLab(ks[i6])}</small><b class="${gap>=.1?'neg':gap>=.05?'':'pos'}">${gap>0?pc0(gap*100):'—'}</b></div></div>${sv}${legend([['var(--c1)','Pago'],['var(--c2)','Para empatar inflación']])}</div>`}
 function domRaise(i,f0){const e=domS().emps[i],last=domRate(e,'9999-12'),f=f0||mAdd(NOWK,1),base=domRate(e,mAdd(f,-1))||last,N=domNeed(e);mfn=null;
  $('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" style="max-height:90vh;overflow:auto"><h2>Aumento · ${esc(e.n)}</h2><div class="m">Rige desde el mes que elijas; los meses siguientes de “${esc(domS().row)}” se actualizan solos.</div>
  <div class="grid g2" style="gap:10px"><div><label for="ra1">Desde</label><input class="inp" type="month" id="ra1" value="${f}"></div><div><label for="ra2">Aumento %</label><input class="inp" inputmode="decimal" id="ra2" value="${N&&N.acc>0?String(Math.ceil(N.acc*10)/10).replace('.',','):''}"></div>
@@ -2177,7 +2181,7 @@ function domSave(i){const D=domS(),v=id=>$('#'+id).value,n=v('dm0').trim(),from=
  if(!hd||hd>24||!dw||dw>7||!ph)return toast('Revisá horas por día, días por semana y valor de la hora.');
  const R={hd,dw,ph};if(i<0){D.emps.push({n,from,to:to||'',r:[{f:from,...R}],nota:v('dm7').trim()})}
  else{const e=D.emps[i];e.n=n;e.from=from;e.to=to||'';e.nota=v('dm7').trim();e.r=e.r||[];const f=(v('dm6')||NOWK)<from?from:(v('dm6')||NOWK),cur=domRate(e,f);
-  if(!cur||cur.hd!=hd||cur.dw!=dw||cur.ph!=ph){e.r=e.r.filter(x=>x.f!=f);e.r.push({f,...R})}if(!e.r.some(x=>x.f<=from)){const lo=e.r.sort((a,b)=>a.f<b.f?-1:1)[0];lo.f=from}}
+  if(!cur||cur.hd!=hd||cur.dw!=dw||cur.ph!=ph){e.r=e.r.filter(x=>x.f!=f);e.r.push({f,...R})}domNorm(e)}
  domAuto();save();closeSheet();render();toast('Guardado')}
 
 /* ---------- copias de seguridad diarias (en tu Supabase) ---------- */
@@ -2493,7 +2497,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261125200000';
+const BUILD='20261125203000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
