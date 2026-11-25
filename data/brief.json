@@ -1,0 +1,20 @@
+{
+  "date": "2026-11-24",
+  "gen": "2026-11-24T22:50:00-03:00",
+  "title": "Ganó el Dow, perdieron los chips: el rebote de Nvidia del lunes se desinfló.",
+  "bullets": [
+    {"h": "Índices mixtos.", "t": "El Dow subió 0,85% a 50.018,70 y volvió a superar los 50.000 puntos; el S&P 500 cayó 0,50% a 7.201,09 (octava baja en nueve ruedas) y el Nasdaq perdió 1,48% a 23.733,54."},
+    {"h": "Caída fuerte de semiconductores.", "t": "El índice de chips de Filadelfia se hundió 7,9%, con sus 30 acciones en rojo. Nvidia bajó 5,9% después de subir 31% el lunes, cuando volvió Jensen Huang como CEO; Micron cayó 11% y AMD e Intel entre 8% y 9%."},
+    {"h": "Rotación hacia acciones de valor.", "t": "El dinero salió de tecnología hacia salud, consumo y empresas más chicas: el Russell 2000 subió 0,57% y Kohl's y Abercrombie saltaron cerca de 20% por sus balances."},
+    {"h": "Dato fuerte del consumidor.", "t": "La confianza del consumidor del Conference Board marcó 103,3, muy por encima de los 92,2 esperados."},
+    {"h": "Oro y bitcoin a la baja.", "t": "El oro cayó 2,3% a cerca de US$ 3.553 y bitcoin bajó 2,4% a cerca de US$ 59.700."},
+    {"h": "Lo que viene.", "t": "El miércoles se publica la inflación de EE.UU.; el jueves Wall Street cierra por Acción de Gracias y el viernes opera media jornada."}
+  ],
+  "src": [
+    {"n": "La Nación", "u": "https://www.lanacion.com.ar/usa/how-major-us-stock-indexes-fared-tuesday-11242026-nid24112026/"},
+    {"n": "Yahoo Finance", "u": "https://finance.yahoo.com/markets/live/stock-market-today-tuesday-november-24-dow-sp-500-nasdaq-chip-stocks-nvidia-140629923.html"},
+    {"n": "StockTitan", "u": "https://www.stocktitan.net/articles/stock-market-today-live-november-24-2026"},
+    {"n": "Market Digest", "u": "https://stockmarketwatch.com/digest/2026-11-24"},
+    {"n": "El Boletín", "u": "https://www.elboletin.com/wall-street-vuelve-a-sufrir-por-las-tecnologicas-el-nasdaq-cae-un-148-y-el-dow-jones-recupera-los-50-000-puntos/"}
+  ]
+}

@@ -173,6 +173,27 @@ function rules(S: Any, cfg: Any, M: Any, st: Any): Alert[] {
   return A;
 }
 
+// ---------- noticias (Google Noticias en español, por tenencia) ----------
+const ent = (s: string) => s.replace(/<!\[CDATA\[|\]\]>/g, "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ").trim();
+async function news(Q: Any[]) {
+  const qs = (Array.isArray(Q) ? Q : []).filter((x) => x && x.q && x.t).slice(0, 16);
+  const one = async (x: Any) => {
+    const u = `https://news.google.com/rss/search?q=${encodeURIComponent(x.q + " when:3d")}&hl=es-419&gl=AR&ceid=AR:es-419`;
+    const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), 8000);
+    try {
+      const xml = await (await fetch(u, { signal: ac.signal, headers: { "user-agent": "Mozilla/5.0 finanzas-gonzo" } })).text();
+      return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 5).map((m) => {
+        const g = (tag: string) => { const r = new RegExp("<" + tag + "[^>]*>([\\s\\S]*?)<\\/" + tag + ">").exec(m[1]); return r ? ent(r[1]) : ""; };
+        const src = g("source"), title = g("title").replace(new RegExp("\\s+-\\s+" + src.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$"), "");
+        return { t: x.t, title, link: g("link"), date: g("pubDate"), source: src };
+      });
+    } catch (_) { return []; } finally { clearTimeout(tm); }
+  };
+  const all = (await Promise.all(qs.map(one))).flat(), seen = new Set<string>();
+  return all.filter((n) => { const k = n.title.toLowerCase().slice(0, 70); if (!n.title || seen.has(k)) return false; seen.add(k); return true; })
+    .sort((a, b) => Date.parse(b.date) - Date.parse(a.date)).slice(0, 60);
+}
+
 // ---------- envío ----------
 async function sendTo(uid: string, push: Any, list: Alert[], keys: Any) {
   webpush.setVapidDetails("mailto:alertas@mis-finanzas.app", keys.publicKey, keys.privateKey);
@@ -211,9 +232,10 @@ Deno.serve(async (req) => {
   const op = body.op || new URL(req.url).searchParams.get("op") || "run";
   try {
     if (op == "key") return json({ key: (await vapid()).publicKey });
-    if (op == "test" || op == "preview" || op == "res") {
+    if (op == "test" || op == "preview" || op == "res" || op == "news") {
       const tok = (req.headers.get("authorization") || "").replace(/^Bearer /i, ""); const { data: u } = await SB.auth.getUser(tok);
       if (!u || !u.user) return json({ error: "Iniciá sesión en la app." }, 401);
+      if (op == "news") return json({ items: await news(body.q || []) });
       const { data: p } = await SB.from("docs").select("data").eq("user_id", u.user.id).eq("id", "push").maybeSingle();
       if (op == "preview") { const { data: led } = await SB.from("docs").select("data").eq("user_id", u.user.id).eq("id", "ledger").maybeSingle(); const M = await market(); const cfg = { ...DEF, ...((p && p.data && p.data.cfg) || {}) }; const st = (await getState("u:" + u.user.id)) || { sent: {} }; const L = { ...LOAN_DEF, ...((led && led.data && led.data.loan) || {}) }; return json({ ok: M.ok, alerts: led ? rules(led.data, cfg, M, { ...st, daily: null }) : [], loan: loanState(L, M, dISO(nowART())) }); }
       if (!p || !(p.data.subs || []).length) return json({ error: "Este usuario no tiene dispositivos suscriptos." }, 400);

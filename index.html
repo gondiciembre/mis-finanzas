@@ -72,6 +72,9 @@ html,body{overflow-x:clip;overscroll-behavior-x:none;touch-action:pan-x pan-y;-w
 .wxk{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}.wxk .kpi{padding:10px 12px}.wxk .k{font-size:10px}
 .wxp{color:var(--c1);font:600 11px var(--mono)}
 .wxd{display:grid;grid-template-columns:62px 1fr 40px 76px;gap:8px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}.wxd b{font:600 13.5px var(--mono);text-align:right}.wxd .wxp{text-align:right}
+.nwi{display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-top:1px solid var(--line);color:inherit;text-decoration:none}.nwi:first-child{border-top:0}.nwi .tlg{width:30px;height:30px;margin-top:2px}.nwt{min-width:0;flex:1}.nwt b{display:block;font-size:14px;line-height:1.35;font-weight:600}.nwt small{display:block;color:var(--mut);font-size:12px;margin-top:4px}.nwk{font:600 11px var(--mono);color:var(--acc)}
+.brief .brt{font-weight:600;margin:8px 0 4px;line-height:1.4}.brl{margin:6px 0 0;padding-left:18px}.brl li{margin:6px 0;line-height:1.45;font-size:13.5px}.brl li b{font-weight:650}
+.lnk{background:none;border:0;padding:0;color:var(--acc);font:inherit;cursor:pointer;text-decoration:underline}
 #privc{position:fixed;inset:0;z-index:140;background:var(--bg);display:grid;place-items:center}
 #privc img{border-radius:18px;opacity:.9}
 .chipr{display:flex;flex-wrap:wrap;gap:6px;width:100%}
@@ -1489,7 +1492,7 @@ async function openNotif(keep){if(!FNCODE)fetch('./supabase/functions/alertas/in
  <li><b>Programar la revisión.</b> En <b>SQL Editor</b> pegá esto y tocá <b>Run</b>. Ya tiene la dirección de tu proyecto.<br><button class="btn" data-npush="cpsql">Copiar SQL</button></li>
  <li><b>Activar.</b> Volvé acá y tocá <b>Activar en este dispositivo</b> en cada iPhone o compu donde quieras recibirlas.</li></ol></details>
  </div></div>`;seenAlerts()}
-function goHash(h){h=String(h||location.hash).replace(/^#/,'');let tg='';if(h.includes('~'))[h,tg]=h.split('~');const M={retiro:['j'],hoy:['h'],patrimonio:['p'],ons:['o'],autos:['g','auto'],cartera:['i'],analisis:['a'],cobros:['c'],notas:['e'],rsu:['r'],dolar:['d'],mundo:['m'],credito:['g','uva'],alquiler:['g','alq'],gastos:['g','mes'],avisos:['n']}[h];if(!M||!S)return;
+function goHash(h){h=String(h||location.hash).replace(/^#/,'');let tg='';if(h.includes('~'))[h,tg]=h.split('~');const M={noticias:['w'],retiro:['j'],hoy:['h'],patrimonio:['p'],ons:['o'],autos:['g','auto'],cartera:['i'],analisis:['a'],cobros:['c'],notas:['e'],rsu:['r'],dolar:['d'],mundo:['m'],credito:['g','uva'],alquiler:['g','alq'],gastos:['g','mes'],avisos:['n']}[h];if(!M||!S)return;
  if(M[0]=='n'){openInbox();}else{sec=M[0];if(M[1])tab=M[1];try{localStorage.setItem('gastos-sec',sec)}catch(e){}closeSheet();render();scrollTo(0,0);const mt=/^(mv|conc|cob)-(.+)$/.exec(tg);if(mt&&sec=='i')focusTk(mt[2])}try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}
 addEventListener('hashchange',()=>goHash());
 /* ---------- IOL: cotizaciones en tiempo real (vía función "iol" de tu Supabase) ---------- */
@@ -1922,6 +1925,7 @@ function vHoy(){iolPoll(false);if(!LD)loanFetch(false);const N=nwCalc();nwRecord
  if(P){const mv=P.items.filter(x=>x.ch!=null&&x.live&&x.v>100).map(x=>({t:x.u||x.t,c:x.ch,v:x.v,x})).sort((a,b)=>b.c-a.c),up=mv.slice(0,2),dn=mv.slice(-2).reverse().filter(x=>x.c<0);
   h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>Mercado</b><span class="mutc" style="font:500 12px var(--mono)">MEP ${f2u(m)}${DOL&&DOL.t&&DOL.t.blue?' · blue '+f2u(DOL.t.blue.v):''}</span></div>
   <div class="hoymv">${up.filter(x=>x.c>0).map(x=>`<div><b>${logoHTML(x.x)}${esc(x.t)}</b><span class="pos">+${String(x.c.toFixed(2)).replace('.',',')}%</span></div>`).join('')}${dn.map(x=>`<div><b>${logoHTML(x.x)}${esc(x.t)}</b><span class="neg">${String(x.c.toFixed(2)).replace('.',',')}%</span></div>`).join('')}</div></div>`}
+ h+=hoyNews();
  if(ALR&&ALR.items&&ALR.items.length)h+=`<div class="card" style="margin-top:12px"><div class="hoyt"><b>Últimos avisos</b><button class="btn" data-inbox="1">Ver todos</button></div>${ALR.items.slice(0,3).map(a=>a.url&&a.url!='#'?`<button class="stat hoyal" data-goh="${esc(a.url)}"><span>${esc(a.t)}</span><span class="mutc">›</span></button>`:`<div class="stat"><span>${esc(a.t)}</span></div>`).join('')}</div>`;
  return h}
 /* ---------- camino al retiro ---------- */
@@ -2036,6 +2040,42 @@ function wxCfg(){mfn=null;$('#ov').innerHTML=`<div class="ov" data-close="1"><di
 let wxST=null;function wxSearch(){clearTimeout(wxST);wxST=setTimeout(async()=>{const q=($('#wxq')||{}).value||'';const box=$('#wxr');if(!box)return;if(q.trim().length<3){box.innerHTML='';return}
  try{const j=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=6&language=es&countryCode=AR&name='+encodeURIComponent(q.trim())).then(r=>r.json());
   box.innerHTML=(j.results||[]).map(r=>`<button class="li" data-wxpick="${esc(JSON.stringify({n:r.name,lat:+r.latitude.toFixed(3),lon:+r.longitude.toFixed(3)}))}"><div class="l1"><b>${esc(r.name)}</b><small>${esc([r.admin2,r.admin1].filter(Boolean).join(', '))}</small></div></button>`).join('')||'<p class="note">No encontré esa ciudad.</p>'}catch(e){box.innerHTML='<p class="note">No pude buscar ahora.</p>'}},300)}
+
+/* ---------- noticias: tu cartera (Google Noticias vía tu función de Supabase), mercado (rendimientos.co) y el resumen del día ---------- */
+const NEWSQ={IBIT:'Bitcoin',SPY:'S&P 500 Wall Street',BRKB:'Berkshire Hathaway',GOOGL:'Alphabet Google',GOGL:'Alphabet Google',AMZN:'Amazon',MELI:'Mercado Libre',NU:'Nubank',BABA:'Alibaba',VST:'Vistra',MU:'Micron',NVDA:'Nvidia',UBER:'Uber',AAPL:'Apple',MSFT:'Microsoft',TSLA:'Tesla',META:'Meta Facebook'};
+function newsQ(){let P=null;try{P=port()}catch(e){return[]}const Q=[],seen=new Set();
+ if(S.inv&&S.inv.rsu){Q.push({t:'XOM',q:'ExxonMobil'});seen.add('ExxonMobil')}
+ for(const x of P.items.filter(x=>x.c!='lq'&&x.c!='es'&&x.v>0).sort((a,b)=>b.v-a.v)){let t=String(x.u||x.t).toUpperCase(),q=null;
+  if(x.c=='rf'){const e=ONEMI.find(([p])=>t.startsWith(p));if(!e)continue;q=e[1];t=e[1]}
+  else q=NEWSQ[t]?NEWSQ[t]:String(x.n||t).replace(/\b(Inc|Corp|Corporation|Holdings?|Ltd|Group|Co|Class [AB]|CEDEAR|ADR|S\.?A\.?)\b\.?/gi,'').replace(/\s+/g,' ').trim();
+  if(!q||seen.has(q))continue;seen.add(q);Q.push({t,q:x.c=='rv'&&!/Bitcoin|S&P/.test(q)?q+' acciones':q});if(Q.length>=15)break}
+ return Q}
+let NEWS=null,MNEWS=null,BRIEF=null,NEWSF='all';try{NEWS=JSON.parse(localStorage.getItem('fin-news')||'null');MNEWS=JSON.parse(localStorage.getItem('fin-mnews')||'null')}catch(e){}
+const agoS=d=>{const m=(Date.now()-Date.parse(d))/6e4;if(!isFinite(m))return'';return m<60?`hace ${Math.max(1,Math.round(m))} min`:m<1440?`hace ${Math.round(m/60)} h`:`hace ${Math.round(m/1440)} d`};
+let newsBusy=false;
+let BRIEFT=0;
+async function newsFetch(force){if(newsBusy)return;const now=Date.now(),jobs=[];
+ if(force||!MNEWS||Date.now()-MNEWS.ts>15*60e3)jobs.push(fetch('https://rendimientos.co/api/news').then(r=>r.json()).then(j=>{MNEWS={ts:Date.now(),items:(j.data||[]).map(n=>({title:n.title,source:n.source,link:n.link,date:n.date}))};try{localStorage.setItem('fin-mnews',JSON.stringify(MNEWS))}catch(e){}}).catch(()=>{MNEWS={ts:Date.now(),items:(MNEWS&&MNEWS.items)||[]}}));
+ if(SESSION&&SB&&S&&S.inv&&(force||!NEWS||Date.now()-NEWS.ts>20*60e3))jobs.push(fnCallN('alertas',{op:'news',q:newsQ()}).then(r=>{if(r&&Array.isArray(r.items)){NEWS={ts:Date.now(),items:r.items};try{localStorage.setItem('fin-news',JSON.stringify(NEWS))}catch(e){}}else NEWS={ts:Date.now(),items:(NEWS&&NEWS.items)||[],err:'upd'}}).catch(e=>{NEWS={ts:Date.now(),items:(NEWS&&NEWS.items)||[],err:e.message}}));
+ if(force||now-BRIEFT>10*60e3){BRIEFT=now;jobs.push(fetch('./data/brief.json?x='+Math.floor(now/6e5),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{BRIEF=j}).catch(()=>{}))}
+ if(!jobs.length)return;newsBusy=true;await Promise.all(jobs);newsBusy=false;if((sec=='w'||sec=='h')&&!$('.sheet')){const y=scrollY;render();scrollTo(0,y)}}
+const briefOk=()=>BRIEF&&BRIEF.date&&(Date.parse(TODAY)-Date.parse(BRIEF.date))/864e5<=3&&Array.isArray(BRIEF.bullets)&&BRIEF.bullets.length;
+function briefCard(n){if(!briefOk())return'';const d=new Date(BRIEF.date+'T12:00:00'),lbl=BRIEF.date==TODAY?'hoy':d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric'});
+ return`<div class="card brief" style="margin-top:12px"><div class="hoyt"><b>Lo que tenés que saber ${esc(lbl)}</b><span class="mutc" style="font:500 11.5px var(--mono)">Wall Street</span></div>${BRIEF.title?`<p class="brt">${esc(BRIEF.title)}</p>`:''}<ul class="brl">${BRIEF.bullets.slice(0,n||9).map(b=>`<li><b>${esc(b.h||'')}</b>${b.h?' ':''}${esc(b.t||'')}</li>`).join('')}</ul>${n&&BRIEF.bullets.length>n?'':BRIEF.src&&BRIEF.src.length?`<p class="note" style="margin:6px 0 0">Fuentes: ${BRIEF.src.slice(0,5).map(x=>`<a href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.n)}</a>`).join(' · ')}</p>`:''}</div>`}
+function newsRow(n){const lg=n.t?logoHTML({t:n.t,u:n.t,c:/^[A-Z.]{1,5}$/.test(n.t)?'rv':'rf'}):'';return`<a class="nwi" href="${esc(n.link)}" target="_blank" rel="noopener">${lg||'<span class="tlg" style="--lc:var(--mut)"><b>•</b></span>'}<span class="nwt"><b>${esc(n.title)}</b><small>${n.t?`<span class="nwk">${esc(n.t)}</span> `:''}${esc(n.source||'')} · ${agoS(n.date)}</small></span></a>`}
+function vNews(){newsFetch(false);const F=NEWSF,its=(NEWS&&NEWS.items)||[],tks=[...new Set(its.map(n=>n.t))];
+ let h=briefCard(0);
+ h+=`<div class="chipr" style="margin:14px 0 8px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px">${[['all','Tu cartera'],['mkt','Mercado']].concat(tks.map(t=>[t,t])).map(([v,l])=>`<button class="opt${F==v?' on':''}" data-newsf="${esc(v)}" style="white-space:nowrap">${esc(l)}</button>`).join('')}</div>`;
+ if(F=='mkt'){const M=(MNEWS&&MNEWS.items)||[];h+=`<div class="card" style="padding:4px 14px">${M.length?M.map(newsRow).join(''):'<p class="note">Cargando noticias del mercado…</p>'}</div><p class="note">Titulares de rendimientos.co (Ámbito, La Nación, Infobae y otros).</p>`}
+ else{const L=F=='all'?its:its.filter(n=>n.t==F);
+  if(NEWS&&NEWS.err=='upd'&&!its.length)h+=`<div class="card"><p class="note" style="margin:0">Para ver las noticias de tus tenencias, actualizá la función <b>alertas</b> en Supabase: campanita → ⚙ Configurar → Copiar código de la función, y desplegala de nuevo.</p></div>`;
+  else if(!SESSION)h+=`<p class="note">Iniciá sesión para ver las noticias de tu cartera.</p>`;
+  else h+=`<div class="card" style="padding:4px 14px">${L.length?L.slice(0,40).map(newsRow).join(''):'<p class="note">'+(NEWS?'No hay noticias de los últimos 3 días.':'Buscando noticias de tus tenencias…')+'</p>'}</div><p class="note">Google Noticias en español, últimos 3 días, de tus ${newsQ().length} posiciones más grandes${NEWS&&NEWS.ts?' · actualizado '+agoS(new Date(NEWS.ts).toUTCString()):''}. <button class="lnk" data-newsr="1">Actualizar</button></p>`}
+ return h}
+function hoyNews(){newsFetch(false);const its=((NEWS&&NEWS.items)||[]).slice(0,3);let h=briefCard(3);
+ if(its.length)h+=`<div class="card" style="margin-top:12px;padding-bottom:6px"><div class="hoyt"><b>Noticias de tu cartera</b><button class="btn" data-sec="w">Ver todas</button></div>${its.map(newsRow).join('')}</div>`;
+ if(briefOk()&&!its.length)h+=`<div style="margin-top:8px"><button class="btn" data-sec="w">Ver noticias</button></div>`;
+ return h}
 
 /* ---------- copias de seguridad diarias (en tu Supabase) ---------- */
 async function backupDaily(force){if(!SB||!SESSION||!S||!S.y)return;const id='bk:'+TODAY;
@@ -2209,10 +2249,10 @@ function vEst(){const I=S.inv;if(!I)return none('Todavía no hay datos de invers
  +'<div class="note">≈ = estimado desde el CEDEAR y el MEP. Resumen de los term sheets; vale el documento legal.</div>'}
 
 /* ---------- shell ---------- */
-const GRP={h:['h','p','j'],g:['g'],i:['i','a','c','e'],r:['r'],m:['d','m','o']},SUBL={h:'Hoy',p:'Patrimonio',j:'Retiro',i:'Resumen',a:'Análisis',c:'Cobros',e:'Notas',d:'Dólar',m:'Mundo',o:'ONs'};
+const GRP={h:['h','w','p','j'],g:['g'],i:['i','a','c','e'],r:['r'],m:['d','m','o']},SUBL={h:'Hoy',w:'Noticias',p:'Patrimonio',j:'Retiro',i:'Resumen',a:'Análisis',c:'Cobros',e:'Notas',d:'Dólar',m:'Mundo',o:'ONs'};
 const grpOf=s=>Object.keys(GRP).find(k=>GRP[k].includes(s))||'i';
 let lastSub={};try{lastSub=JSON.parse(localStorage.getItem('fin-sub')||'{}')}catch(e){}
-const TT={j:['Inicio','Camino al retiro'],h:['Inicio','Hola, Gonza'],p:['Inicio','Patrimonio neto'],g:['Finanzas personales','Mis gastos'],i:['Inversiones','Cartera'],a:['Inversiones','Análisis de cartera'],c:['Inversiones','Cobros futuros'],r:['Compensación','RSU ExxonMobil'],e:['Inversiones','Notas estructuradas'],o:['Mercados','Obligaciones negociables'],m:['Mercados','Monitor global'],d:['Mercados','Dólar · arbitraje']};
+const TT={w:['Inicio','Noticias'],j:['Inicio','Camino al retiro'],h:['Inicio','Hola, Gonza'],p:['Inicio','Patrimonio neto'],g:['Finanzas personales','Mis gastos'],i:['Inversiones','Cartera'],a:['Inversiones','Análisis de cartera'],c:['Inversiones','Cobros futuros'],r:['Compensación','RSU ExxonMobil'],e:['Inversiones','Notas estructuradas'],o:['Mercados','Obligaciones negociables'],m:['Mercados','Monitor global'],d:['Mercados','Dólar · arbitraje']};
 function stRender(){const e=$('#st');if(!e)return;const mm={db:['ok','Sincronizado'],local:['bad','Sin sesión · datos de este dispositivo'],err:['bad','Error al sincronizar'],wait:['','Conectando…'],off:['bad',DIRTY?'Sin conexión · tus cambios se suben al volver':'Sin conexión · últimos datos guardados']}[SB?(SESSION?(navigator.onLine===false?'off':SYNC):'local'):'local']||['',''];e.className='stx '+mm[0];const lv=LIVE.st=='run'?' · actualizando precios…':LIVE.st=='ok'?' · en vivo '+hhmm(LIVE.at):LIVE.st=='err'?' · sin conexión al mercado':Q&&Q.ts?' · precios '+hhmm(Q.ts):'';e.lastChild.textContent=(!SB?'Sin configurar':mm[1]+(SYNC=='err'&&navigator.onLine!==false&&SYNCERR?' ('+SYNCERR+')':''))+lv;e.title=SYNCERR||''}
 function drawEye(){const b=$('#hidev');if(!b)return;b.setAttribute('aria-pressed',HIDE);b.classList.toggle('on',HIDE);b.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>${HIDE?'<path d="M4 4l16 16"/>':''}</svg>`}
 function render(){drawEye();badgeSet();if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
@@ -2229,12 +2269,12 @@ function render(){drawEye();badgeSet();if(S&&S.y&&sec=='g')try{loanAuto()}catch(
  $('#yl').textContent=yr;
  if(!S.y[yr])ensure(yr);
  $('#py').disabled=!S.y[yr-1];
- app.innerHTML=g?(tab=='mes'?vMes():tab=='anio'?vAnio():tab=='uva'?vLoan():tab=='alq'?vRent():tab=='auto'?vCars():vGA()):sec=='i'?vInv():sec=='a'?vAna():sec=='c'?vCash():sec=='r'?vRsu():sec=='h'?vHoy():sec=='p'?vNW():sec=='j'?vRet():sec=='m'?vMon():sec=='o'?vOns():sec=='d'?vDol():vEst();
+ app.innerHTML=g?(tab=='mes'?vMes():tab=='anio'?vAnio():tab=='uva'?vLoan():tab=='alq'?vRent():tab=='auto'?vCars():vGA()):sec=='i'?vInv():sec=='a'?vAna():sec=='c'?vCash():sec=='r'?vRsu():sec=='h'?vHoy():sec=='p'?vNW():sec=='j'?vRet():sec=='w'?vNews():sec=='m'?vMon():sec=='o'?vOns():sec=='d'?vDol():vEst();
  $('#mch').hidden=$('#ypr').hidden=!(g&&tab=='mes'&&S&&SESSION);
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c){const pr=c.parentElement;if(pr&&pr.scrollWidth>pr.clientWidth)pr.scrollLeft=c.offsetLeft-pr.offsetLeft-pr.clientWidth/2+c.offsetWidth/2}
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff],[data-newsf],[data-newsr]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -2281,6 +2321,8 @@ document.addEventListener('click',e=>{
  if(d.bks)return openBackups();
  if(d.iol){if(d.iol=='open')return iolSheet();return iolAct(d.iol)}
  if(d.inbox)return openInbox();
+ if(d.newsf){NEWSF=d.newsf;const y=scrollY;render();scrollTo(0,y);return}
+ if(d.newsr){newsFetch(true);toast('Actualizando noticias…');return}
  if(d.wxcfg)return wxCfg();
  if(d.wxpick){S.wx=JSON.parse(d.wxpick);WX=null;save();closeSheet();render();wxFetch(true);return}
  if(d.wxoff){delete S.wx;save();closeSheet();render();return}
@@ -2339,7 +2381,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261125004500';
+const BUILD='20261125020000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
