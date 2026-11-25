@@ -363,7 +363,7 @@ button.fm:hover{background:var(--panel2)}
 .btns button{flex:1;padding:13px;border-radius:10px;font-weight:600;border:1px solid var(--line2);text-align:center}
 .btns .pr{background:var(--acc);border-color:var(--acc);color:#fff}
 .dl2{display:block;width:100%;margin-top:10px;color:var(--dn);font-size:14px;padding:8px;text-align:center}
-@media (prefers-reduced-motion:no-preference){.card,.grp,.chart,.hero{animation:fi .25s ease both}@keyframes fi{from{transform:translateY(3px)}to{transform:none}}}
+@media (prefers-reduced-motion:no-preference){#app.enter .card,#app.enter .grp,#app.enter .chart,#app.enter .hero{animation:fi .25s ease both}@keyframes fi{from{transform:translateY(3px)}to{transform:none}}}
 
 /* ---------- Liquid glass ---------- */
 :root{--glass:rgba(22,32,52,.46);--glass2:rgba(34,48,76,.55);--glassF:rgba(18,26,44,.58);--gl:rgba(255,255,255,.09);--glt:rgba(255,255,255,.16);--gsh:0 10px 30px rgba(0,0,0,.28);
@@ -2354,7 +2354,8 @@ let lastSub={};try{lastSub=JSON.parse(localStorage.getItem('fin-sub')||'{}')}cat
 const TT={w:['Inicio','Noticias'],j:['Inicio','Camino al retiro'],h:['Inicio','Hola, Gonza'],p:['Inicio','Patrimonio neto'],g:['Finanzas personales','Mis gastos'],i:['Inversiones','Cartera'],a:['Inversiones','Análisis de cartera'],c:['Inversiones','Cobros futuros'],r:['Compensación','RSU ExxonMobil'],e:['Inversiones','Notas estructuradas'],o:['Mercados','Obligaciones negociables'],m:['Mercados','Monitor global'],d:['Mercados','Dólar · arbitraje']};
 function stRender(){const e=$('#st');if(!e)return;const mm={db:['ok','Sincronizado'],local:['bad','Sin sesión · datos de este dispositivo'],err:['bad','Error al sincronizar'],wait:['','Conectando…'],off:['bad',DIRTY?'Sin conexión · tus cambios se suben al volver':'Sin conexión · últimos datos guardados']}[SB?(SESSION?(navigator.onLine===false?'off':SYNC):'local'):'local']||['',''];e.className='stx '+mm[0];const lv=LIVE.st=='run'?' · actualizando precios…':LIVE.st=='ok'?' · en vivo '+hhmm(LIVE.at):LIVE.st=='err'?' · sin conexión al mercado':Q&&Q.ts?' · precios '+hhmm(Q.ts):'';e.lastChild.textContent=(!SB?'Sin configurar':mm[1]+(SYNC=='err'&&navigator.onLine!==false&&SYNCERR?' ('+SYNCERR+')':''))+lv;e.title=SYNCERR||''}
 function drawEye(){const b=$('#hidev');if(!b)return;b.setAttribute('aria-pressed',HIDE);b.classList.toggle('on',HIDE);b.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>${HIDE?'<path d="M4 4l16 16"/>':''}</svg>`}
-function render(){drawEye();badgeSet();if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
+let lastView='';
+function render(){drawEye();badgeSet();{const v=sec+'|'+tab,a=$('#app');if(a&&v!=lastView){lastView=v;a.classList.add('enter');clearTimeout(render.et);render.et=setTimeout(()=>a.classList.remove('enter'),400)}}if(S&&S.y&&sec=='g')try{loanAuto()}catch(e){}
  $('#eb').textContent=TT[sec][0];$('#ht').textContent=TT[sec][1];stRender();
  const g=sec=='g';$('#yrw').hidden=!g;$('#tabs').hidden=!g;$('#mch').hidden=$('#ypr').hidden=true;
  const gr=grpOf(sec);document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.grp==gr));
@@ -2488,7 +2489,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261125183000';
+const BUILD='20261125184500';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
@@ -2523,10 +2524,10 @@ boot();
   hideTip();B[j].click();const a=$('#app');a.classList.remove('sw-l','sw-r');void a.offsetWidth;a.classList.add(dir>0?'sw-l':'sw-r');return true}
  /* trackpad: deslizar con dos dedos hacia los costados */
  let acc=0,lockT=0,rst=null;
- addEventListener('wheel',e=>{if(LOCKED||!S||$('#ov').innerHTML)return;if(Math.abs(e.deltaX)<Math.abs(e.deltaY)*1.5)return;
+ let vT=0;addEventListener('wheel',e=>{if(LOCKED||!S||$('#ov').innerHTML)return;if(e.shiftKey||e.ctrlKey)return;if(Math.abs(e.deltaY)>2){vT=Date.now();acc=0}if(Date.now()-vT<450)return;if(Math.abs(e.deltaX)<Math.abs(e.deltaY)*3+4)return;
   let el=e.target;while(el&&el!==document.body){if(el.scrollWidth>el.clientWidth+2&&/(auto|scroll)/.test(getComputedStyle(el).overflowX))return;el=el.parentElement}
   if(Date.now()<lockT)return;acc+=e.deltaX;clearTimeout(rst);rst=setTimeout(()=>acc=0,180);
-  if(Math.abs(acc)>110){const d=acc>0?1:-1;acc=0;lockT=Date.now()+700;go(d)}},{passive:true});
+  if(Math.abs(acc)>220){const d=acc>0?1:-1;acc=0;lockT=Date.now()+700;go(d)}},{passive:true});
  /* teclado: flechas izquierda / derecha */
  document.addEventListener('keydown',e=>{if(e.key!='ArrowLeft'&&e.key!='ArrowRight'||e.metaKey||e.ctrlKey||e.altKey||LOCKED||!S||$('#ov').innerHTML)return;
   const tg=e.target;if(tg.closest&&tg.closest('input,select,textarea,[contenteditable]'))return;if(go(e.key=='ArrowRight'?1:-1))e.preventDefault()});
