@@ -995,7 +995,8 @@ function vMes(){
  if(curSec)h+=`</div>`;
  return h}
 /* conceptos calculados solos: de dónde salen y adónde ir a ver el cálculo */
-function autoGo(x){return x.dom?['g','dom','Personal']:x.uva&&LD?['g','uva','Crédito']:x.alq?['g','alq','Alquiler']:x.pat?['g','auto','Autos']:x.rsu?['r','','RSU']:null}
+const isLoanRow=x=>{try{const L=loan();return !!(x.uva||(L&&L.costs&&L.costs.includes(x.n)))}catch(e){return !!x.uva}};
+function autoGo(x){return x.dom?['g','dom','Personal']:isLoanRow(x)?['g','uva','Crédito']:x.alq?['g','alq','Alquiler']:x.pat?['g','auto','Autos']:x.rsu?['r','','RSU']:null}
 function domDesc(k){const D=S.dom;if(!D||!D.emps)return'Estimado';const A=D.emps.filter(e=>domAct(e,k));if(!A.length)return'Estimado · sin personal vigente';
  return'Estimado según el empleado vigente · '+A.map(e=>{const r=domRate(e,k);return esc(e.n.split(' ')[0])+(r?`: ${String(r.hd).replace('.',',')} h × ${String(r.dw).replace('.',',')} días · ${money(r.ph)}/h`:'')}).join(' · ')}
 function vAnio(){
@@ -2503,7 +2504,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261125204500';
+const BUILD='20261125205000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
