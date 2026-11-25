@@ -1631,12 +1631,14 @@ function vInv(){iolPoll(false);const I=S.inv;if(!I)return none('Todavía no hay 
  return h+`<div class="note">Precios en D (dólar MEP) directos de BYMA vía ${esc(Q&&Q.src||'rendimientos.co')}; los bonos y ONs cotizan cada 100 VN. Se actualizan al abrir la app y cada minuto mientras está abierta. Sin cotización en D (TMVE8, BPB8D, FCI, notas): pesos ÷ MEP o último resumen de Cocos. ${np.length?np.length+' sin precio no suman al total. ':''}${cost?'Resultado contra lo invertido ('+money(cost)+'), tocalo para cambiarlo.':''} Tocá una tenencia para cambiar la cantidad, registrar una compra o venta, o eliminarla.</div>`}
 
 /* ---------- dólar: arbitraje entre tipos de cambio ---------- */
-const DOLK={mep:['MEP','bolsa'],oficial:['Oficial','oficial'],blue:['Blue','blue']};
-const DOLX={ccl:['CCL','contadoconliqui'],mayorista:['Mayorista','mayorista'],cripto:['Cripto','cripto'],tarjeta:['Tarjeta','tarjeta']};
+const DOLK={mep:['MEP','bolsa'],ccl:['CCL','contadoconliqui'],oficial:['Oficial','oficial'],blue:['Blue','blue']};
+const DOLX={mayorista:['Mayorista','mayorista'],cripto:['Cripto','cripto'],tarjeta:['Tarjeta','tarjeta']};
 let DOL=null;try{DOL=JSON.parse(localStorage.getItem('fin-dol')||'null')}catch(e){}
 async function dolFetch(){try{const r=await fetch('https://dolarapi.com/v1/dolares',{cache:'no-store'});if(!r.ok)throw 0;const a=await r.json(),t={};
  a.forEach(x=>{t[x.casa]={c:x.compra,v:x.venta,f:x.fechaActualizacion}});DOL={ts:Date.now(),t};try{localStorage.setItem('fin-dol',JSON.stringify(DOL))}catch(e){}}catch(e){}}
-const arbS=()=>{if(!S.arb)S.arb={sell:'mep',buy:'oficial',amt:1000,fee:0,ov:{}};return S.arb};
+const arbS=()=>{if(!S.arb)S.arb={sell:'mep',buy:'oficial',amt:1000,fee:0,ov:{}};const A=S.arb;if(!A.ps)A.ps={buy:'oficial',sell:'mep',amt:1000000};return A};
+/* arrancando en pesos: compro dólares en un mercado (pago su venta) y los vendo en otro (cobro su compra) */
+function arbCalcP(buy,sell,amt,fee){const b=dq(buy,'v').p,a=dq(sell,'c').p;if(!a||!b)return null;const f=1-(fee||0)/100;const usd=amt/b*f,back=usd*a*f,g=back-amt;return{a,b,usd,back,g,pc:g/amt*100}}
 function dq(k,side){const A=arbS(),o=A.ov&&A.ov[k+'_'+side];if(o!=null&&o!=='')return{p:+o,man:1};const c=DOL&&DOL.t[DOLK[k][1]];return{p:c?(side=='c'?c.c:c.v):null,man:0}}
 function arbCalc(sell,buy,amt,fee){const a=dq(sell,'c').p,b=dq(buy,'v').p;if(!a||!b)return null;const f=1-(fee||0)/100;
  const ars=amt*a*f,back=ars/b*f,g=back-amt;return{a,b,ars,back,g,pc:g/amt*100}}
@@ -1647,7 +1649,7 @@ function vDol(){const A=arbS(),r=arbCalc(A.sell,A.buy,A.amt,A.fee),f2=n=>n==null
   return `<div class="card kpi"><div class="k"><span>${DOLK[k][0]}</span><span>${src&&src.f?fds(src.f.slice(0,10))+' '+new Date(src.f).toTimeString().slice(0,5):''}</span></div>
   <div class="dq"><button data-arbov="${k}_c"><small>Compra</small><b>${f2(c.p)}</b>${c.man?'<span class="src w">MAN</span>':''}</button><button data-arbov="${k}_v"><small>Venta</small><b>${f2(v.p)}</b>${v.man?'<span class="src w">MAN</span>':''}</button></div>
   <div class="s">spread ${sp==null?'—':pc0(sp)}</div></div>`}).join('')+'</div>';
- h+=`<div class="sec"><div class="sh"><h2>Arbitraje</h2><span class="m">vendo dólares en un mercado, los recompro en otro</span></div><div class="grid g2c">
+ h+=`<div class="sec"><div class="sh"><h2>Arranco con dólares</h2><span class="m">vendo dólares en un mercado y los recompro en otro</span></div><div class="grid g2c">
  <div class="card"><div class="arbf">${selDol('arbsell',A.sell,'Vendo USD a (tipo comprador)')}<div class="s mutc" style="margin-top:6px">Te pagan ${f2(dq(A.sell,'c').p)} por dólar</div>
  ${selDol('arbbuy',A.buy,'Compro USD a (tipo vendedor)')}<div class="s mutc" style="margin-top:6px">Te cobran ${f2(dq(A.buy,'v').p)} por dólar</div>
  <div class="grid g2" style="gap:10px"><div><label class="lab" for="arbamt">Monto USD</label><input class="inp" type="text" inputmode="decimal" id="arbamt" value="${A.amt}"></div><div><label class="lab" for="arbfee">Comisión por operación %</label><input class="inp" type="text" inputmode="decimal" id="arbfee" value="${A.fee||0}"></div></div></div></div>
@@ -1655,13 +1657,26 @@ function vDol(){const A=arbS(),r=arbCalc(A.sell,A.buy,A.amt,A.fee),f2=n=>n==null
   <div class="stat" style="margin-top:14px"><span>Vendés US$ ${f2(A.amt)} a ${f2(r.a)}</span><b>${money(r.ars)}</b></div>
   <div class="stat"><span>Recomprás a ${f2(r.b)}</span><b>US$ ${f2(r.back)}</b></div>
   <div class="stat"><span>Brecha ${DOLK[A.sell][0]} compra / ${DOLK[A.buy][0]} venta</span><b>${pct((r.a/r.b-1)*100,2)}</b></div>`:'<div class="note">Faltan cotizaciones para calcular.</div>'}</div></div></div>`;
+ {const P=A.ps,rp=arbCalcP(P.buy,P.sell,P.amt,A.fee),sel=(id,val,lab)=>`<label class="lab" for="${id}">${lab}</label><select class="inp" id="${id}">${Object.keys(DOLK).map(k=>`<option value="${k}"${k==val?' selected':''}>${DOLK[k][0]}</option>`).join('')}</select>`;
+ h+=`<div class="sec"><div class="sh"><h2>Arranco con pesos</h2><span class="m">compro dólares en un mercado y los vendo en otro</span></div><div class="grid g2c">
+ <div class="card"><div class="arbf">${sel('arbpbuy',P.buy,'Compro USD a (tipo vendedor)')}<div class="s mutc" style="margin-top:6px">Te cobran ${f2(dq(P.buy,'v').p)} por dólar</div>
+ ${sel('arbpsell',P.sell,'Vendo USD a (tipo comprador)')}<div class="s mutc" style="margin-top:6px">Te pagan ${f2(dq(P.sell,'c').p)} por dólar</div>
+ <div><label class="lab" for="arbpamt">Monto en pesos</label><input class="inp" type="text" inputmode="decimal" id="arbpamt" value="${nfu.format(Math.round(P.amt))}"></div>${P.buy=='oficial'?'<div class="s mutc" style="margin-top:6px">Ojo: el oficial tiene límites de compra según tu banco.</div>':''}</div></div>
+ <div class="hero"><div class="k">Resultado</div>${rp?`<div class="big ${rp.g<0?'neg':'pos'}"><small>$</small>${HV((rp.g>=0?'+':'−')+nfu.format(Math.round(Math.abs(rp.g))))}</div><div class="s"><span class="pill ${sgn(rp.g)}">${pct(rp.pc,2)}</span></div>
+  <div class="stat" style="margin-top:14px"><span>Comprás a ${f2(rp.b)}</span><b>US$ ${f2(rp.usd)}</b></div>
+  <div class="stat"><span>Vendés a ${f2(rp.a)}</span><b>${money(rp.back)}</b></div>
+  <div class="stat"><span>Terminás con</span><b>${money(rp.back)}</b></div>`:'<div class="note">Faltan cotizaciones para calcular.</div>'}</div></div></div>`}
+ {const m=dq('mep','v').p,c=dq('ccl','v').p,mc=dq('mep','c').p,cc=dq('ccl','c').p;if(m&&c){const cj=(c/m-1)*100,cjc=mc&&cc?(cc/mc-1)*100:null;
+  h+=`<div class="sec"><div class="sh"><h2>Canje CCL / MEP</h2><span class="m">cuánto más vale el dólar afuera que el dólar local</span></div><div class="hero"><div class="k">Canje</div><div class="big ${cj<0?'neg':''}">${pct(cj,2)}</div><div class="s">CCL ${f2(c)} / MEP ${f2(m)} (precios de venta)${cjc!=null?` · con precios de compra ${pct(cjc,2)}`:''}</div>
+  <div class="note" style="margin-top:10px">${cj>=0?`Pasar dólares MEP al exterior (a CCL) te cuesta un ${pc0(Math.abs(cj))} aprox.; traerlos del exterior y venderlos como MEP te deja ese ${pc0(Math.abs(cj))} a favor.`:`Hoy el MEP vale más que el CCL: traer dólares del exterior conviene menos que mandarlos afuera.`}</div></div></div>`}}
  const ks=Object.keys(DOLK),M=ks.map(s=>ks.map(b=>s==b?null:arbCalc(s,b,A.amt,A.fee))),best=Math.max(...M.flat().filter(Boolean).map(x=>x.pc));
- h+=`<div class="sec"><div class="sh"><h2>Todas las combinaciones</h2><span class="m">ganancia sobre US$ ${f2(A.amt)}</span></div><div class="tw"><table class="arbt"><tr><th>Vendo en ↓ · compro en →</th>${ks.map(k=>`<th>${DOLK[k][0]}</th>`).join('')}</tr>${ks.map((s,i)=>`<tr><td>${DOLK[s][0]}</td>${ks.map((b,j)=>{const x=M[i][j];return x?`<td class="cl ${x.pc==best&&x.pc>0?'g':''}" data-arbpick="${s}|${b}"><span class="${sgn(x.g)}">${pct(x.pc,2)}</span><br><small class="mutc">${x.g>=0?'+':'−'}US$ ${f2(Math.abs(x.g))}</small></td>`:'<td class="mutc">—</td>'}).join('')}</tr>`).join('')}</table></div></div>`;
+ h+=`<div class="sec"><div class="sh"><h2>Todas las combinaciones</h2><span class="m">el % es el mismo arrancando en pesos o en dólares · ganancia sobre US$ ${f2(A.amt)}</span></div><div class="tw"><table class="arbt"><tr><th>Vendo en ↓ · compro en →</th>${ks.map(k=>`<th>${DOLK[k][0]}</th>`).join('')}</tr>${ks.map((s,i)=>`<tr><td>${DOLK[s][0]}</td>${ks.map((b,j)=>{const x=M[i][j];return x?`<td class="cl ${x.pc==best&&x.pc>0?'g':''}" data-arbpick="${s}|${b}"><span class="${sgn(x.g)}">${pct(x.pc,2)}</span><br><small class="mutc">${x.g>=0?'+':'−'}US$ ${f2(Math.abs(x.g))}</small></td>`:'<td class="mutc">—</td>'}).join('')}</tr>`).join('')}</table></div></div>`;
  const ex=Object.keys(DOLX).filter(k=>DOL&&DOL.t[DOLX[k][1]]);
  if(ex.length)h+=`<div class="sec"><div class="sh"><h2>Otros tipos de cambio</h2><span class="m">referencia</span></div><div class="list">${ex.map(k=>{const c=DOL.t[DOLX[k][1]];return `<div class="li"><div class="l1"><b>${DOLX[k][0]}</b><small>compra ${f2(c.c)} · venta ${f2(c.v)}</small></div><div class="r1"><small>${c.f?fds(c.f.slice(0,10)):''}</small></div></div>`}).join('')}</div></div>`;
  return h+'<div class="note">Cotizaciones de DolarAPI, se actualizan al abrir la app y cada minuto. Tocá cualquier precio para cargarlo a mano (por ejemplo, la cotización real de tu banco o tu cueva). Tocá una celda de la tabla para usar esa combinación. La comisión se descuenta en cada una de las dos operaciones.</div>'}
 function editArbOv(key){const [k,s]=key.split('_'),A=arbS(),cur=dq(k,s);mod(`${DOLK[k][0]} · ${s=='c'?'compra':'venta'}`,'Vacío = usar la cotización en vivo.',[['f0','Precio ARS por dólar',cur.man?cur.p:'','num',DOL&&DOL.t[DOLK[k][1]]?'en vivo '+(s=='c'?DOL.t[DOLK[k][1]].c:DOL.t[DOLK[k][1]].v):'']],v=>{A.ov=A.ov||{};if(String(v[0]).trim())A.ov[key]=parse(v[0]);else delete A.ov[key]})}
-document.addEventListener('change',e=>{const id=e.target&&e.target.id;if(!S||!['arbsell','arbbuy','arbamt','arbfee'].includes(id))return;const A=arbS();
+document.addEventListener('change',e=>{const id=e.target&&e.target.id;if(!S||!['arbsell','arbbuy','arbamt','arbfee','arbpbuy','arbpsell','arbpamt'].includes(id))return;const A=arbS();
+ if(id=='arbpbuy')A.ps.buy=e.target.value;if(id=='arbpsell')A.ps.sell=e.target.value;if(id=='arbpamt')A.ps.amt=parse(e.target.value)||A.ps.amt;
  if(id=='arbsell')A.sell=e.target.value;if(id=='arbbuy')A.buy=e.target.value;if(id=='arbamt')A.amt=parse(e.target.value)||A.amt;if(id=='arbfee')A.fee=parse(e.target.value);save();render()});
 
 /* ---------- vista Mundo (monitor global) ---------- */
@@ -2381,7 +2396,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261125020000';
+const BUILD='20261125141500';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
