@@ -1,20 +1,16 @@
-{
-  "date": "2026-11-24",
-  "gen": "2026-11-24T22:50:00-03:00",
-  "title": "Ganó el Dow, perdieron los chips: el rebote de Nvidia del lunes se desinfló.",
-  "bullets": [
-    {"h": "Índices mixtos.", "t": "El Dow subió 0,85% a 50.018,70 y volvió a superar los 50.000 puntos; el S&P 500 cayó 0,50% a 7.201,09 (octava baja en nueve ruedas) y el Nasdaq perdió 1,48% a 23.733,54."},
-    {"h": "Caída fuerte de semiconductores.", "t": "El índice de chips de Filadelfia se hundió 7,9%, con sus 30 acciones en rojo. Nvidia bajó 5,9% después de subir 31% el lunes, cuando volvió Jensen Huang como CEO; Micron cayó 11% y AMD e Intel entre 8% y 9%."},
-    {"h": "Rotación hacia acciones de valor.", "t": "El dinero salió de tecnología hacia salud, consumo y empresas más chicas: el Russell 2000 subió 0,57% y Kohl's y Abercrombie saltaron cerca de 20% por sus balances."},
-    {"h": "Dato fuerte del consumidor.", "t": "La confianza del consumidor del Conference Board marcó 103,3, muy por encima de los 92,2 esperados."},
-    {"h": "Oro y bitcoin a la baja.", "t": "El oro cayó 2,3% a cerca de US$ 3.553 y bitcoin bajó 2,4% a cerca de US$ 59.700."},
-    {"h": "Lo que viene.", "t": "El miércoles se publica la inflación de EE.UU.; el jueves Wall Street cierra por Acción de Gracias y el viernes opera media jornada."}
-  ],
-  "src": [
-    {"n": "La Nación", "u": "https://www.lanacion.com.ar/usa/how-major-us-stock-indexes-fared-tuesday-11242026-nid24112026/"},
-    {"n": "Yahoo Finance", "u": "https://finance.yahoo.com/markets/live/stock-market-today-tuesday-november-24-dow-sp-500-nasdaq-chip-stocks-nvidia-140629923.html"},
-    {"n": "StockTitan", "u": "https://www.stocktitan.net/articles/stock-market-today-live-november-24-2026"},
-    {"n": "Market Digest", "u": "https://stockmarketwatch.com/digest/2026-11-24"},
-    {"n": "El Boletín", "u": "https://www.elboletin.com/wall-street-vuelve-a-sufrir-por-las-tecnologicas-el-nasdaq-cae-un-148-y-el-dow-jones-recupera-los-50-000-puntos/"}
-  ]
-}
+{"date":"2026-11-25","gen":"2026-11-25T08:55:00-03:00","title":"Los chips vuelven a hundir al Nasdaq y los futuros anticipan una apertura en baja, a la espera del dato de inflación PCE antes del feriado de Acción de Gracias.",
+"bullets":[
+{"h":"Cierre mixto el martes.","t":"El Dow subió 0,85% y cerró por encima de 50.000 puntos (50.018,70), mientras el S&P 500 bajó 0,50% (7.201,09) y el Nasdaq cayó 1,48% (23.733,54)."},
+{"h":"Se desinfló el rally de la IA.","t":"Nvidia perdió 5,9% un día después de su gran suba; AMD cayó 8,9%, Intel 8,2% y Micron 11%. El sector tecnológico del S&P 500 bajó 3,3%, mientras salud ganó casi 3%."},
+{"h":"Futuros en rojo hoy.","t":"Antes de la apertura, los futuros del Nasdaq 100 caen cerca de 2,5%, los del S&P 500 alrededor de 1,5% y los del Dow 0,8%, por la venta de acciones de chips e IA. El índice de miedo VIX sube a la zona de 29."},
+{"h":"Inflación PCE y Fed en foco.","t":"A las 10:30 de Argentina se conocen el PCE de octubre (se espera 3,8% anual; el núcleo, 3,2%), el PIB del tercer trimestre (3,5% esperado) y los pedidos de seguro de desempleo. El mercado da más de 95% de probabilidad a una suba de tasas de 0,25 punto en diciembre."},
+{"h":"Bonos, dólar y materias primas.","t":"La tasa del bono del Tesoro a 10 años ronda 4,85%-4,90%. El petróleo WTI subió 2,4% a US$ 82 por ataques a barcos cerca del estrecho de Ormuz, el oro cayó 2,6% a US$ 3.555 y el bitcoin perdió 2,2% y quedó debajo de US$ 60.000."},
+{"h":"Otras noticias de empresas.","t":"Sanofi acordó comprar Insmed por US$ 41.000 millones (Insmed +14%), y minoristas como Abercrombie & Fitch y Kohl's subieron cerca de 20% tras sus balances."},
+{"h":"Agenda que viene.","t":"Hoy publican Deere antes de la apertura y la Fed difunde el Libro Beige a las 16. Mañana jueves Wall Street no opera por Acción de Gracias y el viernes cierra temprano (15 hora argentina). La Fed decide tasas el 8 y 9 de diciembre."}
+],
+"src":[
+{"n":"Yahoo Finance","u":"https://finance.yahoo.com/markets/live/stock-market-today-wednesday-november-25-dow-sp-500-nasdaq-pce-inflation-data-091428237.html"},
+{"n":"Upstox","u":"https://upstox.com/news/market-news/us-stocks/dow-jones-s-and-p-500-nasdaq-futures-hint-gap-down-open-ahead-of-us-pce-inflation-data-release-stocks-to-watch/article-203963/"},
+{"n":"CappNotes","u":"https://cappnotes.substack.com/p/closing-look-tuesday-november-24"},
+{"n":"STL.News","u":"https://www.stl.news/us-stock-market-today-november-24-2026/"}
+]}
