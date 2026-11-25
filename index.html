@@ -75,6 +75,7 @@ html,body{overflow-x:clip;overscroll-behavior-x:none;touch-action:pan-x pan-y;-w
 .nwi{display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-top:1px solid var(--line);color:inherit;text-decoration:none}.nwi:first-child{border-top:0}.nwi .tlg{width:30px;height:30px;margin-top:2px}.nwt{min-width:0;flex:1}.nwt b{display:block;font-size:14px;line-height:1.35;font-weight:600}.nwt small{display:block;color:var(--mut);font-size:12px;margin-top:4px}.nwk{font:600 11px var(--mono);color:var(--acc)}
 .brief .brt{font-weight:600;margin:8px 0 4px;line-height:1.4}.brl{margin:6px 0 0;padding-left:18px}.brl li{margin:6px 0;line-height:1.45;font-size:13.5px}.brl li b{font-weight:650}
 .lnk{background:none;border:0;padding:0;color:var(--acc);font:inherit;cursor:pointer;text-decoration:underline}
+.dneed{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--panel2);border-left:4px solid var(--mut)}.dneed.up{border-left-color:var(--up)}.dneed.w{border-left-color:#d99a1e}.dneed.dn{border-left-color:var(--dn)}.dneed b{display:block;font-size:14px}.dneed small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
 #privc{position:fixed;inset:0;z-index:140;background:var(--bg);display:grid;place-items:center}
 #privc img{border-radius:18px;opacity:.9}
 .chipr{display:flex;flex-wrap:wrap;gap:6px;width:100%}
@@ -2101,10 +2102,45 @@ const domAct=(E,k)=>E.from<=k&&(!E.to||k<=E.to);
 const domMon=r=>r?r.hd*r.dw*WPM*r.ph:0;
 function domAt(k){const D=domS();return D.emps.filter(E=>domAct(E,k)).reduce((a,E)=>a+domMon(domRate(E,k)),0)}
 function domAuto(){const D=S.dom;if(!D||!D.emps||!D.emps.length||!D.row)return false;let ch=false;const first=D.emps.map(E=>E.from).sort()[0];
- Object.keys(S.y).forEach(y=>{for(let m=0;m<12;m++){const k=ymK(+y,m);if(k<NOWK||k<first)continue;const [x,nw]=rowIn(y,D.row,{s:'out',c:'sm'});if(!x)return;if(nw)ch=true;x.dom=1;if(x.p[m])continue;
+ Object.keys(S.y).forEach(y=>{for(let m=0;m<12;m++){const k=ymK(+y,m);if(k<first)continue;const [x,nw]=rowIn(y,D.row,{s:'out',c:'sm'});if(!x)return;if(nw)ch=true;x.dom=1;if(x.p[m])continue;
   const v=Math.round(domAt(k));if((x.a[m]||0)!=v){x.a[m]=v;ch=true}}});return ch}
-function vDom(){const D=domS(),E=D.emps,cur=domAt(NOWK),act=E.filter(e=>domAct(e,NOWK));
- let h=`<div class="hero" style="margin-top:4px"><div class="k">Personal doméstico · ${esc(mFull(NOWK))}</div><div class="big"><small>$</small>${HV(nfu.format(Math.round(cur)))}</div><div class="s">${act.length?act.map(e=>{const r=domRate(e,NOWK);return`${esc(e.n)}: ${r?r.hd+' h × '+r.dw+' días · '+money(r.ph)+'/h':'sin valor'}`}).join(' · '):'Nadie activo este mes'}</div><div class="s mutc" style="margin-top:6px">Va solo a “${esc(D.row)}” en Gastos, desde este mes en adelante</div></div>`;
+/* inflación mensual INDEC (argentinadatos) para saber cuándo hace falta un aumento */
+let INFM=null;try{INFM=JSON.parse(localStorage.getItem('fin-infm')||'null')}catch(e){}
+async function infmFetch(){if(INFM&&Date.now()-INFM.ts<12*36e5)return;try{const a=await fetch('https://api.argentinadatos.com/v1/finanzas/indices/inflacion').then(r=>r.json());const m={};a.forEach(x=>{m[x.fecha.slice(0,7)]=+x.valor});INFM={ts:Date.now(),m};try{localStorage.setItem('fin-infm',JSON.stringify(INFM))}catch(e){}if(sec=='g'&&tab=='dom')render()}catch(e){}}
+const infM=k=>INFM&&INFM.m[k]!=null?[INFM.m[k]/100,1]:[infl(),0];
+function infAcc(from,to){let f=1,est=0;for(let k=mAdd(from,1);k<=to;k=mAdd(k,1)){const [v,real]=infM(k);f*=1+v;if(!real)est++}return{f,est}}
+function domNeed(e){const r=domRate(e,NOWK);if(!r)return null;const A=infAcc(r.f,NOWK),acc=(A.f-1)*100,lvl=acc>=10?['dn','Requiere aumento']:acc>=5?['w','Conviene revisar']:['up','Al día'];
+ return{r,acc,est:A.est,lvl,sug:Math.ceil(r.ph*A.f/100)*100,months:mDiff(r.f,NOWK)}}
+function domChart(){const D=domS();if(!D.emps.length)return'';const first=D.emps.map(e=>e.from).sort()[0],start=mDiff(first,NOWK)>11?mAdd(NOWK,-11):first,end=mAdd(NOWK,6),ks=[];for(let k=start;k<=end;k=mAdd(k,1))ks.push(k);
+ const paid=k=>{const y=+k.slice(0,4),m=+k.slice(5,7)-1,x=S.y[y]&&S.y[y].find(z=>z.n==D.row);return x&&x.p[m]?x.a[m]||0:null};
+ const pay=ks.map(k=>{const p=paid(k);return p!=null?p:Math.round(domAt(k))});
+ // pago "empatado" con la inflación desde el último aumento vigente en cada mes
+ const keep=ks.map(k=>{let v=0;D.emps.filter(e=>domAct(e,k)).forEach(e=>{const r=domRate(e,k);if(r)v+=domMon(r)*infAcc(r.f,k).f});return Math.round(v)});
+ const raises=new Set();D.emps.forEach(e=>(e.r||[]).forEach((r,i)=>{if(i||r.f!=e.from)raises.add(r.f)}));
+ const W=Math.max(370,ks.length*26+60),H=170,L=48,Rr=8,T=14,B=22,mx0=Math.max(1,...pay,...keep),tk=ticks(0,mx0),mx=tk[tk.length-1],Y=q=>T+(1-q/mx)*(H-T-B),bw=(W-L-Rr)/ks.length,bW=Math.min(18,bw*.6);
+ let s='';tk.forEach(q=>{s+=`<line class="gl" x1="${L}" x2="${W-Rr}" y1="${Y(q)}" y2="${Y(q)}"/><text class="ax" x="${L-8}" y="${Y(q)+3}" text-anchor="end">${short(q)}</text>`});
+ ks.forEach((k,i)=>{const cx=L+bw*i+bw/2,v=pay[i],past=k<NOWK,cur=k==NOWK;const tip={t:mFull(k)+(raises.has(k)?' · aumento':''),r:[['var(--c1)',paid(k)!=null?'Pagado':'Estimado',money(v)],['var(--c2)','Para empatar inflación',money(keep[i])]].concat(keep[i]>v&&v?[['','Atraso',pc0((keep[i]/v-1)*100)]]:[])};
+  s+=`<g class="bc" data-tip="${tipA(tip)}"><rect class="band" x="${cx-bw/2+1}" y="${T}" width="${bw-2}" height="${H-T-B}" rx="6"/>${v?`<path d="${rtop(cx-bW/2,Y(v),bW,Y(0)-Y(v),4)}" style="fill:var(--c1)" opacity="${past?.55:cur?1:.8}"/>`:''}${raises.has(k)?`<text x="${cx}" y="${Y(v)-5}" text-anchor="middle" style="font:700 10px var(--mono);fill:var(--up)">▲</text>`:''}${i%Math.ceil(ks.length/(W/34))==0?`<text class="ax" x="${cx}" y="${H-6}" text-anchor="middle">${mLab(k)}</text>`:''}</g>`});
+ const pts=keep.map((v,i)=>v?[L+bw*i+bw/2,Y(v)]:null).filter(Boolean);if(pts.length>1)s+=`<path d="M${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join('L')}" fill="none" style="stroke:var(--c2)" stroke-width="2" stroke-dasharray="5 4" pointer-events="none"/>`;
+ const nx=L+bw*ks.indexOf(NOWK);s+=`<line x1="${nx}" x2="${nx}" y1="${T}" y2="${H-B}" style="stroke:var(--fg)" opacity=".25" stroke-dasharray="2 3"/>`;
+ const sv=`<svg viewBox="0 0 ${W} ${H}" ${W>370?`style="min-width:${Math.min(W,700)}px"`:''} role="img" aria-label="Pagos mensuales al personal doméstico y valor para empatar la inflación">${s}</svg>`;
+ return`<div class="chart" style="margin-top:12px"><h3>Pagos mensuales</h3><div class="cs">Barras: lo pagado (claras) y lo que viene. Línea: cuánto deberías pagar para no perder contra la inflación desde el último aumento. ▲ = aumento.</div>${W>370?`<div class="hsc">${sv}</div>`:sv}${legend([['var(--c1)','Pago mensual'],['var(--c2)','Para empatar inflación']])}</div>`}
+function domRaise(i,f0){const e=domS().emps[i],last=domRate(e,'9999-12'),f=f0||mAdd(NOWK,1),base=domRate(e,mAdd(f,-1))||last,N=domNeed(e);mfn=null;
+ $('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" style="max-height:90vh;overflow:auto"><h2>Aumento · ${esc(e.n)}</h2><div class="m">Rige desde el mes que elijas; los meses siguientes de “${esc(domS().row)}” se actualizan solos.</div>
+ <div class="grid g2" style="gap:10px"><div><label for="ra1">Desde</label><input class="inp" type="month" id="ra1" value="${f}"></div><div><label for="ra2">Aumento %</label><input class="inp" inputmode="decimal" id="ra2" value="${N&&N.acc>0?String(Math.ceil(N.acc*10)/10).replace('.',','):''}"></div>
+ <div><label for="ra3">Nuevo valor de la hora $</label><input class="inp" inputmode="decimal" id="ra3" value="${N&&N.acc>0?N.sug:base.ph}"></div><div><label for="ra4">Horas × días (opcional)</label><input class="inp" id="ra4" value="${base.hd} × ${base.dw}"></div></div>
+ <div id="raprev" class="stat" style="margin-top:10px"></div><p class="note">Valor actual: ${money(base.ph)} la hora${N?` · inflación desde el último aumento ${pc0(N.acc)}${N.est?' (con '+N.est+' mes'+(N.est>1?'es':'')+' estimado'+(N.est>1?'s':'')+')':''}`:''}.</p>
+ <div class="btns"><button data-close="1">Cancelar</button><button class="pr" data-domrsave="${i}">Guardar aumento</button></div></div></div>`;
+ const hdw=()=>{const m=/([\d.,]+)\s*[×x*]\s*([\d.,]+)/.exec($('#ra4').value);return m?[retNum(m[1]),retNum(m[2])]:[base.hd,base.dw]};
+ const pv=()=>{const ph=retNum($('#ra3').value),[hd,dw]=hdw();$('#raprev').innerHTML=ph?`<span>Nuevo mensual (antes ${money(domMon(base))})</span><b>${money(hd*dw*WPM*ph)} <span class="pos">+${pc0((ph*hd*dw/(base.ph*base.hd*base.dw)-1)*100)}</span></b>`:''};
+ $('#ra2').addEventListener('input',()=>{const pc=retNum($('#ra2').value);if(pc!=null)$('#ra3').value=Math.round(base.ph*(1+pc/100)/10)*10;pv()});$('#ra3').addEventListener('input',()=>{const ph=retNum($('#ra3').value);if(ph)$('#ra2').value=String(Math.round((ph/base.ph-1)*1000)/10).replace('.',',');pv()});$('#ra4').addEventListener('input',pv);pv();
+ domRaise.hdw=hdw}
+function domRSave(i){const e=domS().emps[i],f=$('#ra1').value,ph=retNum($('#ra3').value),[hd,dw]=domRaise.hdw();if(!/^\d{4}-\d{2}$/.test(f))return toast('Elegí desde qué mes.');if(f<e.from)return toast('Es anterior al alta.');if(!ph||!hd||!dw)return toast('Revisá el valor de la hora.');
+ e.r=(e.r||[]).filter(x=>x.f!=f);e.r.push({f,hd,dw,ph});e.r.sort((a,b)=>a.f<b.f?-1:1);domAuto();save();closeSheet();render();toast('Aumento cargado desde '+mFull(f))}
+
+function vDom(){infmFetch();const D=domS(),E=D.emps,cur=domAt(NOWK),act=E.filter(e=>domAct(e,NOWK));
+ let h=`<div class="hero" style="margin-top:4px"><div class="k">Personal doméstico · ${esc(mFull(NOWK))}</div><div class="big"><small>$</small>${HV(nfu.format(Math.round(cur)))}</div><div class="s">${act.length?act.map(e=>{const r=domRate(e,NOWK);return`${esc(e.n)}: ${r?r.hd+' h × '+r.dw+' días · '+money(r.ph)+'/h':'sin valor'}`}).join(' · '):'Nadie activo este mes'}</div><div class="s mutc" style="margin-top:6px">Se carga solo en “${esc(D.row)}” (los meses pagados no se tocan)</div></div>`;
+ h+=domChart();
  h+=`<div class="sec"><div class="sh"><h2>Personas</h2><span class="m">${E.length?act.length+' activa'+(act.length==1?'':'s')+' de '+E.length:'todavía no cargaste a nadie'}</span></div>`;
  if(!E.length)h+=`<div class="card"><p class="note" style="margin-top:0">Dala de alta con las horas por día, los días por semana y el valor de la hora. El mensual se calcula con ${String(WPM.toFixed(2)).replace('.',',')} semanas por mes y se carga solo en “${esc(D.row)}”. Solo cuenta quien esté activa cada mes.</p></div>`;
  E.map((e,i)=>[e,i]).sort((a,b)=>(domAct(b[0],NOWK)-domAct(a[0],NOWK))||(a[0].from<b[0].from?1:-1)).forEach(([e,i])=>{const r=domRate(e,NOWK)||domRate(e,e.from)||(e.r||[])[0],on=domAct(e,NOWK),fut=e.from>NOWK;
@@ -2112,7 +2148,9 @@ function vDom(){const D=domS(),E=D.emps,cur=domAt(NOWK),act=E.filter(e=>domAct(e
   h+=`<div class="card" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:15px">${esc(e.n)}</b><span class="pill ${st[0]}">${st[1]}</span></div>
   <div class="mutc" style="font:500 12px var(--mono);margin-top:4px">Alta ${mFull(e.from)}${e.to?' · baja '+mFull(e.to):''}</div>
   ${r?`<div class="stat" style="margin-top:10px"><span>Horario</span><b>${r.hd} h por día × ${r.dw} días por semana</b></div><div class="stat"><span>Valor de la hora</span><b>${money(r.ph)}</b></div><div class="stat"><span>Por mes (≈ ${nfu.format(Math.round(r.hd*r.dw*WPM))} h)</span><b>${money(domMon(r))}</b></div>`:''}
-  ${(e.r||[]).length>1?`<details class="cdet"><summary><span>Historial de valores</span><b></b></summary>${e.r.slice().sort((a,b)=>a.f<b.f?1:-1).map(x=>`<div class="stat"><span>Desde ${mFull(x.f)}</span><b>${x.hd} h × ${x.dw} d · ${money(x.ph)}/h · ${money(domMon(x))}</b></div>`).join('')}</details>`:''}
+  ${on?(()=>{const N=domNeed(e);return N?`<div class="dneed ${N.lvl[0]}"><div><b>${N.lvl[1]}</b><small>Último aumento ${mFull(N.r.f)} · inflación desde entonces ${pc0(N.acc)}${N.est?' ('+N.est+' estimado'+(N.est>1?'s':'')+')':''}</small></div>${N.acc>=5?`<button class="btn" data-domraise="${i}">Aumentar a ${money(N.sug)}/h</button>`:''}</div>`:''})():''}
+  <details class="cdet"${(e.r||[]).length>1?' open':''}><summary><span>Aumentos (${(e.r||[]).length-1})</span><b></b></summary>${(e.r||[]).slice().sort((a,b)=>a.f<b.f?1:-1).map((x,j,A)=>{const prev=A[j+1];return`<div class="stat"><span>${j==A.length-1?'Alta':'Desde'} ${mFull(x.f)}${prev?` <span class="pos">+${pc0((x.ph*x.hd*x.dw/(prev.ph*prev.hd*prev.dw)-1)*100)}</span>`:''}</span><b>${money(x.ph)}/h · ${money(domMon(x))}${j<A.length-1?` <button class="lnk" data-domrdel="${i}|${x.f}">quitar</button>`:''}</b></div>`}).join('')}
+  <div class="hrow2"><button class="btn" data-domraise="${i}">+ Cargar aumento</button></div></details>
   ${e.nota?`<p class="note" style="margin:8px 0 0">${esc(e.nota)}</p>`:''}
   <div class="hrow2"><button class="btn" data-domed="${i}">Modificar</button>${on||fut?`<button class="btn" data-dombaja="${i}">Dar de baja</button>`:`<button class="btn" data-domre="${i}">Reactivar</button>`}</div></div>`});
  h+=`<button class="add" data-domed="-1" style="margin-top:12px">+ Dar de alta</button>
@@ -2334,7 +2372,7 @@ function render(){drawEye();badgeSet();if(S&&S.y&&sec=='g')try{loanAuto()}catch(
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c){const pr=c.parentElement;if(pr&&pr.scrollWidth>pr.clientWidth)pr.scrollLeft=c.offsetLeft-pr.offsetLeft-pr.clientWidth/2+c.offsetWidth/2}
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff],[data-newsf],[data-newsr],[data-domed],[data-domsave],[data-domdel],[data-dombaja],[data-domre]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff],[data-newsf],[data-newsr],[data-domed],[data-domsave],[data-domdel],[data-dombaja],[data-domre],[data-domraise],[data-domrsave],[data-domrdel]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -2381,6 +2419,9 @@ document.addEventListener('click',e=>{
  if(d.bks)return openBackups();
  if(d.iol){if(d.iol=='open')return iolSheet();return iolAct(d.iol)}
  if(d.inbox)return openInbox();
+ if(d.domraise!==undefined)return domRaise(+d.domraise);
+ if(d.domrsave!==undefined)return domRSave(+d.domrsave);
+ if(d.domrdel){const [i,f]=d.domrdel.split('|'),e=domS().emps[+i];e.r=e.r.filter(x=>x.f!=f);domAuto();save();render();return toast('Aumento quitado')}
  if(d.domed!==undefined)return domEdit(+d.domed);
  if(d.domsave!==undefined)return domSave(+d.domsave);
  if(d.domdel!==undefined){const D=domS();if($('.sheet')&&!$('.sheet').dataset.cf){$('.sheet').dataset.cf=1;t.textContent='Tocá de nuevo para borrar';return}D.emps.splice(+d.domdel,1);domAuto();save();closeSheet();render();return toast('Borrada')}
@@ -2446,7 +2487,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261125171500';
+const BUILD='20261125181500';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
