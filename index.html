@@ -497,6 +497,7 @@ tr.ss td{font-size:11.5px}tr.ss.in td{color:var(--up)}tr.ss.eg td{color:var(--c2
 @media (prefers-reduced-motion:reduce){#app.sw-l,#app.sw-r{animation:none}}
 
 /* tarjetas colapsables */
+.tcv{font-style:normal;color:var(--dn);font-weight:700}
 .tcsum{display:flex;flex-direction:column;gap:2px;margin-top:14px;padding-top:10px;border-top:1px solid var(--gl)}
 .tcsum button{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:7px 8px;margin:0 -8px;width:calc(100% + 16px);border-radius:10px;text-align:left;color:var(--fg)}
 .tcsum button:hover,.tcsum button.on{background:rgba(127,140,170,.12)}
@@ -1444,8 +1445,8 @@ function vImport(){return `<div class="card" style="max-width:560px;margin:20px 
  <label class="btn" style="cursor:pointer;margin-top:8px">Elegir archivo<input type="file" id="impf" accept="application/json,.json" hidden></label>
  <div class="btns" style="max-width:320px"><button data-start="1">Empezar de cero</button></div><p class="note" id="imsg" role="status"></p></div>`}
 /* ---------- notificaciones push ---------- */
-const NDEF={on:{mv:true,fx:true,uva:true,cob:true,rot:true,crd:true,res:true},mv:5,pm:2,fx:2,conc:20,liq:10,priv:true};
-const NCAT=[['mv','Subas y bajas abruptas','tus tenencias, la cartera total y XOM, en horario de mercado'],['fx','Dólar MEP y blue','cuando se mueven fuerte en el día'],['uva','Cancelación del crédito','cuando el indicador entra o sale de la zona favorable'],['cob','Cobros próximos','cupones, amortizaciones, notas y vestings para decidir la reinversión'],['rot','Rotación de cartera','concentración excesiva o demasiada liquidez (resumen semanal)'],['crd','Crédito y alquileres','débito de la cuota, ajustes y vencimientos de contratos'],['res','Resumen del mes','el día 1: cuánto ahorraste, cómo te fue y qué cobrás ese mes']];
+const NDEF={on:{mv:true,fx:true,uva:true,cob:true,rot:true,crd:true,res:true,tc:true},mv:5,pm:2,fx:2,conc:20,liq:10,priv:true};
+const NCAT=[['mv','Subas y bajas abruptas','tus tenencias, la cartera total y XOM, en horario de mercado'],['fx','Dólar MEP y blue','cuando se mueven fuerte en el día'],['uva','Cancelación del crédito','cuando el indicador entra o sale de la zona favorable'],['cob','Cobros próximos','cupones, amortizaciones, notas y vestings para decidir la reinversión'],['rot','Rotación de cartera','concentración excesiva o demasiada liquidez (resumen semanal)'],['crd','Crédito y alquileres','débito de la cuota, ajustes y vencimientos de contratos'],['tc','Vencimiento de tarjetas','3 días antes, el día anterior y el mismo día, hasta que lo marques pagado'],['res','Resumen del mes','el día 1: cuánto ahorraste, cómo te fue y qué cobrás ese mes']];
 let PUSH=null,ALR=null,FNCODE='';
 const pushOK=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
 const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
@@ -1528,7 +1529,7 @@ async function openNotif(keep){if(!FNCODE)fetch('./supabase/functions/alertas/in
  <li><b>Programar la revisión.</b> En <b>SQL Editor</b> pegá esto y tocá <b>Run</b>. Ya tiene la dirección de tu proyecto.<br><button class="btn" data-npush="cpsql">Copiar SQL</button></li>
  <li><b>Activar.</b> Volvé acá y tocá <b>Activar en este dispositivo</b> en cada iPhone o compu donde quieras recibirlas.</li></ol></details>
  </div></div>`;seenAlerts()}
-function goHash(h){h=String(h||location.hash).replace(/^#/,'');let tg='';if(h.includes('~'))[h,tg]=h.split('~');const M={noticias:['w'],retiro:['j'],hoy:['h'],patrimonio:['p'],ons:['o'],autos:['g','auto'],cartera:['i'],analisis:['a'],cobros:['c'],notas:['e'],rsu:['r'],dolar:['d'],mundo:['m'],credito:['g','uva'],alquiler:['g','alq'],gastos:['g','mes'],avisos:['n']}[h];if(!M||!S)return;
+function goHash(h){h=String(h||location.hash).replace(/^#/,'');let tg='';if(h.includes('~'))[h,tg]=h.split('~');const M={noticias:['w'],retiro:['j'],hoy:['h'],patrimonio:['p'],ons:['o'],autos:['g','auto'],cartera:['i'],analisis:['a'],cobros:['c'],notas:['e'],rsu:['r'],dolar:['d'],mundo:['m'],credito:['g','uva'],alquiler:['g','alq'],gastos:['g','mes'],tarjetas:['g','tc'],personal:['g','dom'],avisos:['n']}[h];if(!M||!S)return;
  if(M[0]=='n'){openInbox();}else{sec=M[0];if(M[1])tab=M[1];try{localStorage.setItem('gastos-sec',sec)}catch(e){}closeSheet();render();scrollTo(0,0);const mt=/^(mv|conc|cob)-(.+)$/.exec(tg);if(mt&&sec=='i')focusTk(mt[2])}try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}
 addEventListener('hashchange',()=>goHash());
 /* ---------- IOL: cotizaciones en tiempo real (vía función "iol" de tu Supabase) ---------- */
@@ -2316,13 +2317,13 @@ function tcNext(C,R){if(!R)return null;const P=tcParts(R);
 function vTc(){const T=tcCfg();if(!T.cards.length)return`<div class="card"><p class="note" style="margin:0">No encontré conceptos de tarjeta en Gastos (los que empiezan con “Tarjeta”).</p></div>`;
  const ls=T.cards.map(C=>{const R=tcLast(C.id);return[C,R,tcNext(C,R)]}),nn=ls.filter(x=>x[2]),totA=nn.reduce((a,x)=>a+x[2].a,0),totU=nn.reduce((a,x)=>a+x[2].u,0),nr=nn.filter(x=>x[2].real).length,ne=nn.length-nr;
  const amt=N=>N?`${money(N.a)}${N.u?`<i>+ US$ ${f2u(N.u)}</i>`:''}`:'<span class="mutc">—</span>';
- const when=(C,R,N)=>!R?'sin resumen':N.real?`vence ${fd(N.vto).slice(0,5)}`:`estimado ${mLab(N.k).toLowerCase()}`;
+ const when=(C,R,N)=>!R?'sin resumen':N.real?`<em class="tcv">vence ${fd(N.vto).slice(0,5)}</em>`:`estimado ${mLab(N.k).toLowerCase()}`;
  let h=`<div class="hero tch" style="margin-top:4px"><div class="k">Tarjetas por pagar · próximo pago</div><div class="big"><small>$</small>${HV(nfu.format(Math.round(totA)))}</div><div class="s">${totU?`+ US$ ${f2u(totU)} · `:''}${nr} resumen${nr==1?'':'es'}${ne?` + ${ne} estimad${ne==1?'a':'as'}`:''}</div>
   <div class="tcsum">${ls.map(([C,R,N])=>`<button data-tcopen="${C.id}"${TCO==C.id?' class="on"':''}><span><b>${esc(C.n)}</b><small>${when(C,R,N)}</small></span><span class="r">${amt(N)}</span></button>`).join('')}</div></div>`;
  ls.forEach(([C,R,N])=>{const P=R&&tcParts(R),k0=R&&R.vto.slice(0,7),nxt=R?[1,2,3].map(i=>tcMAdd(k0,i)):[],dd=R?Math.round((Date.parse(R.vto)-Date.parse(TODAY))/864e5):0,op=TCO==C.id;
   h+=`<div class="card tcc${op?' open':''}" id="tc-${C.id}"><button class="tchd" data-tcopen="${C.id}" aria-expanded="${op}"><span class="chev">›</span><span class="nm"><b>${esc(C.n)}</b><small>${when(C,R,N)}${N&&N.u?` · + US$ ${f2u(N.u)}`:''}</small></span><span class="r"><b>${N?money(N.a):'—'}</b>${!R?'<span class="pill nt">cargar</span>':N.real?`<span class="pill ${dd<=5?'dn':'up'}">${dd==0?'vence hoy':'en '+dd+' d'}</span>`:'<span class="pill nt">estimado</span>'}</span></button>`;
   if(op){h+=`<div class="tcb">`;
-  if(R){h+=`<div class="mutc" style="font:500 12px var(--mono)">Cierre ${fd(R.cierre||R.vto).slice(0,5)} · vence ${fd(R.vto)}${R.min?' · mínimo '+money(R.min):''}</div>
+  if(R){h+=`<div class="mutc" style="font:500 12px var(--mono)">Cierre ${fd(R.cierre||R.vto).slice(0,5)} · ${R.vto>=TODAY?`<em class="tcv">vence ${fd(R.vto)}</em>`:`venció ${fd(R.vto)}`}${R.min?' · mínimo '+money(R.min):''}</div>
    <div class="stat" style="margin-top:10px"><span>A pagar en pesos${R.perc&&C.usdUsd!==false?' (sin percepción)':''}</span><b>${money(P.pay)}</b></div>${R.usd?`<div class="stat"><span>A pagar en dólares</span><b>US$ ${f2u(R.usd)}</b></div>`:''}
    <div class="stat"><span>Cuotas en este resumen</span><b>${money(R.cnow||0)}</b></div><div class="stat"><span>Fijos (seguros, servicios)</span><b>${money(P.fijA)}${P.fijU?' + US$ '+f2u(P.fijU):''}</b></div>
    <div class="tcn">${nxt.map(k=>{const cu=(R.cv&&R.cv[k])||0;return`<div><small>${mLab(k)}</small><b>${short(tcEst(C,R,k))}</b><span class="mutc">${cu?'cuotas '+short(cu):'sin cuotas'}</span></div>`}).join('')}</div>
@@ -2661,7 +2662,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126162000';
+const BUILD='20261126163000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});

@@ -97,7 +97,7 @@ function rentAt(S: Any, C: Any, k: string) { if (k < C.start || (C.end && k > C.
 
 // ---------- reglas ----------
 type Alert = { key: string; cat: string; title: string; body: string; tag?: string; url?: string };
-const DEF = { on: { mv: true, fx: true, uva: true, cob: true, rot: true, crd: true, res: true }, mv: 5, pm: 2, fx: 2, conc: 20, liq: 10, priv: true };
+const DEF = { on: { mv: true, fx: true, uva: true, cob: true, rot: true, crd: true, res: true, tc: true }, mv: 5, pm: 2, fx: 2, conc: 20, liq: 10, priv: true };
 function rules(S: Any, cfg: Any, M: Any, st: Any): Alert[] {
   const A: Alert[] = [], now = nowART(), today = dISO(now), hh = now.getUTCHours() + now.getUTCMinutes() / 60, wd = now.getUTCDay(), mkt = wd >= 1 && wd <= 5 && hh >= 11 && hh <= 17.2;
   const on = { ...DEF.on, ...(cfg.on || {}) }, priv = cfg.priv !== false, money = (n: number) => priv ? "" : " (US$ " + nf(Math.round(n)) + ")", ars = (n: number) => priv ? "" : " · $ " + nf(Math.round(n));
@@ -169,6 +169,19 @@ function rules(S: Any, cfg: Any, M: Any, st: Any): Alert[] {
     if (I) { const F = flows(I, cur + "-01", M.us.XOM ? M.us.XOM[0] : null).filter((f) => f.d.slice(0, 7) == cur), tot = F.reduce((a, f) => a + f.x, 0);
       if (F.length) parts.push(`En ${MESL[+cur.slice(5, 7) - 1]} cobrás ${F.length} pago${F.length > 1 ? "s" : ""}` + (priv ? "" : ` por US$ ${nf(Math.round(tot))}`)); }
     if (parts.length) A.push({ key: `res:${pk}`, cat: "res", title: `Cómo cerró ${MESL[+pk.slice(5, 7) - 1]}`, body: parts.join(" · ") + ".", tag: "res-" + pk, url: "#gastos" });
+  }
+  // 8) vencimiento de tarjetas: 3 días antes, el día anterior y el mismo día, desde las 9
+  if (on.tc && S.tc && hh >= 9) {
+    (S.tc.cards || []).forEach((C: Any) => {
+      const L = (S.tc.res && S.tc.res[C.id]) || [], R = L[L.length - 1]; if (!R || !R.vto || R.vto < today) return;
+      const dd = Math.round((Date.parse(R.vto) - Date.parse(today)) / 864e5); if (dd > 3) return;
+      const yr = S.y && S.y[R.vto.slice(0, 4)], row = yr && yr.find((x: Any) => x.n == C.row), mi = +R.vto.slice(5, 7) - 1;
+      if (row && row.p && row.p[mi]) return; // ya lo marcaste pagado en Gastos
+      const step = dd >= 2 ? "3" : String(dd), pay = R.ars - (C.usdUsd === false ? 0 : (R.perc || 0));
+      const amt = priv ? "" : ` $ ${nf(Math.round(pay))}${R.usd ? ` + US$ ${nf(R.usd, 2)}` : ""}`;
+      A.push({ key: `tc:${C.id}:${R.vto}:${step}`, cat: "tc", title: dd == 0 ? `Hoy vence la tarjeta ${C.n}` : dd == 1 ? `Mañana vence la tarjeta ${C.n}` : `La tarjeta ${C.n} vence el ${fd(R.vto)}`,
+        body: `Pagá el resumen${amt}.${R.min && !priv ? " Mínimo $ " + nf(Math.round(R.min)) + "." : ""} Marcalo pagado en Gastos y no te aviso más.`, tag: "tc-" + C.id, url: "#tarjetas" });
+    });
   }
   return A;
 }
