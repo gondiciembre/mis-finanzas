@@ -2368,7 +2368,7 @@ function tcShareSheet(){mfn=null;let k='';try{k=localStorage.getItem('fin-tckey'
  <li><b>Tu clave del atajo.</b> ${k?`<br><code style="word-break:break-all">${esc(k)}</code><br><button class="btn" data-tccopy="k">Copiar clave</button> <button class="btn" data-tckey="1">Generar otra</button>`:`Generala acá: sirve solo para mandar resúmenes a tu cuenta.<br><button class="btn" data-tckey="1">Generar clave</button>`}</li>
  <li><b>Creá el atajo.</b> App Atajos → <b>+</b> → nombre <b>Enviar a Finanzas Gonzo</b>. Tocá <b>ⓘ</b> y activá <b>Mostrar en la hoja para compartir</b>; en los tipos dejá solo <b>PDF</b>.</li>
  <li><b>Acción “Codificar en Base64”</b> con la <b>Entrada del atajo</b>. Tocá la flechita y en <b>Saltos de línea</b> elegí <b>Ninguno</b>.</li>
- <li><b>Acción “Obtener contenido de URL”.</b> URL:<br><code style="word-break:break-all">${esc(url)}</code><br><button class="btn" data-tccopy="u">Copiar URL</button><br>Tocá <b>Mostrar más</b>: Método <b>POST</b>, Cuerpo <b>JSON</b>, y agregá 3 campos de tipo Texto:<br><code>op</code> = <code>tcin</code> · <code>k</code> = tu clave · <code>f</code> = la variable <b>Texto codificado en Base64</b>.</li>
+ <li><b>Acción “Obtener contenido de URL”.</b> URL:<br><code style="word-break:break-all">${esc(url)}</code><br><button class="btn" data-tccopy="u">Copiar URL</button><br>Tocá <b>Mostrar más</b>: Método <b>POST</b>. En <b>Encabezados</b> agregá uno: <code>apikey</code> = la clave pública de tu Supabase <button class="btn" data-tccopy="a">Copiar clave pública</button><br>En Cuerpo elegí <b>JSON</b> y agregá 3 campos de tipo Texto:<br><code>op</code> = <code>tcin</code> · <code>k</code> = tu clave · <code>f</code> = la variable <b>Texto codificado en Base64</b>.</li>
  <li><b>Acción “Mostrar notificación”</b> con <b>Contenido de la URL</b>, así ves si llegó bien.</li></ol>
  <p class="note">Necesita la función <b>alertas</b> actualizada (Ajustes → Notificaciones → Copiar código de la función). El PDF queda guardado en tu Supabase hasta que lo cargues o lo descartes; los números se leen en tu dispositivo.</p>
  <div class="btns"><button data-close="1">Cerrar</button></div></div></div>`}
@@ -2680,7 +2680,7 @@ document.addEventListener('click',e=>{
  if(d.tcindel){const id=TCPEND&&TCPEND.inb;TCPEND=null;closeSheet();if(id)tcInDel(id).then(()=>toast('Resumen descartado'));return}
  if(d.tcshare)return tcShareSheet();
  if(d.tckey)return tcKeyGen();
- if(d.tccopy){let k='';try{k=localStorage.getItem('fin-tckey')||''}catch(e){}return copyTxt(d.tccopy=='k'?k:(sbConf()||{}).url+'/functions/v1/alertas',d.tccopy=='k'?'Clave':'URL')}
+ if(d.tccopy){let k='';try{k=localStorage.getItem('fin-tckey')||''}catch(e){}return copyTxt(d.tccopy=='k'?k:d.tccopy=='a'?(sbConf()||{}).key:(sbConf()||{}).url+'/functions/v1/alertas',d.tccopy=='k'?'Clave':d.tccopy=='a'?'Clave pública':'URL')}
  if(d.tccfg)return tcCfgSheet(d.tccfg);
  if(d.tccsave){const C=tcCfg().cards.find(c=>c.id==d.tccsave);C.n=$('#tq1').value.trim()||C.n;C.row=$('#tq2').value;C.usdUsd=$('#tq3').value=='1';C.mode=$('#tq4').value;tcAuto();save();closeSheet();render();return toast('Guardado')}
  if(d.tcfix){if(e.target.tagName!='INPUT')return;const [id,j]=d.tcfix.split('|'),R=tcLast(id);if(R&&R.items[+j]){R.items[+j].fijo=e.target.checked;tcAuto();save();const y=scrollY;render();scrollTo(0,y)}return}
@@ -2753,7 +2753,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126175000';
+const BUILD='20261126180000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
