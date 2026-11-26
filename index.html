@@ -497,11 +497,12 @@ tr.ss td{font-size:11.5px}tr.ss.in td{color:var(--up)}tr.ss.eg td{color:var(--c2
 @media (prefers-reduced-motion:reduce){#app.sw-l,#app.sw-r{animation:none}}
 
 /* tarjetas colapsables */
+.tchd .tlg{width:30px;height:30px;border-radius:9px;background:var(--b);color:#fff;display:flex;align-items:center;justify-content:center;font:800 9.5px var(--sans);flex:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
 .tct{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:14px}
 .tct button{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto auto;column-gap:10px;row-gap:1px;align-items:center;padding:10px 11px;border-radius:14px;border:1px solid var(--gl);background:rgba(127,140,170,.07);text-align:left;color:var(--fg);min-width:0}
 .tct button:hover,.tct button.on{border-color:var(--acc);background:var(--acc-s)}
 .tct button.pd{opacity:.62}
-.tct .lg{grid-row:1/4;width:38px;height:38px;border-radius:11px;background:var(--b);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font:800 11px/1 var(--sans);letter-spacing:.02em;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 2px 6px rgba(0,0,0,.18)}
+.tct .lg{grid-row:1/span 4;width:38px;height:38px;border-radius:11px;background:var(--b);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font:800 11px/1 var(--sans);letter-spacing:.02em;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 2px 6px rgba(0,0,0,.18)}
 .tct .lg i{font:700 7.5px/1 var(--sans);font-style:normal;opacity:.85;margin-top:3px;letter-spacing:.06em}
 .tct .nm{font-size:12px;font-weight:600;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tct b{font:700 14.5px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2426,7 +2427,7 @@ function vTc(){const T=tcCfg();if(!T.cards.length)return`<div class="card"><p cl
  h+=`<div class="hero tch" style="margin-top:4px"><div class="k" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Tarjetas · ${MESL[mo]} ${yr}</span>${nT?`<span class="pill ${nP==nT?'up':'wr'}">${nP==nT?'Todas pagas':nP+' de '+nT+' pagas'}</span>`:''}</div><div class="big"><small>$</small>${HV(nfu.format(Math.round(totA)))}</div><div class="s">${totU?`+ US$ ${f2u(totU)} · `:''}${nR} resumen${nR==1?'':'es'}${nE?` + ${nE} estimad${nE==1?'a':'as'}`:''}${!nR&&!nE?' · valores de Gastos':''}</div>
   <div class="tct">${ls.map(([C,M])=>{const B=tcBrand(C);return`<button data-tcopen="${C.id}" class="${TCO==C.id?'on':''}${M.paid&&M.row?' pd':''}"><span class="lg" style="--b:${B.bg}">${B.t}${B.net?`<i>${B.net}</i>`:''}</span><span class="nm">${esc(C.n)}</span><b>${M.a||M.u?money(M.a):'—'}</b>${M.u?`<span class="us">+ US$ ${f2u(M.u)}</span>`:''}<small>${when(M)}</small></button>`}).join('')}</div></div>`;
  ls.forEach(([C,M])=>{const op=TCO==C.id,R=M.R,P=M.P;
-  h+=`<div class="card tcc${op?' open':''}" id="tc-${C.id}"><button class="tchd" data-tcopen="${C.id}" aria-expanded="${op}"><span class="chev">›</span><span class="nm"><b>${esc(C.n)}</b><small>${when(M)}${M.u?` · + US$ ${f2u(M.u)}`:''}</small></span><span class="r"><b>${M.a?money(M.a):'—'}</b>${pill(M)}</span></button>`;
+  h+=`<div class="card tcc${op?' open':''}" id="tc-${C.id}"><button class="tchd" data-tcopen="${C.id}" aria-expanded="${op}"><span class="chev">›</span>${(B=>`<span class="tlg" style="--b:${B.bg}">${B.t}</span>`)(tcBrand(C))}<span class="nm"><b>${esc(C.n)}</b><small>${when(M)}${M.u?` · + US$ ${f2u(M.u)}`:''}</small></span><span class="r"><b>${M.a?money(M.a):'—'}</b>${pill(M)}</span></button>`;
   if(op){h+=`<div class="tcb">`;
    if(M.kind=='real'){const k0=R.vto.slice(0,7),nxt=[1,2,3].map(i=>tcMAdd(k0,i));
     h+=`<div class="mutc" style="font:500 12px var(--mono)">Cierre ${fd(R.cierre||R.vto).slice(0,5)} · ${!M.paid&&R.vto>=TODAY?`<em class="tcv">vence ${fd(R.vto)}</em>`:`venció ${fd(R.vto)}`}${R.min?' · mínimo '+money(R.min):''}</div>
@@ -2781,7 +2782,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126182000';
+const BUILD='20261126183000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
