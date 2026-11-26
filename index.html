@@ -701,7 +701,8 @@ function rsuAuto(){const I=S.inv;if(!I||!I.rsu||!I.rsu.g||!I.rsu.g.length)return
   for(let mm=0;mm<12;mm++){const k=ymK(+y,mm),cur=x.a[mm]||0;
    if(k<NOWK){if(!cur&&!x.p[mm]){x.p[mm]=1;ch=true}continue}
    if(x.p[mm]&&cur)continue;const v=Math.round(want[n][k]||0),pz=v?0:1;
-   if(cur!=v||(x.p[mm]?1:0)!=pz){x.a[mm]=v;x.p[mm]=pz;ch=true}}})});
+   /* tolerancia 0,5%: el MEP y XOM en vivo varían entre dispositivos; sin esto se pisan entre sí */
+   if((!!cur!=!!v||Math.abs(cur-v)>Math.max(1,Math.abs(v)*.005))||(x.p[mm]?1:0)!=pz){x.a[mm]=v;x.p[mm]=pz;ch=true}}})});
  return ch}
 /* SAC (Ley 23.041): 50% de la mejor remuneración mensual de cada semestre. 1ª cuota (ene–jun) en julio, 2ª (jul–dic) en diciembre. */
 const SAC_CFG={row:'SAC',base:'Sueldo Gonza'};
@@ -2698,7 +2699,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126171000';
+const BUILD='20261126172000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
