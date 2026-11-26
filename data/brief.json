@@ -1,16 +1,15 @@
-{"date":"2026-11-25","gen":"2026-11-25T08:55:00-03:00","title":"Los chips vuelven a hundir al Nasdaq y los futuros anticipan una apertura en baja, a la espera del dato de inflación PCE antes del feriado de Acción de Gracias.",
+{"date":"2026-11-26","gen":"2026-11-26T08:48:00-03:00","title":"Wall Street cerrado hoy por el feriado de Acción de Gracias: el mercado vuelve mañana en una rueda corta, después de un miércoles de mucho susto por la IA y una inflación más alta de lo esperado.",
 "bullets":[
-{"h":"Cierre mixto el martes.","t":"El Dow subió 0,85% y cerró por encima de 50.000 puntos (50.018,70), mientras el S&P 500 bajó 0,50% (7.201,09) y el Nasdaq cayó 1,48% (23.733,54)."},
-{"h":"Se desinfló el rally de la IA.","t":"Nvidia perdió 5,9% un día después de su gran suba; AMD cayó 8,9%, Intel 8,2% y Micron 11%. El sector tecnológico del S&P 500 bajó 3,3%, mientras salud ganó casi 3%."},
-{"h":"Futuros en rojo hoy.","t":"Antes de la apertura, los futuros del Nasdaq 100 caen cerca de 2,5%, los del S&P 500 alrededor de 1,5% y los del Dow 0,8%, por la venta de acciones de chips e IA. El índice de miedo VIX sube a la zona de 29."},
-{"h":"Inflación PCE y Fed en foco.","t":"A las 10:30 de Argentina se conocen el PCE de octubre (se espera 3,8% anual; el núcleo, 3,2%), el PIB del tercer trimestre (3,5% esperado) y los pedidos de seguro de desempleo. El mercado da más de 95% de probabilidad a una suba de tasas de 0,25 punto en diciembre."},
-{"h":"Bonos, dólar y materias primas.","t":"La tasa del bono del Tesoro a 10 años ronda 4,85%-4,90%. El petróleo WTI subió 2,4% a US$ 82 por ataques a barcos cerca del estrecho de Ormuz, el oro cayó 2,6% a US$ 3.555 y el bitcoin perdió 2,2% y quedó debajo de US$ 60.000."},
-{"h":"Otras noticias de empresas.","t":"Sanofi acordó comprar Insmed por US$ 41.000 millones (Insmed +14%), y minoristas como Abercrombie & Fitch y Kohl's subieron cerca de 20% tras sus balances."},
-{"h":"Agenda que viene.","t":"Hoy publican Deere antes de la apertura y la Fed difunde el Libro Beige a las 16. Mañana jueves Wall Street no opera por Acción de Gracias y el viernes cierra temprano (15 hora argentina). La Fed decide tasas el 8 y 9 de diciembre."}
+{"h":"Hoy no hay mercado en EE.UU.","t":"La bolsa de Nueva York no opera este jueves por Acción de Gracias. Mañana viernes abre en horario normal pero cierra temprano, a las 13 de Nueva York (15 de Argentina)."},
+{"h":"Cierre mixto el miércoles.","t":"El S&P 500 bajó 0,25% (7.182,78) y el Nasdaq cayó 0,62% (23.585,80), su segunda baja seguida, mientras el Dow subió 0,33% hasta 50.182,95 puntos. Durante la rueda las caídas habían sido mucho más fuertes y se recuperaron casi todo antes del cierre."},
+{"h":"Otro golpe a Nvidia y a los chips.","t":"Nvidia llegó a caer más de 9% y cerró con una baja de casi 4%, después de que S&P Global pusiera su calificación AA en revisión negativa por temas de gobierno corporativo. Micron perdió 4,5% y Ambarella se hundió 19,8%; en cambio, HP subió 11,5%."},
+{"h":"Inflación más alta, suba de tasas casi segura.","t":"La inflación PCE de octubre dio 3,8% anual y la núcleo 3,3%, por encima del 3,2% esperado, y el PIB del tercer trimestre se corrigió al alza a 4,3%. El mercado da entre 94% y 98% de chances a una suba de tasas de 0,25 punto en la reunión de la Fed del 8 y 9 de diciembre."},
+{"h":"Petróleo arriba, bitcoin abajo.","t":"El WTI subió 2% a US$ 83,68 y el Brent 3,5% a US$ 94,61. El oro perforó los US$ 3.500 durante el día y cerró cerca de US$ 3.583; el bitcoin bajó a la zona de US$ 57.500, con salidas de fondos por sexta rueda seguida."},
+{"h":"Lo que viene.","t":"Mañana viernes, rueda corta y de poco volumen. La semana próxima llegan el JOLTS (martes 1/12) y el informe de empleo de noviembre (viernes 4/12); después, la decisión de la Fed (9/12) y la inflación CPI de noviembre (10/12)."}
 ],
 "src":[
-{"n":"Yahoo Finance","u":"https://finance.yahoo.com/markets/live/stock-market-today-wednesday-november-25-dow-sp-500-nasdaq-pce-inflation-data-091428237.html"},
-{"n":"Upstox","u":"https://upstox.com/news/market-news/us-stocks/dow-jones-s-and-p-500-nasdaq-futures-hint-gap-down-open-ahead-of-us-pce-inflation-data-release-stocks-to-watch/article-203963/"},
-{"n":"CappNotes","u":"https://cappnotes.substack.com/p/closing-look-tuesday-november-24"},
-{"n":"STL.News","u":"https://www.stl.news/us-stock-market-today-november-24-2026/"}
+{"n":"TradingKey","u":"https://www.tradingkey.com/analysis/stocks/us-stocks/262322956-market-recap-sp-nasdaq-nvidia-pce-gold-breaks-3500-tradingkey"},
+{"n":"ForexCrunch","u":"https://www.forexcrunch.com/blog/2026/11/26/core-pce-tariffs-december-fed-hike-bitcoin-57500/"},
+{"n":"FinScans","u":"https://finscans.com/news/2026/11/25/us-core-pce-inflation-hits-33-as-fed-rate-hike-odds-reach"},
+{"n":"U.S. Bureau of Labor Statistics","u":"https://www.bls.gov/schedule/2026/12_sched_list.htm"}
 ]}
