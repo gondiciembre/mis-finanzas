@@ -2419,6 +2419,15 @@ function tcMonth(C,k){const L=(S.tc.res&&S.tc.res[C.id])||[],R=L.find(r=>r.vto&&
  const B=L.filter(r=>r.vto&&r.vto.slice(0,7)<k).pop();
  if(B&&k>=NOWK){const P=tcParts(B),u=C.mode=='fix'?P.fijU:P.varU+P.fijU,cu=(B.cv&&B.cv[k])||0;return{kind:'est',R:B,P,a:tcEst(C,B,k)-Math.round(u*P.m),u,cu,paid:W.paid,row:W.v}}
  return{kind:'row',a:W.v,u:0,paid:W.paid,row:W.v,none:!W.v}}
+function tcChart(){const T=tcCfg();if(!T.cards.length)return'';const ks=MES.map((_,i)=>ymK(yr,i));
+ const D=ks.map(k=>{const per=T.cards.map(C=>[C,tcRow(C,k)]).filter(([C,W])=>W.v);return{k,tot:per.reduce((a,[C,W])=>a+W.v,0),per,paid:per.length&&per.every(([C,W])=>W.paid)}});
+ const W=Math.round(Math.max(300,Math.min(760,(($('#app')||{}).clientWidth||400)-56))),H=120,L=44,Rr=6,T0=10,B=20,mx0=Math.max(1,...D.map(d=>d.tot)),tk=ticks(0,mx0),mx=tk[tk.length-1],Y=q=>T0+(1-q/mx)*(H-T0-B),bw=(W-L-Rr)/12,bW=Math.min(16,bw*.55);
+ let s='';tk.forEach(q=>{s+=`<line class="gl" x1="${L}" x2="${W-Rr}" y1="${Y(q)}" y2="${Y(q)}"/><text class="ax" x="${L-8}" y="${Y(q)+3}" text-anchor="end">${short(q)}</text>`});
+ D.forEach((d,i)=>{const cx=L+bw*i+bw/2,sel=i==mo,tip={t:mFull(d.k)+(d.paid?' · pagado':d.tot?' · a pagar':''),r:d.per.map(([C,W])=>['',esc(C.n),money(W.v)+(W.paid?' ✓':'')]).concat(d.per.length>1?[['','Total',money(d.tot)]]:[])};
+  s+=`<g class="bc" data-mo="${i}" data-tip="${tipA(tip)}" style="cursor:pointer"><rect class="band" x="${cx-bw/2+1}" y="${T0}" width="${bw-2}" height="${H-T0-B}" rx="6"${sel?' style="opacity:1"':''}/>${d.tot?`<path d="${rtop(cx-bW/2,Y(d.tot),bW,Y(0)-Y(d.tot),4)}" style="fill:var(--c1)" opacity="${d.paid?.5:sel?1:.85}"/>`:''}<text class="ax" x="${cx}" y="${H-5}" text-anchor="middle"${sel?' style="font-weight:700;fill:var(--fg)"':''}>${MES[i].slice(0,1)}</text></g>`});
+ const sv=`<svg class="dch" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:100%;height:auto" role="img" aria-label="Total de tarjetas por mes en ${yr}">${s}</svg>`;
+ const yt=D.reduce((a,d)=>a+d.tot,0),pend=D.filter(d=>!d.paid).reduce((a,d)=>a+d.tot,0),nz=D.filter(d=>d.tot),avg=nz.length?yt/nz.length:0;
+ return`<div class="chart dchw" style="margin-top:12px"><h3>Tarjetas por mes · ${yr}</h3><div class="dsum"><div><small>Total del año</small><b>${money(yt)}</b></div><div><small>Promedio por mes</small><b>${money(avg)}</b></div><div><small>Falta pagar</small><b>${money(pend)}</b></div></div>${sv}${legend([['var(--c1)','Pagado (claro) · a pagar (fuerte)']])}</div>`}
 function vTc(){const T=tcCfg();if(!T.cards.length)return`<div class="card"><p class="note" style="margin:0">No encontré conceptos de tarjeta en Gastos (los que empiezan con “Tarjeta”).</p></div>`;
  const k=ymK(yr,mo),cur=k==NOWK;
  /* slider de meses: el mismo de Gastos */
@@ -2430,6 +2439,7 @@ function vTc(){const T=tcCfg();if(!T.cards.length)return`<div class="card"><p cl
  let h=TCIN.length?`<button class="card tcinb" data-tcin="1"><span><b>${TCIN.length==1?'Llegó 1 resumen':'Llegaron '+TCIN.length+' resúmenes'} desde Compartir</b><small>Tocá para revisarlo y cargarlo en Gastos</small></span><span class="pill up">Cargar</span></button>`:'';
  h+=`<div class="hero tch" style="margin-top:4px"><div class="k" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Tarjetas · ${MESL[mo]} ${yr}</span>${nT?`<span class="pill ${nP==nT?'up':'wr'}">${nP==nT?'Todas pagas':nP+' de '+nT+' pagas'}</span>`:''}</div><div class="big"><small>$</small>${HV(nfu.format(Math.round(totA)))}</div><div class="s">${totU?`+ US$ ${f2u(totU)} · `:''}${nR} resumen${nR==1?'':'es'}${nE?` + ${nE} estimad${nE==1?'a':'as'}`:''}${!nR&&!nE?' · valores de Gastos':''}</div>
   <div class="tct">${ls.map(([C,M])=>{const B=tcBrand(C);return`<button data-tcopen="${C.id}" class="${TCO==C.id?'on':''}${M.paid?' pd':''}"><span class="lg" style="--b:${B.bg}">${B.t}${B.net?`<i>${B.net}</i>`:''}</span><span class="nm">${esc(C.n)}</span><b>${M.a||M.u?money(M.a):'—'}</b>${M.u?`<span class="us">+ US$ ${f2u(M.u)}</span>`:''}<small>${when(M)}</small></button>`}).join('')}</div></div>`;
+ h+=tcChart();
  ls.forEach(([C,M])=>{const op=TCO==C.id,R=M.R,P=M.P;
   h+=`<div class="card tcc${op?' open':''}" id="tc-${C.id}"><button class="tchd" data-tcopen="${C.id}" aria-expanded="${op}"><span class="chev">›</span>${(B=>`<span class="tlg" style="--b:${B.bg}">${B.t}</span>`)(tcBrand(C))}<span class="nm"><b>${esc(C.n)}</b><small>${when(M)}${M.u?` · + US$ ${f2u(M.u)}`:''}</small></span><span class="r"><b>${M.a?money(M.a):'—'}</b>${pill(M)}</span></button>`;
   if(op){h+=`<div class="tcb">`;
@@ -2786,7 +2796,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126221000';
+const BUILD='20261126222000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
