@@ -497,6 +497,7 @@ tr.ss td{font-size:11.5px}tr.ss.in td{color:var(--up)}tr.ss.eg td{color:var(--c2
 @media (prefers-reduced-motion:reduce){#app.sw-l,#app.sw-r{animation:none}}
 
 /* tarjetas colapsables */
+.gcat{display:grid;grid-template-columns:minmax(150px,220px) 1fr;gap:18px;align-items:center}.gcat .donut{max-width:220px;margin:0 auto}@media(max-width:600px){.gcat{grid-template-columns:1fr}.gcat .donut{max-width:180px}}
 .tcp{font-style:normal;color:var(--up);font-weight:700}
 .tchd .tlg{width:30px;height:30px;border-radius:9px;background:var(--b);color:#fff;display:flex;align-items:center;justify-content:center;font:800 9.5px var(--sans);flex:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
 .tct{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:14px}
@@ -961,34 +962,20 @@ function vGA(){const ys=Object.keys(S.y).filter(y=>yearStats(y).tot>0).sort();co
  // categorías
  const cs=gC.map(c=>({c,v:st.byCat[c.id]||0})).filter(z=>z.v>0).sort((a,b)=>b.v-a.v);const tc=st.cons||1;
  if(st.byCat._)cs.push({c:{id:'_',n:'Sin categoría',t:'g'},v:st.byCat._});
- h+=`<div class="grid g2c" style="margin-top:12px"><div class="chart"><h3>Gasto por categoría</h3><div class="cs">${Y} · ${ms(st.cons)} en total, sin ahorro</div>
-  <div class="donut"><svg viewBox="0 0 150 150" role="img" aria-label="Gasto por categoría">${donut(cs.map(z=>({v:z.v,col:catColor(z.c),lab:z.c.n,fmt:money})),tc)}<text x="75" y="70" text-anchor="middle" class="ax" style="font-size:10px;letter-spacing:.08em">GASTOS</text><text x="75" y="86" text-anchor="middle" style="fill:var(--fg);font:700 13px var(--mono)">${ms(st.cons)}</text></svg>
-  <div class="dl">${cs.map(z=>`<div><i class="sw" style="background:${catColor(z.c)}"></i><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(z.c.n)}</span><b>${pc0(z.v/tc*100)}</b></div>`).join('')}</div></div></div>
-  <div class="chart"><h3>Ranking de categorías</h3><div class="cs">monto anual · % del gasto${P?' · vs '+(Y-1):''}</div><div class="list" style="border:0">${cs.map(z=>`<div class="li" style="padding:9px 0"><i class="sw" style="background:${catColor(z.c)}"></i><div class="l1"><b style="font-family:var(--sans);font-weight:600">${esc(z.c.n)}</b><small>${pc0(z.v/tc*100)} del gasto · ${ms(z.v/12)} por mes</small></div><div class="r1"><b>${money(z.v)}</b><small>${P&&P.byCat[z.c.id]?vsPrev(z.v,P.byCat[z.c.id]):''}</small></div></div>`).join('')}</div></div></div>`;
+ h+=`<div class="chart" style="margin-top:12px"><h3>Gasto por categoría</h3><div class="cs">${Y} · ${ms(st.cons)} en total, sin ahorro${P?' · vs '+(Y-1):''}</div><div class="gcat">
+  <div class="donut"><svg viewBox="0 0 150 150" role="img" aria-label="Gasto por categoría">${donut(cs.map(z=>({v:z.v,col:catColor(z.c),lab:z.c.n,fmt:money})),tc)}<text x="75" y="70" text-anchor="middle" class="ax" style="font-size:10px;letter-spacing:.08em">GASTOS</text><text x="75" y="86" text-anchor="middle" style="fill:var(--fg);font:700 13px var(--mono)">${ms(st.cons)}</text></svg></div>
+<div class="list" style="border:0">${cs.map(z=>`<div class="li" style="padding:9px 0"><i class="sw" style="background:${catColor(z.c)}"></i><div class="l1"><b style="font-family:var(--sans);font-weight:600">${esc(z.c.n)}</b><small>${pc0(z.v/tc*100)} del gasto · ${ms(z.v/12)} por mes</small></div><div class="r1"><b>${money(z.v)}</b><small>${P&&P.byCat[z.c.id]?vsPrev(z.v,P.byCat[z.c.id]):''}</small></div></div>`).join('')}</div></div></div>`;
  // top conceptos
  const top=st.byRow.filter(r=>r.c.t=='g').sort((a,b)=>b.s-a.s).slice(0,10);
  h+=`<div class="chart" style="margin-top:12px"><h3>Los 10 conceptos que más pesan</h3><div class="cs">% sobre el gasto total del año</div><div class="hb2">${top.map(r=>`<div class="hb2r" data-tip="${tipA({t:r.x.n,r:[[catColor(r.c),r.c.n,''],['','Anual',money(r.s)],['','Por mes',money(r.s/12)],['','% del gasto',pc0(r.s/tc*100)]]})}"><div class="hb2t"><span>${esc(r.x.n)}</span><b>${pc0(r.s/tc*100)} · ${ms(r.s)}</b></div><div class="tr"><i style="width:${Math.max(1,r.s/top[0].s*100)}%;background:${catColor(r.c)}"></i></div></div>`).join('')}</div></div>`;
- // por mes apilado
- const ser=cs.map(z=>({n:z.c.n,col:catColor(z.c),vals:st.m.map(M=>M.byCat[z.c.id]||0)}));
- h+=`<div class="chart" style="margin-top:12px"><h3>Gasto por categoría, mes a mes</h3><div class="cs">${Y} · ARS</div>${barChart({cats:MES,stacked:true,series:ser,fy:short,H:190,aria:'Gasto por categoría por mes',
-  tip:i=>({t:MESL[i]+' '+Y,r:ser.filter(s=>s.vals[i]).sort((a,b)=>b.vals[i]-a.vals[i]).map(s=>[s.col,s.n,money(s.vals[i])]).concat([['','Total',money(st.m[i].cons)]])})})}${legend(cs.map(z=>[catColor(z.c),z.c.n]))}</div>`;
- // comparación entre años
- if(ys.length>1){const ycol=['var(--c1)','var(--c2)','var(--c3)','var(--c4)'],YS=ys.slice(-4),stats=YS.map(y=>yearStats(y));
-  h+=`<div class="chart" style="margin-top:12px"><h3>Comparación entre años</h3><div class="cs">gasto anual por categoría · los años futuros son estimados</div>${barChart({cats:cs.map(z=>{const w=z.c.n.split(/[ :]/)[0];return w.length>8?w.slice(0,7)+'.':w}),series:YS.map((y,k)=>({n:y,col:ycol[k],vals:cs.map(z=>stats[k].byCat[z.c.id]||0)})),fy:short,H:190,minW:YS.length>2?70:56,aria:'Comparación entre años',
-   tip:i=>({t:cs[i].c.n,r:YS.map((y,k)=>[ycol[k],y+(+y>now.getFullYear()?' (estimado)':''),money(stats[k].byCat[cs[i].c.id]||0)])})})}${legend(YS.map((y,k)=>[ycol[k],y]))}</div>`}
- // ingresos
  const ic=iC.map(c=>({c,v:st.byCat[c.id]||0})).filter(z=>z.v>0).sort((a,b)=>b.v-a.v),sue=st.byCat.sue||0,def=st.m.map((M,i)=>({i,d:M.incG-M.cons})).filter(z=>z.d<0);
- h+=`<div class="grid g2c" style="margin-top:12px"><div class="chart"><h3>De dónde vienen tus ingresos</h3><div class="cs">${Y} · ${ms(st.inc)} en total</div>
-  <div class="donut"><svg viewBox="0 0 150 150" role="img" aria-label="Ingresos por categoría">${donut(ic.map(z=>({v:z.v,col:catColor(z.c),lab:z.c.n,fmt:money})),st.inc||1)}<text x="75" y="70" text-anchor="middle" class="ax" style="font-size:10px;letter-spacing:.08em">INGRESOS</text><text x="75" y="86" text-anchor="middle" style="fill:var(--fg);font:700 13px var(--mono)">${ms(st.inc)}</text></svg>
-  <div class="dl">${ic.map(z=>`<div><i class="sw" style="background:${catColor(z.c)}"></i>${esc(z.c.n)}<b>${pc0(z.v/(st.inc||1)*100)}</b></div>`).join('')}</div></div></div>
-  <div class="chart"><h3>¿Alcanza el sueldo?</h3><div class="cs">${Y}</div>
+ h+=`<div class="chart" style="margin-top:12px"><h3>¿Alcanza el sueldo?</h3><div class="cs">${Y}</div>
    <div class="stat"><span>El sueldo cubre</span><b class="${sue>=st.cons?'pos':'neg'}">${st.cons?pc0(sue/st.cons*100):'—'} del gasto</b></div>
    <div class="stat"><span>Ingresos sin uso de ahorros</span><b>${money(st.incG)}</b></div>
    <div class="stat"><span>Uso de ahorros</span><b>${money(st.uso)}</b></div>
    <div class="stat"><span>Meses en negativo</span><b class="${def.length?'neg':'pos'}">${def.length?def.map(z=>MES[z.i]).join(', '):'ninguno'}</b></div>
-   ${def.length?`<div class="note" style="margin-top:6px">Peor mes: ${MESL[def.sort((a,b)=>a.d-b.d)[0].i]}, con ${money(def[0].d)}.</div>`:''}</div></div>`;
- return h+`<div class="sec"><div class="sh"><h2>Flujo del año</h2></div></div>`+vFlujo()}
-
+   ${def.length?`<div class="note" style="margin-top:6px">Peor mes: ${MESL[def.sort((a,b)=>a.d-b.d)[0].i]}, con ${money(def[0].d)}.</div>`:''}</div>`;
+ return h}
 function gCol(){try{return JSON.parse(localStorage.getItem('fin-gcol')||'[]')}catch(e){return[]}}
 function gColSet(a){try{localStorage.setItem('fin-gcol',JSON.stringify(a))}catch(e){}const y=scrollY;render();scrollTo(0,y)}
 function secFor(c,rs){const n={};rs.forEach(([x])=>n[x.s]=(n[x.s]||0)+1);const top=Object.entries(n).sort((a,b)=>b[1]-a[1])[0];if(top)return top[0];const k=Object.keys(CAT_SEC).find(k=>CAT_SEC[k]==c.id);return k||(c.t=='i'||c.t=='u'?'in':'gv')}
@@ -2796,7 +2783,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126222000';
+const BUILD='20261126223000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
