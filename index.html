@@ -1386,8 +1386,41 @@ async function putDoc(id,obj){if(!SB||!SESSION)return;if(id=='ledger')setDirty(t
  let error=null;try{({error}=await SB.from('docs').upsert({user_id:SESSION.user.id,id,data:obj,updated_at:new Date().toISOString()},{onConflict:'user_id,id'}))}catch(e){error=e}
  if(error){if(id=='ledger')setDirty(true);SYNC='err';SYNCERR=error.message;stRender()}else{if(id=='ledger')setDirty(false);if(SYNC!='db'){SYNC='db';SYNCERR='';stRender()}}}
 let SYNCERR='';
+/* sincronización segura entre dispositivos: base común + escritura condicional + fusión de 3 vías */
+let BASE=null,BASEAT=null;try{const b=JSON.parse(localStorage.getItem('fin-base')||'null');if(b&&b.at){BASE=b.d;BASEAT=b.at}}catch(e){}
+const setBase=(d,at)=>{BASE=d?cp(d):null;BASEAT=at||null;try{localStorage.setItem('fin-base',JSON.stringify({d:BASE,at:BASEAT}))}catch(e){}};
+const skz=o=>o===undefined?'~':JSON.stringify(o,(k,v)=>v&&typeof v=='object'&&!Array.isArray(v)?Object.keys(v).sort().reduce((a,x)=>(a[x]=v[x],a),{}):v);
+const sEq=(a,b)=>skz(a)===skz(b),isO=v=>v&&typeof v=='object'&&!Array.isArray(v),cl=v=>v===undefined?undefined:cp(v);
+function m3(b,l,r){if(sEq(l,b))return cl(r);if(sEq(r,b)||sEq(l,r))return cl(l);
+ if(isO(l)&&isO(r)){const B=isO(b)?b:{},o={};new Set([...Object.keys(l),...Object.keys(r)]).forEach(k=>{const v=m3(B[k],l[k],r[k]);if(v!==undefined)o[k]=v});return o}
+ if(Array.isArray(l)&&Array.isArray(r)){const B=Array.isArray(b)?b:[];
+  if(l.length==r.length&&B.length==l.length&&l.every(v=>v===null||typeof v!='object')&&r.every(v=>v===null||typeof v!='object'))return l.map((v,i)=>m3(B[i],v,r[i]));
+  const byN=a=>a.every(x=>isO(x)&&typeof x.n=='string')?Object.fromEntries(a.map(x=>[x.n,x])):null,bl=byN(l),br=byN(r);
+  if(bl&&br&&Object.keys(bl).length==l.length&&Object.keys(br).length==r.length){const bb=byN(B)||{},out=[];
+   l.forEach(x=>{const v=m3(bb[x.n],x,br[x.n]);if(v!==undefined)out.push(v)});r.forEach(x=>{if(!bl[x.n]){const v=m3(bb[x.n],undefined,x);if(v!==undefined)out.push(v)}});return out}}
+ return cl(l)}
+const noU=o=>{if(!o)return o;const c=cp(o);delete c.u;return c};
+function mergeIn(R,at){/* R: versión remota; devuelve true si quedaron cambios locales por subir */
+ const loc=noU(S),hasLocal=!!(BASE&&S&&!sEq(loc,noU(BASE)));
+ if(!hasLocal||!S){S=R;setBase(R,at);return false}
+ const M=m3(noU(BASE),loc,noU(R));M.u=Math.max(S.u||0,R.u||0)+1;S=M;setBase(R,at);return !sEq(noU(M),noU(R))}
+let ledBusy=false,ledAgain=false;
+async function putLedger(){if(!SB||!SESSION||!S)return;if(ledBusy){ledAgain=true;return}ledBusy=true;setDirty(true);
+ try{for(let i=0;i<4;i++){const obj=cp(S),now=new Date().toISOString();let data,error;
+   if(BASEAT)({data,error}=await SB.from('docs').update({data:obj,updated_at:now}).eq('user_id',SESSION.user.id).eq('id','ledger').eq('updated_at',BASEAT).select('updated_at'));
+   else{const ex=await SB.from('docs').select('id').eq('id','ledger').maybeSingle();if(ex.error)throw ex.error;
+    if(!ex.data)({data,error}=await SB.from('docs').insert({user_id:SESSION.user.id,id:'ledger',data:obj,updated_at:now}).select('updated_at'));else data=[]}
+   if(error)throw error;
+   if(data&&data.length){setBase(obj,data[0].updated_at);setDirty(false);if(SYNC!='db'){SYNC='db';SYNCERR='';stRender()}return}
+   /* otro dispositivo guardó antes: traer, fusionar y reintentar */
+   const r=await SB.from('docs').select('data,updated_at').eq('id','ledger').maybeSingle();if(r.error)throw r.error;if(!r.data)continue;
+   const more=mergeIn(r.data.data,r.data.updated_at);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}loanAuto();render();if(!more){setDirty(false);return}}
+ }catch(e){SYNC='err';SYNCERR=e.message||String(e);stRender()}finally{ledBusy=false;if(ledAgain){ledAgain=false;setTimeout(putLedger,300)}}}
+async function pullLedger(){if(!SB||!SESSION||!S||SESSION.offline)return;try{const r=await SB.from('docs').select('updated_at').eq('id','ledger').maybeSingle();if(!r.data||r.data.updated_at==BASEAT)return;
+ const f=await SB.from('docs').select('data,updated_at').eq('id','ledger').maybeSingle();if(!f.data)return;const more=mergeIn(f.data.data,f.data.updated_at);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}loanAuto();render();if(more)save()}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')pullLedger()});
 function save(){if(!S)return;S.u=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
- clearTimeout(ledT);ledT=setTimeout(()=>putDoc('ledger',cp(S)),700)}
+ clearTimeout(ledT);ledT=setTimeout(putLedger,700)}
 let histT=null;
 function recordHist(T,m){if(!HIST||!Q||!Q.ts||!T||!LIVE.ok)return;const d=new Date(Q.ts),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
  const cur=HIST.pts[k];if(cur&&Math.abs(cur[0]-T)<1)return;HIST.pts[k]=[Math.round(T),Math.round(T*m)];HIST.u=Date.now();
@@ -1396,14 +1429,17 @@ function recordHist(T,m){if(!HIST||!Q||!Q.ts||!T||!LIVE.ok)return;const d=new Da
 async function loadRemote(){
  if(!SB||!SESSION)return;SYNC='wait';stRender();
  try{
-  const [d,h]=await Promise.all([getDoc('ledger'),getDoc('history')]);
-  if(d){if(!S||(d.u||0)>=(S.u||0)){if(DIRTY&&S&&S.y&&(d.u||0)>(S.u||0)){try{await SB.from('docs').upsert({user_id:SESSION.user.id,id:'bk:'+TODAY+'-sin-conexion',data:{at:Date.now(),s:cp(S)},updated_at:new Date().toISOString()},{onConflict:'user_id,id'})}catch(e){}toast('Había cambios más nuevos en otro dispositivo. Lo que cargaste sin conexión quedó en Copias de seguridad.')}S=d;setDirty(false)}else putDoc('ledger',cp(S))}else if(S&&S.y)putDoc('ledger',cp(S));
+  const [dr,hr]=await Promise.all([SB.from('docs').select('data,updated_at').eq('id','ledger').maybeSingle(),SB.from('docs').select('data').eq('id','history').maybeSingle()]);
+  if(dr.error)throw dr.error;const d=dr.data&&dr.data.data,h=hr.data&&hr.data.data;
+  if(d){if(!BASE&&S&&S.y&&DIRTY&&!sEq(noU(S),noU(d))){try{await SB.from('docs').upsert({user_id:SESSION.user.id,id:'bk:'+TODAY+'-sin-conexion',data:{at:Date.now(),s:cp(S)},updated_at:new Date().toISOString()},{onConflict:'user_id,id'})}catch(e){}toast('Había cambios más nuevos en otro dispositivo. Lo que cargaste sin conexión quedó en Copias de seguridad.');S=null}
+   if(!BASE)S=null;const more=mergeIn(d,dr.data.updated_at);if(more)save();else setDirty(false)}
+  else if(S&&S.y){setBase(null,null);putLedger()}
   HIST=HIST||{pts:{}};if(h&&h.pts){HIST.pts=Object.assign({},h.pts,HIST.pts)}
   try{localStorage.setItem(KEY,JSON.stringify(S));localStorage.setItem('fin-hist',JSON.stringify(HIST))}catch(e){}
   SYNC='db';
   if(RT)SB.removeChannel(RT);
   RT=SB.channel('docs-'+SESSION.user.id).on('postgres_changes',{event:'*',schema:'public',table:'docs',filter:'user_id=eq.'+SESSION.user.id},p=>{const r=p.new;if(!r||!r.data)return;
-   if(r.id=='ledger'&&(r.data.u||0)>(S&&S.u||0)){S=r.data;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}loanAuto();render()}
+   if(r.id=='ledger'&&r.updated_at!=BASEAT&&!ledBusy){const more=mergeIn(r.data,r.updated_at);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}loanAuto();render();if(more)save()}
    if(r.id=='alerts'){ALR=r.data;drawBell()}
    if(r.id=='history'&&r.data.pts){HIST.pts=Object.assign({},HIST.pts,r.data.pts);render()}}).subscribe();
  }catch(e){SYNC='err';SYNCERR=e.message||String(e)}
@@ -2662,7 +2698,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126163000';
+const BUILD='20261126170000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
