@@ -1382,7 +1382,7 @@ const cp=o=>JSON.parse(JSON.stringify(o));
 function sbClient(){const c=sbConf();if(!c||!c.url||!c.key||!window.supabase)return null;
  try{return window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}catch(e){return null}}
 async function getDoc(id){const {data,error}=await SB.from('docs').select('data').eq('id',id).maybeSingle();if(error)throw error;return data?data.data:null}
-async function putDoc(id,obj){if(!SB||!SESSION)return;if(id=='ledger')setDirty(true);
+async function putDoc(id,obj){if(!SB||!SESSION)return;if(id=='ledger'&&obj)obj.sv=2;if(id=='ledger')setDirty(true);
  let error=null;try{({error}=await SB.from('docs').upsert({user_id:SESSION.user.id,id,data:obj,updated_at:new Date().toISOString()},{onConflict:'user_id,id'}))}catch(e){error=e}
  if(error){if(id=='ledger')setDirty(true);SYNC='err';SYNCERR=error.message;stRender()}else{if(id=='ledger')setDirty(false);if(SYNC!='db'){SYNC='db';SYNCERR='';stRender()}}}
 let SYNCERR='';
@@ -1406,7 +1406,7 @@ function mergeIn(R,at){/* R: versión remota; devuelve true si quedaron cambios 
  const M=m3(noU(BASE),loc,noU(R));M.u=Math.max(S.u||0,R.u||0)+1;S=M;setBase(R,at);return !sEq(noU(M),noU(R))}
 let ledBusy=false,ledAgain=false;
 async function putLedger(){if(!SB||!SESSION||!S)return;if(ledBusy){ledAgain=true;return}ledBusy=true;setDirty(true);
- try{for(let i=0;i<4;i++){const obj=cp(S),now=new Date().toISOString();let data,error;
+ try{for(let i=0;i<4;i++){S.sv=2;const obj=cp(S),now=new Date().toISOString();let data,error;
    if(BASEAT)({data,error}=await SB.from('docs').update({data:obj,updated_at:now}).eq('user_id',SESSION.user.id).eq('id','ledger').eq('updated_at',BASEAT).select('updated_at'));
    else{const ex=await SB.from('docs').select('id').eq('id','ledger').maybeSingle();if(ex.error)throw ex.error;
     if(!ex.data)({data,error}=await SB.from('docs').insert({user_id:SESSION.user.id,id:'ledger',data:obj,updated_at:now}).select('updated_at'));else data=[]}
@@ -2698,7 +2698,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126170000';
+const BUILD='20261126171000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
