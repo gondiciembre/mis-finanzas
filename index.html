@@ -2503,6 +2503,7 @@ function donut(parts,tot){let a=-Math.PI/2,s='';const R=66,r=46,cx=75,cy=75;
  return s}
 function hbars(rows,tot,col){return '<div class="hb">'+rows.map((r,i)=>`<span class="lb">${esc(r[0])}</span><span class="tr"><i style="width:${Math.max(1,r[1]/rows[0][1]*100)}%;background:${typeof col=='function'?col(r,i):col}"></i></span><span class="vl">${pc0(r[1]/tot*100)} · ${usdS(r[1])}</span>`).join('')+'</div>'}
 const grpSum=(items,f)=>{const o={};items.forEach(x=>{const k=f(x);o[k]=(o[k]||0)+x.v});return Object.entries(o).sort((a,b)=>b[1]-a[1])};
+let ANAG='geo';
 function vAna(){const I=S.inv;if(!I)return none('Todavía no hay datos de inversiones.');
  const P=port(),{T,items,by}=P,vis=items.filter(x=>x.v>0);
  const pal=SER;
@@ -2512,39 +2513,18 @@ function vAna(){const I=S.inv;if(!I)return none('Todavía no hay datos de invers
  const arg=vis.filter(x=>x.geo=='Argentina').reduce((a,x)=>a+x.v,0)/T*100;
  const F=flows(),inc12=F.filter(f=>f.ty=='r'&&f.d<=addY(TODAY,1)).reduce((a,f)=>a+f.x,0),rfV=by.rf.v;
  const kp=F.filter(f=>f.ty=='k'),kt=kp.reduce((a,f)=>a+f.x,0),wal=kt?kp.reduce((a,f)=>a+f.x*yrs(f.d),0)/kt:0;
- let h=`<div class="grid g5">
-  <div class="card kpi"><div class="k">Top 5 posiciones</div><div class="v">${pc0(top5/T*100)}</div><div class="s">de la cartera</div></div>
-  <div class="card kpi"><div class="k">Diversificación</div><div class="v">${(1/hhi).toFixed(1).replace('.',',')}</div><div class="s">posiciones efectivas</div></div>
+ let h=`<div class="grid g3">
   <div class="card kpi"><div class="k">Dolarizado</div><div class="v">${pc0(usdPct)}</div><div class="s">activos en USD</div></div>
   <div class="card kpi"><div class="k">Riesgo Argentina</div><div class="v">${pc0(arg)}</div><div class="s">emisores locales</div></div>
-  <div class="card kpi"><div class="k">Renta fija</div><div class="v">${rfV?pc0(inc12/rfV*100):'—'}</div><div class="s">rendimiento corriente · vida prom. ${wal.toFixed(1).replace('.',',')} años</div></div></div>`;
+  <div class="card kpi"><div class="k">Top 5 posiciones</div><div class="v">${pc0(top5/T*100)}</div><div class="s">de la cartera</div></div></div>`;
  const cls=CORD.filter(k=>by[k].v>0).map(k=>({k,v:by[k].v,col:CL[k][1],lab:CL[k][0]}));
+ const rv=vis.filter(x=>x.c=='rv'||x.c=='cr'),gs=ANAG=='sec';
  h+=`<div class="grid g2c" style="margin-top:12px">
  <div class="chart"><h3>Asignación por clase</h3><div class="cs">% del patrimonio · USD</div><div class="donut"><svg viewBox="0 0 150 150" role="img" aria-label="Asignación por clase">${donut(cls,T)}<text x="75" y="70" text-anchor="middle" class="ax" style="font-size:10px;letter-spacing:.08em">TOTAL</text><text x="75" y="86" text-anchor="middle" style="fill:var(--fg);font:700 14px var(--mono)">${usdS(T)}</text></svg><div class="dl">${cls.map(c=>`<div><i class="sw" style="background:${c.col}"></i>${CL[c.k][0]}<b>${pc0(c.v/T*100)}</b></div>`).join('')}</div></div></div>
- <div class="chart"><h3>Exposición geográfica</h3><div class="cs">por emisor o subyacente</div>${hbars(grpSum(vis,x=>x.geo),T,(r,i)=>pal[i%pal.length])}</div>
+ <div class="chart"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0">${gs?'Sectores':'Exposición geográfica'}</h3><div class="seg" style="max-width:180px;margin:0"><button data-anag="geo"${gs?'':' class="on"'}>País</button><button data-anag="sec"${gs?' class="on"':''}>Sector</button></div></div><div class="cs">${gs?`% sobre ${usdS(rv.reduce((a,x)=>a+x.v,0))}`:'por emisor o subyacente'}</div>${gs?`${hbars(grpSum(rv,x=>x.sec),rv.reduce((a,x)=>a+x.v,0),(r,i)=>pal[i%pal.length])}`:`${hbars(grpSum(vis,x=>x.geo),T,(r,i)=>pal[i%pal.length])}`}</div>
  </div>`;
- const rv=vis.filter(x=>x.c=='rv'||x.c=='cr');
- h+=`<div class="grid g2c" style="margin-top:12px">
- <div class="chart"><h3>Sectores · renta variable y cripto</h3><div class="cs">% sobre ${usdS(rv.reduce((a,x)=>a+x.v,0))}</div>${hbars(grpSum(rv,x=>x.sec),rv.reduce((a,x)=>a+x.v,0),(r,i)=>pal[i%pal.length])}</div>
- <div class="chart"><h3>Concentración · top 10</h3><div class="cs">peso en la cartera</div>${hbars(srt.slice(0,10).map(x=>[x.t,x.v]),T,r=>CL[(vis.find(x=>x.t==r[0])||{c:'lq'}).c][1])}</div>
- </div>`;
- // vencimientos y renta
- const ys={};kp.forEach(f=>{const y=f.d.slice(0,4);ys[y]=(ys[y]||0)+f.x});const yk=Object.keys(ys).sort();
- const months=[];for(let i=0;i<12;i++){const d=new Date(now.getFullYear(),now.getMonth()+i,1);months.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'))}
- const im=months.map(k=>F.filter(f=>f.ty=='r'&&f.d.slice(0,7)==k)),imv=im.map(a=>a.reduce((s,f)=>s+f.x,0));
- const fyU=q=>usdS(q).replace('US$ ','');
- const lad=barChart({cats:yk,series:[{n:'Capital',col:'var(--rf)',vals:yk.map(y=>ys[y])}],fy:fyU,minW:46,H:160,aria:'Vencimientos de capital por año',
-  tip:i=>({t:'Vencimientos '+yk[i],r:kp.filter(f=>f.d.startsWith(yk[i])).sort((a,b)=>b.x-a.x).slice(0,6).map(f=>['var(--rf)',f.t,usd(f.x)]).concat([['','Total',usd(ys[yk[i]])]])})});
- const inc=barChart({cats:months.map(k=>MES[+k.slice(5)-1]),series:[{n:'Renta',col:'var(--c3)',vals:imv}],fy:fyU,H:160,aria:'Renta mensual',
-  tip:i=>({t:MESL[+months[i].slice(5)-1]+' '+months[i].slice(0,4),r:im[i].sort((a,b)=>b.x-a.x).slice(0,6).map(f=>['var(--c3)',f.t,usd(f.x)]).concat([['','Total',usd(imv[i])]])})});
- h+=`<div class="grid g2c" style="margin-top:12px">
- <div class="chart"><h3>Vencimientos de capital</h3><div class="cs">renta fija · US$ por año</div>${lad}</div>
- <div class="chart"><h3>Renta próximos 12 meses</h3><div class="cs">cupones de bonos y ONs · ${usd(inc12)} en total</div>${inc}</div>
- </div>`;
- // contribuciones del día
- const ctb=vis.filter(x=>x.dU).sort((a,b)=>b.dU-a.dU),cm2=Math.max(1,...ctb.map(x=>Math.abs(x.dU)));
- if(ctb.length)h+=`<div class="chart" style="margin-top:12px"><h3>Contribución a la variación de hoy</h3><div class="cs">US$ por posición</div><div class="hb">${ctb.map(x=>`<span class="lb">${esc(x.t)}</span><span class="tr" style="display:flex;background:none"><i style="width:50%;display:flex;justify-content:flex-end;background:none"><i style="height:100%;width:${x.dU<0?Math.abs(x.dU)/cm2*100:0}%;background:var(--dn);border-radius:3px"></i></i><i style="width:50%;background:none;border-left:1px solid var(--line2)"><i style="display:block;height:100%;width:${x.dU>0?x.dU/cm2*100:0}%;background:var(--up);border-radius:3px"></i></i></span><span class="vl ${sgn(x.dU)}">${x.dU>=0?'+':'−'}${usd(Math.abs(x.dU))}</span>`).join('')}</div></div>`;
- return h+'<div class="note">Posiciones efectivas = 1 ÷ suma de los pesos al cuadrado (índice Herfindahl). Rendimiento corriente = cupones de los próximos 12 meses ÷ valor de la renta fija. Vida promedio ponderada por el capital a cobrar. Riesgo Argentina incluye bonos, ONs, BOPREAL, FCI y efectivo locales.</div>'}
+ h+=`<div class="chart" style="margin-top:12px"><h3>Concentración · top 10</h3><div class="cs">peso en la cartera</div>${hbars(srt.slice(0,10).map(x=>[x.t,x.v]),T,r=>CL[(vis.find(x=>x.t==r[0])||{c:'lq'}).c][1])}</div>`;
+ return h+'<div class="note">Riesgo Argentina incluye bonos, ONs, BOPREAL, FCI y efectivo locales. Vencimientos y renta de bonos y ONs: Cartera → Cronograma de cobros.</div>'}
 const addY=(s,n)=>(+s.slice(0,4)+n)+s.slice(4);
 const yrs=d=>(Date.parse(d)-Date.parse(TODAY))/(365.25*864e5);
 
@@ -2655,8 +2635,9 @@ function render(){drawEye();badgeSet();{const v=sec+'|'+tab,a=$('#app');if(a&&v!
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c){const pr=c.parentElement,ck=sec+tab+yr+'|'+mo+'|'+innerWidth+'|'+(pr&&pr.id);if(pr&&pr.scrollWidth>pr.clientWidth&&pr.dataset.ck!=ck){pr.dataset.ck=ck;pr.scrollLeft=c.offsetLeft-pr.offsetLeft-pr.clientWidth/2+c.offsetWidth/2}}
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff],[data-newsf],[data-newsr],[data-domed],[data-domsave],[data-domdel],[data-dombaja],[data-domre],[data-domraise],[data-domrsave],[data-domrdel],[data-goto],[data-tcup],[data-tcman],[data-tccfg],[data-tccsave],[data-tcsave],[data-tcfix],[data-tcopen],[data-tcin],[data-tcindel],[data-tcshare],[data-tckey],[data-tccopy]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-anag],[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff],[data-newsf],[data-newsr],[data-domed],[data-domsave],[data-domdel],[data-dombaja],[data-domre],[data-domraise],[data-domrsave],[data-domrdel],[data-goto],[data-tcup],[data-tcman],[data-tccfg],[data-tccsave],[data-tcsave],[data-tcfix],[data-tcopen],[data-tcin],[data-tcindel],[data-tcshare],[data-tckey],[data-tccopy]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
+ if(d.anag){ANAG=d.anag;return render()}
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
  if(d.sec){sec=d.sec;lastSub[grpOf(sec)]=sec;try{localStorage.setItem('fin-sub',JSON.stringify(lastSub))}catch(x){}try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -2783,7 +2764,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126224000';
+const BUILD='20261126225000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
