@@ -2560,7 +2560,7 @@ function render(){drawEye();badgeSet();{const v=sec+'|'+tab,a=$('#app');if(a&&v!
  const g=sec=='g';$('#yrw').hidden=!g;$('#tabs').hidden=!g;$('#mch').hidden=$('#ypr').hidden=true;
  const gr=grpOf(sec);document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.grp==gr));
  {const sb=$('#sub'),L=GRP[gr];sb.hidden=L.length<2||!S||!SESSION;sb.innerHTML=L.length<2?'':L.map(s=>`<button data-sec="${s}" class="${s==sec?'on':''}">${SUBL[s]}</button>`).join('')}
- $('#tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.tab==tab));{const tb=$('#tabs'),on=tb.querySelector('.on');if(on&&tb.scrollWidth>tb.clientWidth+2){const x=tb.scrollLeft+on.getBoundingClientRect().left-tb.getBoundingClientRect().left-(tb.clientWidth-on.offsetWidth)/2;if(Math.abs(tb.scrollLeft-x)>4)tb.scrollLeft=Math.max(0,x)}}
+ $('#tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.tab==tab));{const tb=$('#tabs'),on=tb.querySelector('.on'),ck=sec+'|'+tab+'|'+innerWidth;if(on&&tb.scrollWidth>tb.clientWidth+2&&tb.dataset.ck!=ck){tb.dataset.ck=ck;const x=tb.scrollLeft+on.getBoundingClientRect().left-tb.getBoundingClientRect().left-(tb.clientWidth-on.offsetWidth)/2;if(Math.abs(tb.scrollLeft-x)>4)tb.scrollLeft=Math.max(0,x)}}
  const app=$('#app');
  if(!SB){$('#fxw').hidden=true;$('#yrw').hidden=$('#tabs').hidden=true;app.innerHTML=vSetup();return}
  if(!SESSION){$('#fxw').hidden=true;$('#yrw').hidden=$('#tabs').hidden=true;app.innerHTML=vLogin();return}
@@ -2699,7 +2699,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126172000';
+const BUILD='20261126173000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
