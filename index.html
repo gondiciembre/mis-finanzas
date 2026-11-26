@@ -2308,6 +2308,15 @@ function tcParse(L,ref){L=L.map(s=>s.replace(/\s+$/,'')).filter(s=>s.trim());con
   let m=find(/Pago m[ií]nimo de\s+\$\s?([\d.,]+)/i);if(m)R.min=tcNum(m[1]);
   const c=L.findIndex(l=>/^Cuotas a vencer/i.test(l));if(c>=0)for(let j=c+1;j<L.length&&j<c+40;j++){const m=/^(\d{4}-\d{2})\s+\$\s?([\d.,]+)$/.exec(L[j].trim());if(m)R.cuotas[m[1]]=tcNum(m[2]);else if(/^Pagos$/i.test(L[j].trim()))break}
   L.forEach(l=>{const m=/^(\d{4}-\d{2}-\d{2})\s+\d{8,}\s+(.+?)\s+(U\$S|\$)\s?([\d.,]+)$/.exec(l);if(!m)return;const cm=/ - Cuota (\d+) de (\d+)$/i.exec(m[2]),usd=m[3]=='U$S',v=tcNum(m[4]);R.items.push({t:m[2].replace(/ - Cuota.*$/i,'').trim(),ars:usd?0:v,usd:usd?v:0,c:cm?[+cm[1],+cm[2]]:null})})}
+ else if(iss=='uala'){const at=(re,j0=1,n=3)=>{const i=L.findIndex(l=>re.test(l));if(i<0)return null;for(let j=i+j0;j<Math.min(L.length,i+j0+n);j++){const m=/\$\s?(-?[\d.]+,\d{2})\s+USD\s?(-?[\d.]+,\d{2})(?:\s+(\d{1,2}\s+[A-Za-zé]{3,}\.?\s+\d{4}))?/.exec(L[j]);if(m)return m}return null};
+  let m=at(/Tu deuda en pesos/i);if(m){R.ars=tcNum(m[1]);R.usd=tcNum(m[2])}
+  m=at(/Pago m[ií]nimo\s+Pago m[ií]nimo\s+Fecha de cierre/i);if(m){R.min=tcNum(m[1]);if(m[3])R.cierre=tcDate(m[3],ref)}
+  m=at(/Resumen anterior\s+Resumen anterior\s+Fecha de vencimiento/i);if(m&&m[3])R.vto=tcDate(m[3],ref);
+  const c0=L.findIndex(l=>/^Consumos$/i.test(l.trim()));if(c0>=0)for(let j=c0+1;j<L.length;j++){const l=L[j].trim();if(/^Total\b/i.test(l))break;
+   const r=/^(\d{1,2}\s+[A-Za-zé]{3,}\.?\s+\d{4}|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(.+?)\s+\$\s?(-?[\d.]+,\d{2})(?:\s+USD\s?(-?[\d.]+,\d{2}))?$/.exec(l);if(!r)continue;
+   let t=r[2].replace(/\s+\d{4,}$/,'').trim();const cm=/(?:cuota|c\.?)\s*(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})/i.exec(t)||/\b(\d{1,2})\/(\d{1,2})$/.exec(t);if(cm)t=t.replace(cm[0],'').replace(/\s*[-–]\s*$/,'').trim();
+   const a=tcNum(r[3])||0,u=r[4]?tcNum(r[4])||0:0;R.items.push({t,ars:a,usd:u,c:cm?[+cm[1],+cm[2]]:null})}
+  if(R.vto){const k0=R.vto.slice(0,7);R.items.forEach(it=>{if(it.c&&it.ars){R.cuotas[k0]=(R.cuotas[k0]||0)+it.ars;for(let k=1;k<=it.c[1]-it.c[0];k++){const kk=tcMAdd(k0,k);R.cuotas[kk]=(R.cuotas[kk]||0)+it.ars}}})}}
  if(R.ars==null){// genérico: total a pagar / saldo actual
   for(const l of L){if(/total a pagar|saldo actual|saldo a pagar|total del resumen/i.test(l)){const n=nums(l).filter(x=>x!=null&&x>0);if(n.length){R.ars=n[0];if(n[1]!=null&&/US|U\$S|d[oó]lar/i.test(l))R.usd=n[1];break}}}
   for(const l of L){const m=/vencimiento[^\d]{0,20}(\d{1,2}[\/\s-]+\w+\.?(?:[\/\s-]+\d{2,4})?)/i.exec(l);if(m&&!R.vto){R.vto=tcDate(m[1].replace(/\//g,' ').trim(),ref)||tcDate(m[1],ref)}}}
@@ -2316,7 +2325,7 @@ function tcParse(L,ref){L=L.map(s=>s.replace(/\s+$/,'')).filter(s=>s.trim());con
 /* cuotas por mes de pago (ICBC y Brubank las listan por mes de cierre) y la parte fija/variable del resumen */
 const tcMD=(a,b)=>(+b.slice(0,4)-+a.slice(0,4))*12+(+b.slice(5,7)-+a.slice(5,7));
 function tcNorm(R){const k0=R.vto.slice(0,7),V={};const now=R.items.filter(i=>i.c).reduce((a,i)=>a+(i.ars||0),0);
- if(R.iss=='mp'){Object.entries(R.cuotas).forEach(([k,v])=>{if(k>k0)V[k]=v})}
+ if(R.iss=='mp'||R.iss=='uala'){Object.entries(R.cuotas).forEach(([k,v])=>{if(k>k0)V[k]=v})}
  else{const off=R.cierre?Math.max(0,tcMD(R.cierre.slice(0,7),k0)):1;Object.entries(R.cuotas).forEach(([k,v])=>{const kk=tcMAdd(k,off);if(kk>k0&&v)V[kk]=(V[kk]||0)+v})}
  R.cv=V;R.cnow=Math.round(now);return R}
 const tcCfg=()=>{if(!S.tc)S.tc={cards:[],res:{}};const T=S.tc;if(!T.cards.length){const seen=new Set();Object.keys(S.y).sort().reverse().forEach(y=>S.y[y].forEach(x=>{if(/^tarjeta\s/i.test(x.n)&&!seen.has(x.n)){seen.add(x.n);T.cards.push({id:'c'+T.cards.length,n:x.n.replace(/^tarjeta\s+/i,''),row:x.n,usdUsd:true,mode:'full'})}}))}return T};
@@ -2417,7 +2426,7 @@ function vTc(){const T=tcCfg();if(!T.cards.length)return`<div class="card"><p cl
    else h+=`<p class="note" style="margin:0">${M.none?'No hay pagos de esta tarjeta en '+MESL[mo]+'.':'No hay resumen cargado para '+MESL[mo]+'. El valor es el de Gastos: '+money(M.row)+'.'}</p>`;
    h+=`<div class="hrow2"><button class="btn" data-tcup="${C.id}">Subir resumen (PDF)</button><button class="btn" data-tcman="${C.id}">Cargar a mano</button><button class="btn" data-tccfg="${C.id}">Ajustes</button></div></div>`}
   h+=`</div>`});
- h+=`<div class="hrow2" style="margin-top:12px"><button class="btn" data-tcshare="1">Compartir resúmenes desde el iPhone</button></div><p class="note">Elegí el mes arriba. Tocá una tarjeta para ver el detalle. Los PDF se leen en tu dispositivo: solo se guardan los números. Formatos probados: VISA y Mastercard ICBC, Mercado Pago y Brubank; otros se pueden cargar a mano.</p>`;return h}
+ h+=`<div class="hrow2" style="margin-top:12px"><button class="btn" data-tcshare="1">Compartir resúmenes desde el iPhone</button></div><p class="note">Elegí el mes arriba. Tocá una tarjeta para ver el detalle. Los PDF se leen en tu dispositivo: solo se guardan los números. Formatos probados: VISA y Mastercard ICBC, Mercado Pago, Brubank y Ualá; otros se pueden cargar a mano.</p>`;return h}
 function tcCfgSheet(id){const C=tcCfg().cards.find(c=>c.id==id);mfn=null;const rows=[...new Set(Object.values(S.y).flat().filter(x=>x.s!='in').map(x=>x.n))];
  $('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true"><h2>Ajustes · ${esc(C.n)}</h2>
  <label for="tq1">Nombre</label><input class="inp" id="tq1" value="${esc(C.n)}"><label for="tq2">Concepto de Gastos</label><select class="inp" id="tq2">${rows.map(n=>`<option${n==C.row?' selected':''}>${esc(n)}</option>`).join('')}</select>
@@ -2753,7 +2762,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126180000';
+const BUILD='20261126181000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
