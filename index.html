@@ -497,6 +497,8 @@ tr.ss td{font-size:11.5px}tr.ss.in td{color:var(--up)}tr.ss.eg td{color:var(--c2
 @media (prefers-reduced-motion:reduce){#app.sw-l,#app.sw-r{animation:none}}
 
 /* tarjetas colapsables */
+.tcinb{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;margin:4px 0 12px;text-align:left;color:var(--fg);border-color:color-mix(in srgb,var(--up) 45%,transparent);background:var(--up-s)}.tcinb span:first-child{display:flex;flex-direction:column;gap:2px}.tcinb small{font-size:12px;color:var(--mut)}
+#tabs button.dot{position:relative}#tabs button.dot::after{content:'';position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--dn)}
 .tcv{font-style:normal;color:var(--dn);font-weight:700}
 .tcsum{display:flex;flex-direction:column;gap:2px;margin-top:14px;padding-top:10px;border-top:1px solid var(--gl)}
 .tcsum button{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:7px 8px;margin:0 -8px;width:calc(100% + 16px);border-radius:10px;text-align:left;color:var(--fg)}
@@ -1419,7 +1421,7 @@ async function putLedger(){if(!SB||!SESSION||!S)return;if(ledBusy){ledAgain=true
  }catch(e){SYNC='err';SYNCERR=e.message||String(e);stRender()}finally{ledBusy=false;if(ledAgain){ledAgain=false;setTimeout(putLedger,300)}}}
 async function pullLedger(){if(!SB||!SESSION||!S||SESSION.offline)return;try{const r=await SB.from('docs').select('updated_at').eq('id','ledger').maybeSingle();if(!r.data||r.data.updated_at==BASEAT)return;
  const f=await SB.from('docs').select('data,updated_at').eq('id','ledger').maybeSingle();if(!f.data)return;const more=mergeIn(f.data.data,f.data.updated_at);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}loanAuto();render();if(more)save()}catch(e){}}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')pullLedger()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible'){pullLedger();tcInList()}});
 function save(){if(!S)return;S.u=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
  clearTimeout(ledT);ledT=setTimeout(putLedger,700)}
 let histT=null;
@@ -1442,9 +1444,10 @@ async function loadRemote(){
   RT=SB.channel('docs-'+SESSION.user.id).on('postgres_changes',{event:'*',schema:'public',table:'docs',filter:'user_id=eq.'+SESSION.user.id},p=>{const r=p.new;if(!r||!r.data)return;
    if(r.id=='ledger'&&r.updated_at!=BASEAT&&!ledBusy){const more=mergeIn(r.data,r.updated_at);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}loanAuto();render();if(more)save()}
    if(r.id=='alerts'){ALR=r.data;drawBell()}
+   if(String(r.id).startsWith('tcin:'))tcInList();
    if(r.id=='history'&&r.data.pts){HIST.pts=Object.assign({},HIST.pts,r.data.pts);render()}}).subscribe();
  }catch(e){SYNC='err';SYNCERR=e.message||String(e)}
- getDoc('alerts').then(x=>{ALR=x;drawBell()}).catch(()=>{});setTimeout(()=>backupDaily(false),3000);setTimeout(()=>goHash(),50);
+ getDoc('alerts').then(x=>{ALR=x;drawBell()}).catch(()=>{});tcInList();setTimeout(()=>backupDaily(false),3000);setTimeout(()=>goHash(),50);
  loanAuto();loanFetch(false);
  stRender();render()}
 
@@ -1567,7 +1570,7 @@ async function openNotif(keep){if(!FNCODE)fetch('./supabase/functions/alertas/in
  <li><b>Activar.</b> Volvé acá y tocá <b>Activar en este dispositivo</b> en cada iPhone o compu donde quieras recibirlas.</li></ol></details>
  </div></div>`;seenAlerts()}
 function goHash(h){h=String(h||location.hash).replace(/^#/,'');let tg='';if(h.includes('~'))[h,tg]=h.split('~');const M={noticias:['w'],retiro:['j'],hoy:['h'],patrimonio:['p'],ons:['o'],autos:['g','auto'],cartera:['i'],analisis:['a'],cobros:['c'],notas:['e'],rsu:['r'],dolar:['d'],mundo:['m'],credito:['g','uva'],alquiler:['g','alq'],gastos:['g','mes'],tarjetas:['g','tc'],personal:['g','dom'],avisos:['n']}[h];if(!M||!S)return;
- if(M[0]=='n'){openInbox();}else{sec=M[0];if(M[1])tab=M[1];try{localStorage.setItem('gastos-sec',sec)}catch(e){}closeSheet();render();scrollTo(0,0);const mt=/^(mv|conc|cob)-(.+)$/.exec(tg);if(mt&&sec=='i')focusTk(mt[2])}try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}
+ if(M[0]=='n'){openInbox();}else{sec=M[0];if(M[1])tab=M[1];try{localStorage.setItem('gastos-sec',sec)}catch(e){}closeSheet();render();scrollTo(0,0);const mt=/^(mv|conc|cob)-(.+)$/.exec(tg);if(mt&&sec=='i')focusTk(mt[2]);if(tg=='in'&&tab=='tc')tcInList().then(()=>tcInLoad())}try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}
 addEventListener('hashchange',()=>goHash());
 /* ---------- IOL: cotizaciones en tiempo real (vía función "iol" de tu Supabase) ---------- */
 let IOLQ={},IOLst={st:'off',at:0,err:'',n:0};try{IOLQ=JSON.parse(localStorage.getItem('fin-iolq')||'{}')}catch(e){}
@@ -2332,21 +2335,46 @@ function tcUpload(id){TCUP=id;let f=$('#tcfile');if(!f){f=document.createElement
  f.addEventListener('change',async()=>{const file=f.files&&f.files[0];f.value='';if(!file)return;toast('Leyendo el resumen…');try{const L=await pdfLines(await file.arrayBuffer());const R=tcParse(L,TODAY);R.file=file.name;if(R.vto)tcNorm(R);tcConfirm(TCUP,R)}catch(e){toast('No pude leer el PDF: '+e.message);tcConfirm(TCUP,{iss:'gen',items:[],cuotas:{},usd:0,perc:0,ars:null,vto:null})}})}
  f.click()}
 const TCISS={visa:'VISA ICBC',master:'Mastercard ICBC',mp:'Mercado Pago',bru:'Brubank',uala:'Ualá',gen:'otro formato'};
-function tcConfirm(id,R){const C=tcCfg().cards.find(c=>c.id==id);if(!C)return;TCPEND={id,R};const v=x=>x==null?'':String(Math.round(x*100)/100).replace('.',',');mfn=null;
+function tcConfirm(id,R,inb){const C=tcCfg().cards.find(c=>c.id==id);if(!C)return;TCPEND={id,R,inb};const v=x=>x==null?'':String(Math.round(x*100)/100).replace('.',',');mfn=null;
  $('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" style="max-height:92vh;overflow:auto"><h2>${R.items&&R.items.length?'Resumen leído':'Cargar resumen'} · ${esc(C.n)}</h2>
  <div class="m">${R.ok?`Formato ${TCISS[R.iss]||R.iss} · ${R.items.length} consumos encontrados. Revisá los datos antes de guardar.`:R.items&&R.items.length?'No encontré todos los datos: completá lo que falta.':'Cargá los datos del resumen a mano.'}</div>
- <div class="grid g2" style="gap:10px"><div><label for="tc1">Cierre</label><input class="inp" type="date" id="tc1" value="${R.cierre||''}"></div><div><label for="tc2">Vencimiento</label><input class="inp" type="date" id="tc2" value="${R.vto||''}"></div>
+ ${inb?`<label for="tc0">Tarjeta</label><select class="inp" id="tc0">${tcCfg().cards.map(c=>`<option value="${c.id}"${c.id==id?' selected':''}>${esc(c.n)}</option>`).join('')}</select>`:''}<div class="grid g2" style="gap:10px"><div><label for="tc1">Cierre</label><input class="inp" type="date" id="tc1" value="${R.cierre||''}"></div><div><label for="tc2">Vencimiento</label><input class="inp" type="date" id="tc2" value="${R.vto||''}"></div>
  <div><label for="tc3">Total en pesos</label><input class="inp" inputmode="decimal" id="tc3" value="${v(R.ars)}"></div><div><label for="tc4">Total en dólares</label><input class="inp" inputmode="decimal" id="tc4" value="${v(R.usd)}"></div>
  <div><label for="tc5">Percepción 30% (se descuenta)</label><input class="inp" inputmode="decimal" id="tc5" value="${v(R.perc)}"></div><div><label for="tc6">Pago mínimo</label><input class="inp" inputmode="decimal" id="tc6" value="${v(R.min)}"></div></div>
  <div id="tcprev" style="margin-top:10px"></div>
- <div class="btns"><button data-close="1">Cancelar</button><button class="pr" data-tcsave="1">Guardar y actualizar Gastos</button></div></div></div>`;
+ <div class="btns">${inb?'<button data-tcindel="1">Descartar</button>':''}<button data-close="1">${inb?'Después':'Cancelar'}</button><button class="pr" data-tcsave="1">Guardar y actualizar Gastos</button></div></div></div>`;
  const pv=()=>{const r=tcRead();if(!r){$('#tcprev').innerHTML='';return}const k0=r.vto.slice(0,7),ks=[0,1,2,3].map(i=>tcMAdd(k0,i));$('#tcprev').innerHTML=`<div class="stat"><span>A pagar ${fd(r.vto).slice(0,5)}${r.usd?' (dólares al MEP)':''}</span><b>${money(r.ars-r.perc+(r.usd||0)*mepE())}</b></div>${r.perc?`<div class="stat"><span>Percepción descontada</span><b>−${money(r.perc)}</b></div>`:''}${ks.slice(1).map(k=>`<div class="stat"><span>Estimado ${mLab(k)}</span><b>${money(tcEst(C,r,k))}</b></div>`).join('')}<p class="note" style="margin:6px 0 0">Los meses siguientes repiten lo variable y los fijos de este resumen y suman las cuotas que vienen. Los meses ya pagados no se tocan.</p>`};
  ['tc1','tc2','tc3','tc4','tc5'].forEach(i=>$('#'+i).addEventListener('input',pv));pv()}
 let TCPEND=null;
 function tcRead(){if(!TCPEND)return null;const R=JSON.parse(JSON.stringify(TCPEND.R)),g=i=>$('#'+i)&&$('#'+i).value;R.cierre=g('tc1')||null;R.vto=g('tc2')||null;R.ars=retNum(g('tc3'));R.usd=retNum(g('tc4'))||0;R.perc=retNum(g('tc5'))||0;R.min=retNum(g('tc6'));if(!R.vto||R.ars==null)return null;R.items=R.items||[];R.cuotas=R.cuotas||{};tcNorm(R);return R}
-function tcSave(){const R=tcRead();if(!R)return toast('Faltan el vencimiento o el total.');const T=tcCfg(),id=TCPEND.id;R.mep=Math.round(mepE()*100)/100;R.at=Date.now();
+function tcSave(){const R=tcRead();if(!R)return toast('Faltan el vencimiento o el total.');const T=tcCfg(),id=$('#tc0')?$('#tc0').value:TCPEND.id,inb=TCPEND.inb;R.mep=Math.round(mepE()*100)/100;R.at=Date.now();
  const L=(T.res[id]=T.res[id]||[]).filter(x=>x.vto!=R.vto);L.push(R);L.sort((a,b)=>a.vto<b.vto?-1:1);L.forEach((x,i)=>{if(i<L.length-2){delete x.items;x.items=[]}});T.res[id]=L.slice(-12);
- TCPEND=null;tcAuto();save();closeSheet();sec='g';tab='tc';render();toast('Resumen guardado: Gastos actualizado')}
+ TCPEND=null;tcAuto();save();closeSheet();sec='g';tab='tc';TCO=id;render();if(inb)tcInDel(inb).then(()=>{if(TCIN.length)toast('Guardado. '+(TCIN.length==1?'Queda 1 resumen':'Quedan '+TCIN.length+' resúmenes')+' por cargar');else toast('Resumen guardado: Gastos actualizado')});else toast('Resumen guardado: Gastos actualizado')}
+/* ---------- resúmenes recibidos desde Compartir (Atajo del iPhone) ---------- */
+let TCIN=[];
+async function tcInList(){if(!SB||!SESSION||SESSION.offline)return;try{const {data}=await SB.from('docs').select('id').like('id','tcin:%').order('id');const n=(data||[]).map(r=>r.id);if(n.join()!=TCIN.join()){TCIN=n;tcInBadge();if(sec=='g'&&tab=='tc'&&!$('#ov').innerHTML)render()}}catch(e){}}
+function tcInBadge(){const b=document.querySelector('#tabs [data-tab="tc"]');if(b)b.classList.toggle('dot',TCIN.length>0)}
+async function tcInDel(id){try{await SB.from('docs').delete().eq('id',id)}catch(e){}TCIN=TCIN.filter(x=>x!=id);tcInBadge();render()}
+function tcGuess(R){const T=tcCfg();if(R.iss&&R.iss!='gen'){const by=T.cards.find(C=>{const L=T.res[C.id]||[];return L.length&&L[L.length-1].iss==R.iss});if(by)return by.id}
+ const re={visa:/visa/i,master:/master/i,mp:/meli|mercado/i,bru:/bru|burbank/i,uala:/uala|ualá/i}[R.iss];const c=re&&T.cards.find(C=>re.test(C.n));return(c||T.cards[0]).id}
+async function tcInLoad(){if(!TCIN.length)return toast('No hay resúmenes nuevos');const id=TCIN[0];toast('Leyendo el resumen…');
+ try{const {data,error}=await SB.from('docs').select('data').eq('id',id).maybeSingle();if(error||!data)throw new Error('no lo encontré');const bin=atob(data.data.f),u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+  let R;try{R=tcParse(await pdfLines(u8.buffer),TODAY);if(R.vto)tcNorm(R)}catch(e){R={iss:'gen',items:[],cuotas:{},usd:0,perc:0,ars:null,vto:null}}R.file=data.data.n||'resumen.pdf';tcConfirm(tcGuess(R),R,id)}
+ catch(e){toast('No pude abrir el resumen: '+(e.message||e))}}
+function tcShareSheet(){mfn=null;let k='';try{k=localStorage.getItem('fin-tckey')||''}catch(e){}const url=(sbConf()||{}).url+'/functions/v1/alertas';
+ $('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true" style="max-height:92vh;overflow:auto"><h2>Compartir resúmenes desde el iPhone</h2>
+ <div class="m">El iPhone no deja que una web app aparezca en Compartir, pero un Atajo sí. Lo armás una vez y después compartís el PDF desde Mail, WhatsApp o el banco y elegís “Enviar a Finanzas Gonzo”. La próxima vez que abras la app te espera para revisarlo.</div>
+ <ol class="nsteps">
+ <li><b>Tu clave del atajo.</b> ${k?`<br><code style="word-break:break-all">${esc(k)}</code><br><button class="btn" data-tccopy="k">Copiar clave</button> <button class="btn" data-tckey="1">Generar otra</button>`:`Generala acá: sirve solo para mandar resúmenes a tu cuenta.<br><button class="btn" data-tckey="1">Generar clave</button>`}</li>
+ <li><b>Creá el atajo.</b> App Atajos → <b>+</b> → nombre <b>Enviar a Finanzas Gonzo</b>. Tocá <b>ⓘ</b> y activá <b>Mostrar en la hoja para compartir</b>; en los tipos dejá solo <b>PDF</b>.</li>
+ <li><b>Acción “Codificar en Base64”</b> con la <b>Entrada del atajo</b>. Tocá la flechita y en <b>Saltos de línea</b> elegí <b>Ninguno</b>.</li>
+ <li><b>Acción “Obtener contenido de URL”.</b> URL:<br><code style="word-break:break-all">${esc(url)}</code><br><button class="btn" data-tccopy="u">Copiar URL</button><br>Tocá <b>Mostrar más</b>: Método <b>POST</b>, Cuerpo <b>JSON</b>, y agregá 3 campos de tipo Texto:<br><code>op</code> = <code>tcin</code> · <code>k</code> = tu clave · <code>f</code> = la variable <b>Texto codificado en Base64</b>.</li>
+ <li><b>Acción “Mostrar notificación”</b> con <b>Contenido de la URL</b>, así ves si llegó bien.</li></ol>
+ <p class="note">Necesita la función <b>alertas</b> actualizada (Ajustes → Notificaciones → Copiar código de la función). El PDF queda guardado en tu Supabase hasta que lo cargues o lo descartes; los números se leen en tu dispositivo.</p>
+ <div class="btns"><button data-close="1">Cerrar</button></div></div></div>`}
+async function tcKeyGen(){const a=new Uint8Array(24);crypto.getRandomValues(a);const k='fg_'+[...a].map(b=>b.toString(16).padStart(2,'0')).join('');
+ const h=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(k)))].map(b=>b.toString(16).padStart(2,'0')).join('');
+ try{await SB.from('docs').upsert({user_id:SESSION.user.id,id:'tckey',data:{h,at:Date.now()},updated_at:new Date().toISOString()},{onConflict:'user_id,id'});try{localStorage.setItem('fin-tckey',k)}catch(e){}tcShareSheet();toast('Clave nueva lista. Si ya tenías el atajo, actualizale la clave.')}catch(e){toast('No pude guardar la clave')}}
 let TCO=null;
 function tcNext(C,R){if(!R)return null;const P=tcParts(R);
  if(R.vto>=TODAY)return{real:true,k:R.vto.slice(0,7),vto:R.vto,a:P.pay,u:R.usd||0};
@@ -2366,7 +2394,8 @@ function vTc(){const T=tcCfg();if(!T.cards.length)return`<div class="card"><p cl
  const amt=M=>M.a||M.u?`${money(M.a)}${M.u?`<i>+ US$ ${f2u(M.u)}</i>`:''}`:'<span class="mutc">—</span>';
  const when=M=>M.kind=='real'?(M.paid?`pagado · venció ${fd(M.R.vto).slice(0,5)}`:M.R.vto<TODAY?`<em class="tcv">venció ${fd(M.R.vto).slice(0,5)}</em>`:`<em class="tcv">vence ${fd(M.R.vto).slice(0,5)}</em>`):M.kind=='est'?(M.paid?'pagado':'estimado'):M.none?'sin pagos':(M.paid?'pagado':'según Gastos');
  const pill=M=>M.paid&&M.row?'<span class="pill up">pagado</span>':M.kind=='real'?(()=>{const dd=Math.round((Date.parse(M.R.vto)-Date.parse(TODAY))/864e5);return`<span class="pill dn">${dd<0?'vencido':dd==0?'vence hoy':'en '+dd+' d'}</span>`})():M.kind=='est'?'<span class="pill nt">estimado</span>':M.none?'':'<span class="pill nt">Gastos</span>';
- let h=`<div class="hero tch" style="margin-top:4px"><div class="k" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Tarjetas · ${MESL[mo]} ${yr}</span>${nT?`<span class="pill ${nP==nT?'up':'wr'}">${nP==nT?'Todas pagas':nP+' de '+nT+' pagas'}</span>`:''}</div><div class="big"><small>$</small>${HV(nfu.format(Math.round(totA)))}</div><div class="s">${totU?`+ US$ ${f2u(totU)} · `:''}${nR} resumen${nR==1?'':'es'}${nE?` + ${nE} estimad${nE==1?'a':'as'}`:''}${!nR&&!nE?' · valores de Gastos':''}</div>
+ let h=TCIN.length?`<button class="card tcinb" data-tcin="1"><span><b>${TCIN.length==1?'Llegó 1 resumen':'Llegaron '+TCIN.length+' resúmenes'} desde Compartir</b><small>Tocá para revisarlo y cargarlo en Gastos</small></span><span class="pill up">Cargar</span></button>`:'';
+ h+=`<div class="hero tch" style="margin-top:4px"><div class="k" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Tarjetas · ${MESL[mo]} ${yr}</span>${nT?`<span class="pill ${nP==nT?'up':'wr'}">${nP==nT?'Todas pagas':nP+' de '+nT+' pagas'}</span>`:''}</div><div class="big"><small>$</small>${HV(nfu.format(Math.round(totA)))}</div><div class="s">${totU?`+ US$ ${f2u(totU)} · `:''}${nR} resumen${nR==1?'':'es'}${nE?` + ${nE} estimad${nE==1?'a':'as'}`:''}${!nR&&!nE?' · valores de Gastos':''}</div>
   <div class="tcsum">${ls.map(([C,M])=>`<button data-tcopen="${C.id}"${TCO==C.id?' class="on"':''}><span><b>${esc(C.n)}</b><small>${when(M)}</small></span><span class="r">${amt(M)}</span></button>`).join('')}</div></div>`;
  ls.forEach(([C,M])=>{const op=TCO==C.id,R=M.R,P=M.P;
   h+=`<div class="card tcc${op?' open':''}" id="tc-${C.id}"><button class="tchd" data-tcopen="${C.id}" aria-expanded="${op}"><span class="chev">›</span><span class="nm"><b>${esc(C.n)}</b><small>${when(M)}${M.u?` · + US$ ${f2u(M.u)}`:''}</small></span><span class="r"><b>${M.a?money(M.a):'—'}</b>${pill(M)}</span></button>`;
@@ -2388,7 +2417,7 @@ function vTc(){const T=tcCfg();if(!T.cards.length)return`<div class="card"><p cl
    else h+=`<p class="note" style="margin:0">${M.none?'No hay pagos de esta tarjeta en '+MESL[mo]+'.':'No hay resumen cargado para '+MESL[mo]+'. El valor es el de Gastos: '+money(M.row)+'.'}</p>`;
    h+=`<div class="hrow2"><button class="btn" data-tcup="${C.id}">Subir resumen (PDF)</button><button class="btn" data-tcman="${C.id}">Cargar a mano</button><button class="btn" data-tccfg="${C.id}">Ajustes</button></div></div>`}
   h+=`</div>`});
- h+=`<p class="note">Elegí el mes arriba. Tocá una tarjeta para ver el detalle. Los PDF se leen en tu dispositivo: solo se guardan los números. Formatos probados: VISA y Mastercard ICBC, Mercado Pago y Brubank; otros se pueden cargar a mano.</p>`;return h}
+ h+=`<div class="hrow2" style="margin-top:12px"><button class="btn" data-tcshare="1">Compartir resúmenes desde el iPhone</button></div><p class="note">Elegí el mes arriba. Tocá una tarjeta para ver el detalle. Los PDF se leen en tu dispositivo: solo se guardan los números. Formatos probados: VISA y Mastercard ICBC, Mercado Pago y Brubank; otros se pueden cargar a mano.</p>`;return h}
 function tcCfgSheet(id){const C=tcCfg().cards.find(c=>c.id==id);mfn=null;const rows=[...new Set(Object.values(S.y).flat().filter(x=>x.s!='in').map(x=>x.n))];
  $('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true"><h2>Ajustes · ${esc(C.n)}</h2>
  <label for="tq1">Nombre</label><input class="inp" id="tq1" value="${esc(C.n)}"><label for="tq2">Concepto de Gastos</label><select class="inp" id="tq2">${rows.map(n=>`<option${n==C.row?' selected':''}>${esc(n)}</option>`).join('')}</select>
@@ -2580,7 +2609,7 @@ function render(){drawEye();badgeSet();{const v=sec+'|'+tab,a=$('#app');if(a&&v!
  const g=sec=='g';$('#yrw').hidden=!g;$('#tabs').hidden=!g;$('#mch').hidden=$('#ypr').hidden=true;
  const gr=grpOf(sec);document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.grp==gr));
  {const sb=$('#sub'),L=GRP[gr];sb.hidden=L.length<2||!S||!SESSION;sb.innerHTML=L.length<2?'':L.map(s=>`<button data-sec="${s}" class="${s==sec?'on':''}">${SUBL[s]}</button>`).join('')}
- $('#tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.tab==tab));{const tb=$('#tabs'),on=tb.querySelector('.on'),ck=sec+'|'+tab+'|'+innerWidth;if(on&&tb.scrollWidth>tb.clientWidth+2&&tb.dataset.ck!=ck){tb.dataset.ck=ck;const x=tb.scrollLeft+on.getBoundingClientRect().left-tb.getBoundingClientRect().left-(tb.clientWidth-on.offsetWidth)/2;if(Math.abs(tb.scrollLeft-x)>4)tb.scrollLeft=Math.max(0,x)}}
+ $('#tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.tab==tab));tcInBadge();{const tb=$('#tabs'),on=tb.querySelector('.on'),ck=sec+'|'+tab+'|'+innerWidth;if(on&&tb.scrollWidth>tb.clientWidth+2&&tb.dataset.ck!=ck){tb.dataset.ck=ck;const x=tb.scrollLeft+on.getBoundingClientRect().left-tb.getBoundingClientRect().left-(tb.clientWidth-on.offsetWidth)/2;if(Math.abs(tb.scrollLeft-x)>4)tb.scrollLeft=Math.max(0,x)}}
  const app=$('#app');
  if(!SB){$('#fxw').hidden=true;$('#yrw').hidden=$('#tabs').hidden=true;app.innerHTML=vSetup();return}
  if(!SESSION){$('#fxw').hidden=true;$('#yrw').hidden=$('#tabs').hidden=true;app.innerHTML=vLogin();return}
@@ -2596,7 +2625,7 @@ function render(){drawEye();badgeSet();{const v=sec+'|'+tab,a=$('#app');if(a&&v!
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c){const pr=c.parentElement,ck=sec+tab+yr+'|'+mo+'|'+innerWidth+'|'+(pr&&pr.id);if(pr&&pr.scrollWidth>pr.clientWidth&&pr.dataset.ck!=ck){pr.dataset.ck=ck;pr.scrollLeft=c.offsetLeft-pr.offsetLeft-pr.clientWidth/2+c.offsetWidth/2}}
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff],[data-newsf],[data-newsr],[data-domed],[data-domsave],[data-domdel],[data-dombaja],[data-domre],[data-domraise],[data-domrsave],[data-domrdel],[data-goto],[data-tcup],[data-tcman],[data-tccfg],[data-tccsave],[data-tcsave],[data-tcfix],[data-tcopen]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff],[data-newsf],[data-newsr],[data-domed],[data-domsave],[data-domdel],[data-dombaja],[data-domre],[data-domraise],[data-domrsave],[data-domrdel],[data-goto],[data-tcup],[data-tcman],[data-tccfg],[data-tccsave],[data-tcsave],[data-tcfix],[data-tcopen],[data-tcin],[data-tcindel],[data-tcshare],[data-tckey],[data-tccopy]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -2647,6 +2676,11 @@ document.addEventListener('click',e=>{
  if(d.tcup)return tcUpload(d.tcup);
  if(d.tcman)return tcConfirm(d.tcman,{iss:'gen',items:[],cuotas:{},usd:0,perc:0,ars:null,vto:null});
  if(d.tcsave)return tcSave();
+ if(d.tcin)return tcInLoad();
+ if(d.tcindel){const id=TCPEND&&TCPEND.inb;TCPEND=null;closeSheet();if(id)tcInDel(id).then(()=>toast('Resumen descartado'));return}
+ if(d.tcshare)return tcShareSheet();
+ if(d.tckey)return tcKeyGen();
+ if(d.tccopy){let k='';try{k=localStorage.getItem('fin-tckey')||''}catch(e){}return copyTxt(d.tccopy=='k'?k:(sbConf()||{}).url+'/functions/v1/alertas',d.tccopy=='k'?'Clave':'URL')}
  if(d.tccfg)return tcCfgSheet(d.tccfg);
  if(d.tccsave){const C=tcCfg().cards.find(c=>c.id==d.tccsave);C.n=$('#tq1').value.trim()||C.n;C.row=$('#tq2').value;C.usdUsd=$('#tq3').value=='1';C.mode=$('#tq4').value;tcAuto();save();closeSheet();render();return toast('Guardado')}
  if(d.tcfix){if(e.target.tagName!='INPUT')return;const [id,j]=d.tcfix.split('|'),R=tcLast(id);if(R&&R.items[+j]){R.items[+j].fijo=e.target.checked;tcAuto();save();const y=scrollY;render();scrollTo(0,y)}return}
@@ -2719,7 +2753,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126174000';
+const BUILD='20261126175000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});

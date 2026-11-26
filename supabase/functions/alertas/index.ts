@@ -245,6 +245,23 @@ Deno.serve(async (req) => {
   const op = body.op || new URL(req.url).searchParams.get("op") || "run";
   try {
     if (op == "key") return json({ key: (await vapid()).publicKey });
+    // resumen de tarjeta enviado desde el menú Compartir del iPhone (Atajo con clave personal)
+    if (op == "tcin") {
+      const k = String(body.k || "").trim(); if (k.length < 20) return json({ error: "Falta la clave del atajo." }, 401);
+      const h = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(k)))).map((b) => b.toString(16).padStart(2, "0")).join("");
+      const { data: kr } = await SB.from("docs").select("user_id").eq("id", "tckey").eq("data->>h", h).maybeSingle();
+      if (!kr) return json({ error: "Clave inválida: generá una nueva en la app." }, 401);
+      const b64 = String(body.f || "").replace(/[^A-Za-z0-9+/=]/g, ""); if (b64.length < 100) return json({ error: "No llegó el PDF." }, 400);
+      if (b64.length > 14e6) return json({ error: "El PDF es demasiado grande." }, 413);
+      if (!atob(b64.slice(0, 8)).startsWith("%PDF")) return json({ error: "El archivo no es un PDF." }, 400);
+      const { count } = await SB.from("docs").select("id", { count: "exact", head: true }).eq("user_id", kr.user_id).like("id", "tcin:%");
+      if ((count || 0) >= 20) return json({ error: "Hay 20 resúmenes sin cargar en la app. Cargalos antes de mandar más." }, 429);
+      const id = "tcin:" + Date.now(), nm = String(body.n || "resumen.pdf").slice(0, 120);
+      await SB.from("docs").insert({ user_id: kr.user_id, id, data: { at: Date.now(), n: nm, f: b64 }, updated_at: new Date().toISOString() });
+      const { data: p } = await SB.from("docs").select("data").eq("user_id", kr.user_id).eq("id", "push").maybeSingle();
+      if (p && (p.data.subs || []).length) { try { await sendTo(kr.user_id, p.data, [{ key: id, cat: "tc", title: "Llegó un resumen de tarjeta", body: "Tocá para revisarlo y cargarlo en Gastos.", tag: "tcin", url: "#tarjetas~in" }], await vapid()); } catch (_) { /* sin aviso */ } }
+      return json({ ok: true, msg: "Resumen enviado. Abrí Finanzas Gonzo para cargarlo." });
+    }
     if (op == "test" || op == "preview" || op == "res" || op == "news") {
       const tok = (req.headers.get("authorization") || "").replace(/^Bearer /i, ""); const { data: u } = await SB.auth.getUser(tok);
       if (!u || !u.user) return json({ error: "Iniciá sesión en la app." }, 401);
