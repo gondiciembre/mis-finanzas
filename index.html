@@ -500,12 +500,12 @@ tr.ss td{font-size:11.5px}tr.ss.in td{color:var(--up)}tr.ss.eg td{color:var(--c2
 .tcsum{display:flex;flex-direction:column;gap:2px;margin-top:14px;padding-top:10px;border-top:1px solid var(--gl)}
 .tcsum button{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:7px 8px;margin:0 -8px;width:calc(100% + 16px);border-radius:10px;text-align:left;color:var(--fg)}
 .tcsum button:hover,.tcsum button.on{background:rgba(127,140,170,.12)}
-.tcsum span{display:flex;flex-direction:column;min-width:0}.tcsum b{font-size:13px;font-weight:600}.tcsum small{font:500 11px var(--mono);color:var(--mut)}
+.tcsum span{display:flex;flex-direction:column;min-width:0}.tcsum b{font-size:13px;font-weight:600}.tcsum small{font:500 11px var(--mono);color:var(--mut);text-transform:none;letter-spacing:0}
 .tcsum .r{align-items:flex-end;font:600 13px var(--mono);flex:none}.tcsum .r i{font-style:normal;font-size:11px;color:var(--mut)}
 .tcc{margin-top:10px;padding:0;overflow:hidden}
 .tchd{display:flex;align-items:center;gap:10px;width:100%;padding:14px 16px;text-align:left;color:var(--fg)}
 .tchd .chev{font-size:20px;line-height:1;color:var(--acc);transition:transform .2s;width:12px}.tcc.open .tchd .chev{transform:rotate(90deg)}
-.tchd .nm{flex:1;display:flex;flex-direction:column;min-width:0}.tchd .nm b{font-size:15px}.tchd .nm small{font:500 11.5px var(--mono);color:var(--mut);margin-top:2px}
+.tchd .nm{flex:1;display:flex;flex-direction:column;min-width:0}.tchd .nm b{font-size:15px}.tchd .nm small{font:500 11.5px var(--mono);color:var(--mut);margin-top:2px;text-transform:none;letter-spacing:0}
 .tchd .r{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}.tchd .r b{font:700 14.5px var(--mono)}
 .tcb{padding:0 16px 14px;border-top:1px solid var(--line);padding-top:12px}
 /* submenú de Mis gastos */
@@ -2320,7 +2320,7 @@ function vTc(){const T=tcCfg();if(!T.cards.length)return`<div class="card"><p cl
  let h=`<div class="hero tch" style="margin-top:4px"><div class="k">Tarjetas por pagar · próximo pago</div><div class="big"><small>$</small>${HV(nfu.format(Math.round(totA)))}</div><div class="s">${totU?`+ US$ ${f2u(totU)} · `:''}${nr} resumen${nr==1?'':'es'}${ne?` + ${ne} estimad${ne==1?'a':'as'}`:''}</div>
   <div class="tcsum">${ls.map(([C,R,N])=>`<button data-tcopen="${C.id}"${TCO==C.id?' class="on"':''}><span><b>${esc(C.n)}</b><small>${when(C,R,N)}</small></span><span class="r">${amt(N)}</span></button>`).join('')}</div></div>`;
  ls.forEach(([C,R,N])=>{const P=R&&tcParts(R),k0=R&&R.vto.slice(0,7),nxt=R?[1,2,3].map(i=>tcMAdd(k0,i)):[],dd=R?Math.round((Date.parse(R.vto)-Date.parse(TODAY))/864e5):0,op=TCO==C.id;
-  h+=`<div class="card tcc${op?' open':''}" id="tc-${C.id}"><button class="tchd" data-tcopen="${C.id}" aria-expanded="${op}"><span class="chev">›</span><span class="nm"><b>${esc(C.n)}</b><small>${R?`vence ${fd(R.vto)}`:'sin resumen cargado'}</small></span><span class="r"><b>${N?money(N.a):'—'}</b>${R?`<span class="pill ${R.vto<TODAY?'nt':dd<=5?'dn':'up'}">${R.vto<TODAY?'pagado':dd==0?'vence hoy':'en '+dd+' d'}</span>`:'<span class="pill nt">cargar</span>'}</span></button>`;
+  h+=`<div class="card tcc${op?' open':''}" id="tc-${C.id}"><button class="tchd" data-tcopen="${C.id}" aria-expanded="${op}"><span class="chev">›</span><span class="nm"><b>${esc(C.n)}</b><small>${when(C,R,N)}${N&&N.u?` · + US$ ${f2u(N.u)}`:''}</small></span><span class="r"><b>${N?money(N.a):'—'}</b>${!R?'<span class="pill nt">cargar</span>':N.real?`<span class="pill ${dd<=5?'dn':'up'}">${dd==0?'vence hoy':'en '+dd+' d'}</span>`:'<span class="pill nt">estimado</span>'}</span></button>`;
   if(op){h+=`<div class="tcb">`;
   if(R){h+=`<div class="mutc" style="font:500 12px var(--mono)">Cierre ${fd(R.cierre||R.vto).slice(0,5)} · vence ${fd(R.vto)}${R.min?' · mínimo '+money(R.min):''}</div>
    <div class="stat" style="margin-top:10px"><span>A pagar en pesos${R.perc&&C.usdUsd!==false?' (sin percepción)':''}</span><b>${money(P.pay)}</b></div>${R.usd?`<div class="stat"><span>A pagar en dólares</span><b>US$ ${f2u(R.usd)}</b></div>`:''}
@@ -2659,7 +2659,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126160000';
+const BUILD='20261126161000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
