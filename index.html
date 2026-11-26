@@ -497,6 +497,8 @@ tr.ss td{font-size:11.5px}tr.ss.in td{color:var(--up)}tr.ss.eg td{color:var(--c2
 @media (prefers-reduced-motion:reduce){#app.sw-l,#app.sw-r{animation:none}}
 
 /* tarjetas colapsables */
+.anak{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px}.anak .kpi{padding:14px}.anak .kpi .v{font-size:clamp(19px,5.4vw,28px)}.anak .kpi .k{font-size:10px;letter-spacing:.06em}.anak .kpi .s{font-size:11px}
+.seg.anas{width:auto;margin:0;flex:none}.seg.anas button{flex:none;padding:6px 13px!important;font-size:12.5px!important;min-height:0}
 .gcat{display:grid;grid-template-columns:minmax(150px,220px) 1fr;gap:18px;align-items:center}.gcat .donut{max-width:220px;margin:0 auto}@media(max-width:600px){.gcat{grid-template-columns:1fr}.gcat .donut{max-width:180px}}
 .tcp{font-style:normal;color:var(--up);font-weight:700}
 .tchd .tlg{width:30px;height:30px;border-radius:9px;background:var(--b);color:#fff;display:flex;align-items:center;justify-content:center;font:800 9.5px var(--sans);flex:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
@@ -2513,7 +2515,7 @@ function vAna(){const I=S.inv;if(!I)return none('Todavía no hay datos de invers
  const arg=vis.filter(x=>x.geo=='Argentina').reduce((a,x)=>a+x.v,0)/T*100;
  const F=flows(),inc12=F.filter(f=>f.ty=='r'&&f.d<=addY(TODAY,1)).reduce((a,f)=>a+f.x,0),rfV=by.rf.v;
  const kp=F.filter(f=>f.ty=='k'),kt=kp.reduce((a,f)=>a+f.x,0),wal=kt?kp.reduce((a,f)=>a+f.x*yrs(f.d),0)/kt:0;
- let h=`<div class="grid g3">
+ let h=`<div class="grid anak">
   <div class="card kpi"><div class="k">Dolarizado</div><div class="v">${pc0(usdPct)}</div><div class="s">activos en USD</div></div>
   <div class="card kpi"><div class="k">Riesgo Argentina</div><div class="v">${pc0(arg)}</div><div class="s">emisores locales</div></div>
   <div class="card kpi"><div class="k">Top 5 posiciones</div><div class="v">${pc0(top5/T*100)}</div><div class="s">de la cartera</div></div></div>`;
@@ -2521,7 +2523,7 @@ function vAna(){const I=S.inv;if(!I)return none('Todavía no hay datos de invers
  const rv=vis.filter(x=>x.c=='rv'||x.c=='cr'),gs=ANAG=='sec';
  h+=`<div class="grid g2c" style="margin-top:12px">
  <div class="chart"><h3>Asignación por clase</h3><div class="cs">% del patrimonio · USD</div><div class="donut"><svg viewBox="0 0 150 150" role="img" aria-label="Asignación por clase">${donut(cls,T)}<text x="75" y="70" text-anchor="middle" class="ax" style="font-size:10px;letter-spacing:.08em">TOTAL</text><text x="75" y="86" text-anchor="middle" style="fill:var(--fg);font:700 14px var(--mono)">${usdS(T)}</text></svg><div class="dl">${cls.map(c=>`<div><i class="sw" style="background:${c.col}"></i>${CL[c.k][0]}<b>${pc0(c.v/T*100)}</b></div>`).join('')}</div></div></div>
- <div class="chart"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0">${gs?'Sectores':'Exposición geográfica'}</h3><div class="seg" style="max-width:180px;margin:0"><button data-anag="geo"${gs?'':' class="on"'}>País</button><button data-anag="sec"${gs?' class="on"':''}>Sector</button></div></div><div class="cs">${gs?`% sobre ${usdS(rv.reduce((a,x)=>a+x.v,0))}`:'por emisor o subyacente'}</div>${gs?`${hbars(grpSum(rv,x=>x.sec),rv.reduce((a,x)=>a+x.v,0),(r,i)=>pal[i%pal.length])}`:`${hbars(grpSum(vis,x=>x.geo),T,(r,i)=>pal[i%pal.length])}`}</div>
+ <div class="chart"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0">${gs?'Sectores':'Exposición geográfica'}</h3><div class="seg anas"><button data-anag="geo"${gs?'':' class="on"'}>País</button><button data-anag="sec"${gs?' class="on"':''}>Sector</button></div></div><div class="cs">${gs?`% sobre ${usdS(rv.reduce((a,x)=>a+x.v,0))}`:'por emisor o subyacente'}</div>${gs?`${hbars(grpSum(rv,x=>x.sec),rv.reduce((a,x)=>a+x.v,0),(r,i)=>pal[i%pal.length])}`:`${hbars(grpSum(vis,x=>x.geo),T,(r,i)=>pal[i%pal.length])}`}</div>
  </div>`;
  h+=`<div class="chart" style="margin-top:12px"><h3>Concentración · top 10</h3><div class="cs">peso en la cartera</div>${hbars(srt.slice(0,10).map(x=>[x.t,x.v]),T,r=>CL[(vis.find(x=>x.t==r[0])||{c:'lq'}).c][1])}</div>`;
  return h+'<div class="note">Riesgo Argentina incluye bonos, ONs, BOPREAL, FCI y efectivo locales. Vencimientos y renta de bonos y ONs: Cartera → Cronograma de cobros.</div>'}
@@ -2764,7 +2766,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126225000';
+const BUILD='20261126226000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
