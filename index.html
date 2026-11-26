@@ -992,11 +992,12 @@ function vGA(){const ys=Object.keys(S.y).filter(y=>yearStats(y).tot>0).sort();co
 function gCol(){try{return JSON.parse(localStorage.getItem('fin-gcol')||'[]')}catch(e){return[]}}
 function gColSet(a){try{localStorage.setItem('fin-gcol',JSON.stringify(a))}catch(e){}const y=scrollY;render();scrollTo(0,y)}
 function secFor(c,rs){const n={};rs.forEach(([x])=>n[x.s]=(n[x.s]||0)+1);const top=Object.entries(n).sort((a,b)=>b[1]-a[1])[0];if(top)return top[0];const k=Object.keys(CAT_SEC).find(k=>CAT_SEC[k]==c.id);return k||(c.t=='i'||c.t=='u'?'in':'gv')}
-function vMes(){
- const t=tot(mo),b=bal(mo),net=t.i-t.e,m=mepE();
- {let dn=0,nn=0,full=0;const pc=MES.map((_,i)=>{const T=tot(i);dn+=T.n-T.pend;nn+=T.n;const v=T.n?(T.n-T.pend)/T.n:0;if(T.n&&!T.pend)full++;return v});
+function mchDraw(){let dn=0,nn=0,full=0;const pc=MES.map((_,i)=>{const T=tot(i);dn+=T.n-T.pend;nn+=T.n;const v=T.n?(T.n-T.pend)/T.n:0;if(T.n&&!T.pend)full++;return v});
  $('#mch').innerHTML=MES.map((x,i)=>{const v=pc[i],c=v>=1;return `<button class="chip${i==mo?' on':''}${i==now.getMonth()&&yr==now.getFullYear()?' cur':''}${c?' done':''}" style="--p:${Math.round(v*100)}%" data-mo="${i}" aria-label="${MESL[i]}: ${Math.round(v*100)}% completo">${c?'<svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}${x}</button>`}).join('');
  const yp=nn?dn/nn*100:0,yb=$('#ypr');if(yb)yb.innerHTML=`<div class="yprl"><span>${yr} · <b>${Math.round(yp)}%</b> completado</span><span>${full} de 12 meses cerrados</span></div><div class="yprb" role="progressbar" aria-valuenow="${Math.round(yp)}" aria-valuemin="0" aria-valuemax="100" aria-label="Año completado"><i style="width:${yp}%"></i></div>`}
+function vMes(){
+ const t=tot(mo),b=bal(mo),net=t.i-t.e,m=mepE();
+ mchDraw();
  let h='';
  h+=`<div class="hero"><div class="k" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Dinero disponible en cuenta · ${MESL[mo]}</span><span class="pill ${t.pend?'wr':'up'}">${t.pend?t.pend+' pendiente'+(t.pend>1?'s':''):'Al día'}</span></div><div class="big ${b.real<0?'neg':''}">${money(b.real)}</div><div class="s">≈ ${usd(b.real/m)} · lo cobrado menos lo pagado hasta hoy${(()=>{const B=bilCfg(),bx=B.on&&R().find(x=>x.n==B.name);return bx&&ymK(yr,mo)>=B.from&&!bx.p[mo]?`<br>Al cerrar el mes pasan ${money(bx.a[mo]||0)} a ${esc(B.name)}`:''})()}</div></div>`;
  {const by={i:0,u:0,g:0,a:0},dn={i:0,u:0,g:0,a:0},pd={i:0,g:0};let vest=0;
@@ -2235,8 +2236,7 @@ function domRSave(i){const e=domS().emps[i],f=$('#ra1').value,ph=retNum($('#ra3'
  e.r=(e.r||[]).filter(x=>x.f!=f);e.r.push({f,hd,dw,ph,vd});e.r.sort((a,b)=>a.f<b.f?-1:1);domAuto();save();closeSheet();render();toast('Aumento cargado desde '+mFull(f))}
 
 function vDom(){infmFetch();const D=domS(),E=D.emps,k=ymK(yr,mo),cur=domAt(k),act=E.filter(e=>domAct(e,k));
- {const x0=S.y[yr]&&S.y[yr].find(z=>z.n==D.row);$('#mch').innerHTML=MES.map((x,i)=>{const kk=ymK(yr,i),has=E.some(e=>domAct(e,kk)),pd=has&&x0&&x0.p[i];
-  return`<button class="chip${i==mo?' on':''}${i==now.getMonth()&&yr==now.getFullYear()?' cur':''}${pd?' done':''}" style="--p:${pd?100:0}%" data-mo="${i}" aria-label="${MESL[i]}${pd?': pagado':''}">${pd?'<svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}${x}</button>`}).join('')}
+ mchDraw();
  const nxt=E.map(e=>e.from).filter(f=>f>k).sort()[0],x0=S.y[yr]&&S.y[yr].find(z=>z.n==D.row),pdk=x0&&x0.p[mo];
  let h=`<div class="hero" style="margin-top:4px"><div class="k" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Personal doméstico · ${esc(mFull(k))}</span>${cur?`<span class="pill ${pdk?'up':'wr'}">${pdk?'Pagado':'A pagar'}</span>`:''}</div><div class="big"><small>$</small>${HV(nfu.format(Math.round(cur)))}</div><div class="s">${act.length?act.map(e=>{const r=domRate(e,k);return`${esc(e.n)}: ${r?r.hd+' h × '+r.dw+' días · '+money(r.ph)+'/h'+(r.vd?' + viático '+money(r.vd)+'/día':''):'sin valor'}`}).join(' · '):nxt?'Sin personal este mes · empieza '+mFull(nxt):'Nadie activo este mes'}</div><div class="s mutc" style="margin-top:6px">Se carga solo en “${esc(D.row)}” (los meses pagados no se tocan)</div></div>`;
  h+=domChart();
@@ -2421,9 +2421,8 @@ function tcMonth(C,k){const L=(S.tc.res&&S.tc.res[C.id])||[],R=L.find(r=>r.vto&&
  return{kind:'row',a:W.v,u:0,paid:W.paid,row:W.v,none:!W.v}}
 function vTc(){const T=tcCfg();if(!T.cards.length)return`<div class="card"><p class="note" style="margin:0">No encontré conceptos de tarjeta en Gastos (los que empiezan con “Tarjeta”).</p></div>`;
  const k=ymK(yr,mo),cur=k==NOWK;
- /* slider de meses: progreso = tarjetas pagadas del mes */
- $('#mch').innerHTML=MES.map((x,i)=>{const kk=ymK(yr,i),rs=T.cards.map(C=>tcRow(C,kk)).filter(r=>r.v),pd=rs.filter(r=>r.paid).length,v=rs.length?pd/rs.length:0,c=rs.length&&pd==rs.length;
-  return`<button class="chip${i==mo?' on':''}${i==now.getMonth()&&yr==now.getFullYear()?' cur':''}${c?' done':''}" style="--p:${Math.round(v*100)}%" data-mo="${i}" aria-label="${MESL[i]}: ${pd} de ${rs.length} tarjetas pagadas">${c?'<svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}${x}</button>`}).join('');
+ /* slider de meses: el mismo de Gastos */
+ mchDraw();
  const ls=T.cards.map(C=>[C,tcMonth(C,k)]),totA=ls.reduce((a,[C,M])=>a+M.a,0),totU=ls.reduce((a,[C,M])=>a+M.u,0),nR=ls.filter(x=>x[1].kind=='real').length,nE=ls.filter(x=>x[1].kind=='est').length,nP=ls.filter(x=>x[1].paid&&x[1].row).length,nT=ls.filter(x=>x[1].row||x[1].a).length;
  const amt=M=>M.a||M.u?`${money(M.a)}${M.u?`<i>+ US$ ${f2u(M.u)}</i>`:''}`:'<span class="mutc">—</span>';
  const when=M=>M.kind=='real'?(M.paid?`<em class="tcp">pagado</em> · venció ${fd(M.R.vto).slice(0,5)}`:M.R.vto<TODAY?`<em class="tcv">venció ${fd(M.R.vto).slice(0,5)}</em>`:`<em class="tcv">vence ${fd(M.R.vto).slice(0,5)}</em>`):M.kind=='est'?(M.paid?'<em class="tcp">pagado</em>':'estimado'):M.none?'sin pagos':(M.paid?'<em class="tcp">pagado</em>':'según Gastos');
@@ -2787,7 +2786,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126184000';
+const BUILD='20261126185000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
