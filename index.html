@@ -495,6 +495,29 @@ tr.ss td{font-size:11.5px}tr.ss.in td{color:var(--up)}tr.ss.eg td{color:var(--c2
 #app.sw-l{animation:swl .28s cubic-bezier(.2,.8,.2,1)}#app.sw-r{animation:swr .28s cubic-bezier(.2,.8,.2,1)}
 @keyframes swl{from{opacity:.2;transform:translateX(36px)}to{opacity:1;transform:none}}@keyframes swr{from{opacity:.2;transform:translateX(-36px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){#app.sw-l,#app.sw-r{animation:none}}
+
+/* tarjetas colapsables */
+.tcsum{display:flex;flex-direction:column;gap:2px;margin-top:14px;padding-top:10px;border-top:1px solid var(--gl)}
+.tcsum button{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:7px 8px;margin:0 -8px;width:calc(100% + 16px);border-radius:10px;text-align:left;color:var(--fg)}
+.tcsum button:hover,.tcsum button.on{background:rgba(127,140,170,.12)}
+.tcsum span{display:flex;flex-direction:column;min-width:0}.tcsum b{font-size:13px;font-weight:600}.tcsum small{font:500 11px var(--mono);color:var(--mut)}
+.tcsum .r{align-items:flex-end;font:600 13px var(--mono);flex:none}.tcsum .r i{font-style:normal;font-size:11px;color:var(--mut)}
+.tcc{margin-top:10px;padding:0;overflow:hidden}
+.tchd{display:flex;align-items:center;gap:10px;width:100%;padding:14px 16px;text-align:left;color:var(--fg)}
+.tchd .chev{font-size:20px;line-height:1;color:var(--acc);transition:transform .2s;width:12px}.tcc.open .tchd .chev{transform:rotate(90deg)}
+.tchd .nm{flex:1;display:flex;flex-direction:column;min-width:0}.tchd .nm b{font-size:15px}.tchd .nm small{font:500 11.5px var(--mono);color:var(--mut);margin-top:2px}
+.tchd .r{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}.tchd .r b{font:700 14.5px var(--mono)}
+.tcb{padding:0 16px 14px;border-top:1px solid var(--line);padding-top:12px}
+/* submenú de Mis gastos */
+#tabs{max-width:none;margin-top:14px}
+#tabs button{padding:9px 6px;font-size:14px}
+@media(min-width:700px){#tabs{width:fit-content;gap:2px}#tabs button{flex:none;padding:9px 16px}}
+@media(max-width:699px){
+ #tabs{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;gap:4px;padding:4px;scroll-padding:0 24px;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 22px),transparent)}
+ #tabs::-webkit-scrollbar{display:none}
+ #tabs button,#tabs button:first-child{flex:none;font-size:14.5px!important;padding:9px 15px!important;min-height:38px}
+ #tabs button:last-child{margin-right:14px}
+}
 </style></head>
 <body>
 <nav id="nav" aria-label="Secciones">
@@ -2286,19 +2309,28 @@ function tcRead(){if(!TCPEND)return null;const R=JSON.parse(JSON.stringify(TCPEN
 function tcSave(){const R=tcRead();if(!R)return toast('Faltan el vencimiento o el total.');const T=tcCfg(),id=TCPEND.id;R.mep=Math.round(mepE()*100)/100;R.at=Date.now();
  const L=(T.res[id]=T.res[id]||[]).filter(x=>x.vto!=R.vto);L.push(R);L.sort((a,b)=>a.vto<b.vto?-1:1);L.forEach((x,i)=>{if(i<L.length-2){delete x.items;x.items=[]}});T.res[id]=L.slice(-12);
  TCPEND=null;tcAuto();save();closeSheet();sec='g';tab='tc';render();toast('Resumen guardado: Gastos actualizado')}
+let TCO=null;
+function tcNext(C,R){if(!R)return null;const P=tcParts(R);
+ if(R.vto>=TODAY)return{real:true,k:R.vto.slice(0,7),vto:R.vto,a:P.pay,u:R.usd||0};
+ const k=tcMAdd(R.vto.slice(0,7),1),u=C.mode=='fix'?P.fijU:P.varU+P.fijU;return{real:false,k,a:tcEst(C,R,k)-Math.round(u*P.m),u}}
 function vTc(){const T=tcCfg();if(!T.cards.length)return`<div class="card"><p class="note" style="margin:0">No encontré conceptos de tarjeta en Gastos (los que empiezan con “Tarjeta”).</p></div>`;
- const ls=T.cards.map(C=>[C,tcLast(C.id)]),up=ls.filter(([C,R])=>R&&R.vto>=TODAY),totA=up.reduce((a,[C,R])=>a+R.ars-(C.usdUsd===false?0:R.perc),0),totU=up.reduce((a,[C,R])=>a+(R.usd||0),0),nx=up.map(([C,R])=>R.vto).sort()[0];
- let h=`<div class="hero" style="margin-top:4px"><div class="k">Tarjetas por pagar</div><div class="big"><small>$</small>${HV(nfu.format(Math.round(totA)))}</div><div class="s">${totU?`+ US$ ${f2u(totU)} · `:''}${up.length?`${up.length} resumen${up.length>1?'es':''} · próximo vence ${fd(nx)}`:'subí los resúmenes para ver qué vence'}</div></div>`;
- ls.forEach(([C,R])=>{const P=R&&tcParts(R),k0=R&&R.vto.slice(0,7),nxt=R?[1,2,3].map(i=>tcMAdd(k0,i)):[],dd=R?Math.round((Date.parse(R.vto)-Date.parse(TODAY))/864e5):0;
-  h+=`<div class="card" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:15px">${esc(C.n)}</b>${R?`<span class="pill ${R.vto<TODAY?'nt':dd<=5?'dn':'up'}">${R.vto<TODAY?'vencido '+fd(R.vto).slice(0,5):dd==0?'vence hoy':'vence en '+dd+' d'}</span>`:'<span class="pill nt">sin resumen</span>'}</div>`;
-  if(R){h+=`<div class="mutc" style="font:500 12px var(--mono);margin-top:4px">Cierre ${fd(R.cierre||R.vto).slice(0,5)} · vence ${fd(R.vto)}${R.min?' · mínimo '+money(R.min):''}</div>
+ const ls=T.cards.map(C=>{const R=tcLast(C.id);return[C,R,tcNext(C,R)]}),nn=ls.filter(x=>x[2]),totA=nn.reduce((a,x)=>a+x[2].a,0),totU=nn.reduce((a,x)=>a+x[2].u,0),nr=nn.filter(x=>x[2].real).length,ne=nn.length-nr;
+ const amt=N=>N?`${money(N.a)}${N.u?`<i>+ US$ ${f2u(N.u)}</i>`:''}`:'<span class="mutc">—</span>';
+ const when=(C,R,N)=>!R?'sin resumen':N.real?`vence ${fd(N.vto).slice(0,5)}`:`estimado ${mLab(N.k).toLowerCase()}`;
+ let h=`<div class="hero tch" style="margin-top:4px"><div class="k">Tarjetas por pagar · próximo pago</div><div class="big"><small>$</small>${HV(nfu.format(Math.round(totA)))}</div><div class="s">${totU?`+ US$ ${f2u(totU)} · `:''}${nr} resumen${nr==1?'':'es'}${ne?` + ${ne} estimad${ne==1?'a':'as'}`:''}</div>
+  <div class="tcsum">${ls.map(([C,R,N])=>`<button data-tcopen="${C.id}"${TCO==C.id?' class="on"':''}><span><b>${esc(C.n)}</b><small>${when(C,R,N)}</small></span><span class="r">${amt(N)}</span></button>`).join('')}</div></div>`;
+ ls.forEach(([C,R,N])=>{const P=R&&tcParts(R),k0=R&&R.vto.slice(0,7),nxt=R?[1,2,3].map(i=>tcMAdd(k0,i)):[],dd=R?Math.round((Date.parse(R.vto)-Date.parse(TODAY))/864e5):0,op=TCO==C.id;
+  h+=`<div class="card tcc${op?' open':''}" id="tc-${C.id}"><button class="tchd" data-tcopen="${C.id}" aria-expanded="${op}"><span class="chev">›</span><span class="nm"><b>${esc(C.n)}</b><small>${R?`vence ${fd(R.vto)}`:'sin resumen cargado'}</small></span><span class="r"><b>${N?money(N.a):'—'}</b>${R?`<span class="pill ${R.vto<TODAY?'nt':dd<=5?'dn':'up'}">${R.vto<TODAY?'pagado':dd==0?'vence hoy':'en '+dd+' d'}</span>`:'<span class="pill nt">cargar</span>'}</span></button>`;
+  if(op){h+=`<div class="tcb">`;
+  if(R){h+=`<div class="mutc" style="font:500 12px var(--mono)">Cierre ${fd(R.cierre||R.vto).slice(0,5)} · vence ${fd(R.vto)}${R.min?' · mínimo '+money(R.min):''}</div>
    <div class="stat" style="margin-top:10px"><span>A pagar en pesos${R.perc&&C.usdUsd!==false?' (sin percepción)':''}</span><b>${money(P.pay)}</b></div>${R.usd?`<div class="stat"><span>A pagar en dólares</span><b>US$ ${f2u(R.usd)}</b></div>`:''}
    <div class="stat"><span>Cuotas en este resumen</span><b>${money(R.cnow||0)}</b></div><div class="stat"><span>Fijos (seguros, servicios)</span><b>${money(P.fijA)}${P.fijU?' + US$ '+f2u(P.fijU):''}</b></div>
    <div class="tcn">${nxt.map(k=>{const cu=(R.cv&&R.cv[k])||0;return`<div><small>${mLab(k)}</small><b>${short(tcEst(C,R,k))}</b><span class="mutc">${cu?'cuotas '+short(cu):'sin cuotas'}</span></div>`}).join('')}</div>
    ${R.items&&R.items.filter(i=>!i.c).length?`<details class="cdet"><summary><span>Consumos del resumen · marcá los fijos</span><b></b></summary>${R.items.map((it,j)=>it.c?'':`<label class="tci"><input type="checkbox" data-tcfix="${C.id}|${j}"${it.fijo?' checked':''}><span>${esc(it.t)}</span><b>${it.usd?'US$ '+f2u(it.usd):money(it.ars)}</b></label>`).join('')}<p class="note" style="margin:6px 0 0">Los fijos se repiten todos los meses aunque cambies la proyección a “solo cuotas y fijos”.</p></details>`:''}
    ${R.items&&R.items.some(i=>i.c)?`<details class="cdet"><summary><span>Cuotas (${R.items.filter(i=>i.c).length})</span><b></b></summary>${R.items.filter(i=>i.c).map(it=>`<div class="stat"><span>${esc(it.t)} <span class="mutc">${it.c[0]}/${it.c[1]}</span></span><b>${money(it.ars)}</b></div>`).join('')}</details>`:''}`}
-  h+=`<div class="hrow2"><button class="btn" data-tcup="${C.id}">${R?'Subir nuevo resumen':'Subir resumen (PDF)'}</button><button class="btn" data-tcman="${C.id}">Cargar a mano</button><button class="btn" data-tccfg="${C.id}">Ajustes</button></div></div>`});
- h+=`<p class="note">Los PDF se leen en tu dispositivo: no se suben a ningún lado, solo se guardan los números. Formatos probados: VISA y Mastercard ICBC, Mercado Pago y Brubank; otros se pueden cargar a mano.</p>`;return h}
+  h+=`<div class="hrow2"><button class="btn" data-tcup="${C.id}">${R?'Subir nuevo resumen':'Subir resumen (PDF)'}</button><button class="btn" data-tcman="${C.id}">Cargar a mano</button><button class="btn" data-tccfg="${C.id}">Ajustes</button></div></div>`}
+  h+=`</div>`});
+ h+=`<p class="note">Tocá una tarjeta para ver el detalle. Los PDF se leen en tu dispositivo: no se suben a ningún lado, solo se guardan los números. Formatos probados: VISA y Mastercard ICBC, Mercado Pago y Brubank; otros se pueden cargar a mano.</p>`;return h}
 function tcCfgSheet(id){const C=tcCfg().cards.find(c=>c.id==id);mfn=null;const rows=[...new Set(Object.values(S.y).flat().filter(x=>x.s!='in').map(x=>x.n))];
  $('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true"><h2>Ajustes · ${esc(C.n)}</h2>
  <label for="tq1">Nombre</label><input class="inp" id="tq1" value="${esc(C.n)}"><label for="tq2">Concepto de Gastos</label><select class="inp" id="tq2">${rows.map(n=>`<option${n==C.row?' selected':''}>${esc(n)}</option>`).join('')}</select>
@@ -2490,7 +2522,7 @@ function render(){drawEye();badgeSet();{const v=sec+'|'+tab,a=$('#app');if(a&&v!
  const g=sec=='g';$('#yrw').hidden=!g;$('#tabs').hidden=!g;$('#mch').hidden=$('#ypr').hidden=true;
  const gr=grpOf(sec);document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.grp==gr));
  {const sb=$('#sub'),L=GRP[gr];sb.hidden=L.length<2||!S||!SESSION;sb.innerHTML=L.length<2?'':L.map(s=>`<button data-sec="${s}" class="${s==sec?'on':''}">${SUBL[s]}</button>`).join('')}
- $('#tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.tab==tab));
+ $('#tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.tab==tab));{const tb=$('#tabs'),on=tb.querySelector('.on');if(on&&tb.scrollWidth>tb.clientWidth+2){const x=tb.scrollLeft+on.getBoundingClientRect().left-tb.getBoundingClientRect().left-(tb.clientWidth-on.offsetWidth)/2;if(Math.abs(tb.scrollLeft-x)>4)tb.scrollLeft=Math.max(0,x)}}
  const app=$('#app');
  if(!SB){$('#fxw').hidden=true;$('#yrw').hidden=$('#tabs').hidden=true;app.innerHTML=vSetup();return}
  if(!SESSION){$('#fxw').hidden=true;$('#yrw').hidden=$('#tabs').hidden=true;app.innerHTML=vLogin();return}
@@ -2504,7 +2536,7 @@ function render(){drawEye();badgeSet();{const v=sec+'|'+tab,a=$('#app');if(a&&v!
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c){const pr=c.parentElement;if(pr&&pr.scrollWidth>pr.clientWidth)pr.scrollLeft=c.offsetLeft-pr.offsetLeft-pr.clientWidth/2+c.offsetWidth/2}
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff],[data-newsf],[data-newsr],[data-domed],[data-domsave],[data-domdel],[data-dombaja],[data-domre],[data-domraise],[data-domrsave],[data-domrdel],[data-goto],[data-tcup],[data-tcman],[data-tccfg],[data-tccsave],[data-tcsave],[data-tcfix]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff],[data-newsf],[data-newsr],[data-domed],[data-domsave],[data-domdel],[data-dombaja],[data-domre],[data-domraise],[data-domrsave],[data-domrdel],[data-goto],[data-tcup],[data-tcman],[data-tccfg],[data-tccsave],[data-tcsave],[data-tcfix],[data-tcopen]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
  if(d.close){if(e.target===t||t.tagName=='BUTTON')closeSheet();return}
  if(d.grp){sec=(lastSub[d.grp]&&GRP[d.grp].includes(lastSub[d.grp]))?lastSub[d.grp]:GRP[d.grp][0];try{localStorage.setItem('gastos-sec',sec)}catch(x){}render();scrollTo(0,0);return}
@@ -2551,6 +2583,7 @@ document.addEventListener('click',e=>{
  if(d.bks)return openBackups();
  if(d.iol){if(d.iol=='open')return iolSheet();return iolAct(d.iol)}
  if(d.inbox)return openInbox();
+ if(d.tcopen){const id=d.tcopen,fromSum=!!t.closest('.tcsum');TCO=TCO==id&&!fromSum?null:id;render();const el=$('#tc-'+id);if(el){const y=el.getBoundingClientRect().top+scrollY-90;if(fromSum||el.getBoundingClientRect().top<70)scrollTo({top:y,behavior:'smooth'})}return}
  if(d.tcup)return tcUpload(d.tcup);
  if(d.tcman)return tcConfirm(d.tcman,{iss:'gen',items:[],cuotas:{},usd:0,perc:0,ars:null,vto:null});
  if(d.tcsave)return tcSave();
@@ -2626,7 +2659,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126151500';
+const BUILD='20261126160000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
