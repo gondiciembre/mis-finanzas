@@ -497,6 +497,18 @@ tr.ss td{font-size:11.5px}tr.ss.in td{color:var(--up)}tr.ss.eg td{color:var(--c2
 @media (prefers-reduced-motion:reduce){#app.sw-l,#app.sw-r{animation:none}}
 
 /* tarjetas colapsables */
+.tct{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:14px}
+.tct button{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto auto;column-gap:10px;row-gap:1px;align-items:center;padding:10px 11px;border-radius:14px;border:1px solid var(--gl);background:rgba(127,140,170,.07);text-align:left;color:var(--fg);min-width:0}
+.tct button:hover,.tct button.on{border-color:var(--acc);background:var(--acc-s)}
+.tct button.pd{opacity:.62}
+.tct .lg{grid-row:1/4;width:38px;height:38px;border-radius:11px;background:var(--b);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font:800 11px/1 var(--sans);letter-spacing:.02em;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 2px 6px rgba(0,0,0,.18)}
+.tct .lg i{font:700 7.5px/1 var(--sans);font-style:normal;opacity:.85;margin-top:3px;letter-spacing:.06em}
+.tct .nm{font-size:12px;font-weight:600;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tct b{font:700 14.5px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tct .us{grid-column:2;font:600 10.5px var(--mono);color:var(--mut)}
+.tct small{grid-column:2;font:500 10.5px var(--mono);color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:none;letter-spacing:0}
+.tct small .tcv{font-weight:700}
+
 .tcinb{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;margin:4px 0 12px;text-align:left;color:var(--fg);border-color:color-mix(in srgb,var(--up) 45%,transparent);background:var(--up-s)}.tcinb span:first-child{display:flex;flex-direction:column;gap:2px}.tcinb small{font-size:12px;color:var(--mut)}
 #tabs button.dot{position:relative}#tabs button.dot::after{content:'';position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--dn)}
 .tcv{font-style:normal;color:var(--dn);font-weight:700}
@@ -2334,10 +2346,10 @@ function tcParts(R,mep){const fijA=R.items.filter(i=>i.fijo&&!i.c).reduce((a,i)=
  const varA=Math.max(0,pay-(R.cnow||0)-fijA),varU=Math.max(0,(R.usd||0)-fijU);return{pay,fijA,fijU,varA,varU,m:mep||R.mep||mepE()}}
 function tcEst(C,R,k){const P=tcParts(R);const cu=(R.cv&&R.cv[k])||0;return Math.round((C.mode=='fix'?P.fijA+P.fijU*P.m:P.varA+P.fijA+(P.varU+P.fijU)*P.m)+cu)}
 function tcAuto(){const T=S.tc;if(!T||!T.cards||!T.cards.length)return false;let ch=false;
- T.cards.forEach(C=>{const R=tcLast(C.id);if(!R||!R.vto)return;const k0=R.vto.slice(0,7);
+ T.cards.forEach(C=>{Object.keys(S.y).forEach(y=>{const x=S.y[y].find(z=>z.n==C.row);if(x&&x.tc!==C.id){x.tc=C.id;ch=true}});const R=tcLast(C.id);if(!R||!R.vto)return;const k0=R.vto.slice(0,7);
   Object.keys(S.y).forEach(y=>{for(let m=0;m<12;m++){const k=ymK(+y,m);if(k<k0)continue;const [x,nw]=rowIn(y,C.row,{s:'out',c:'tc'});if(!x)return;if(nw)ch=true;if(x.tc!==C.id){x.tc=C.id;ch=true}if(x.p[m])continue;
    const v=k==k0?Math.round(R.ars-(C.usdUsd===false?0:R.perc)+(R.usd||0)*(R.mep||mepE())):tcEst(C,R,k);if((x.a[m]||0)!=v){x.a[m]=v;ch=true}}})});return ch}
-function tcDesc(x,k){const C=S.tc&&S.tc.cards.find(c=>c.id==x.tc),R=C&&tcLast(C.id);if(!R)return'Estimado';const k0=R.vto.slice(0,7);if(k<k0)return'';
+function tcDesc(x,k){const C=S.tc&&S.tc.cards.find(c=>c.id==x.tc),R=C&&tcLast(C.id);if(!R)return'Sin resumen cargado · subilo en Tarjetas';const k0=R.vto.slice(0,7);if(k<k0)return'';
  if(k==k0)return`Resumen · vence ${fd(R.vto).slice(0,5)}${R.usd?` · incluye US$ ${f2u(R.usd)} × MEP`:''}`;const cu=(R.cv&&R.cv[k])||0;return`Estimado · último resumen${cu?' + cuotas '+short(cu):' sin cuotas'}`}
 let TCUP=null;
 function tcUpload(id){TCUP=id;let f=$('#tcfile');if(!f){f=document.createElement('input');f.type='file';f.id='tcfile';f.accept='application/pdf,.pdf';f.hidden=true;document.body.appendChild(f);
@@ -2388,6 +2400,13 @@ let TCO=null;
 function tcNext(C,R){if(!R)return null;const P=tcParts(R);
  if(R.vto>=TODAY)return{real:true,k:R.vto.slice(0,7),vto:R.vto,a:P.pay,u:R.usd||0};
  const k=tcMAdd(R.vto.slice(0,7),1),u=C.mode=='fix'?P.fijU:P.varU+P.fijU;return{real:false,k,a:tcEst(C,R,k)-Math.round(u*P.m),u}}
+function tcBrand(C){const L=(S.tc.res&&S.tc.res[C.id])||[],iss=(L[L.length-1]||{}).iss,n=C.n;
+ if(iss=='visa'||/visa/i.test(n))return{bg:'#c4161c',t:/icbc/i.test(n)?'ICBC':'V',net:'VISA'};
+ if(iss=='master'||/master/i.test(n))return{bg:'#c4161c',t:/icbc/i.test(n)?'ICBC':'M',net:'MC'};
+ if(iss=='mp'||/meli|mercado/i.test(n))return{bg:'#009ee3',t:'MP'};
+ if(iss=='bru'||/bru|burbank/i.test(n))return{bg:'#6c3ce9',t:'B'};
+ if(iss=='uala'||/uala|ualá/i.test(n))return{bg:'#2c5bff',t:'U'};
+ return{bg:'var(--acc)',t:n.replace(/[^A-Za-z]/g,'').slice(0,2).toUpperCase()}}
 function tcRow(C,k){const y=S.y[k.slice(0,4)],x=y&&y.find(z=>z.n==C.row),i=+k.slice(5,7)-1;return{v:x?x.a[i]||0:0,paid:!!(x&&x.p[i]),has:!!x}}
 function tcMonth(C,k){const L=(S.tc.res&&S.tc.res[C.id])||[],R=L.find(r=>r.vto&&r.vto.slice(0,7)==k),W=tcRow(C,k);
  if(R){const P=tcParts(R);return{kind:'real',R,P,a:P.pay,u:R.usd||0,paid:W.paid,row:W.v}}
@@ -2405,7 +2424,7 @@ function vTc(){const T=tcCfg();if(!T.cards.length)return`<div class="card"><p cl
  const pill=M=>M.paid&&M.row?'<span class="pill up">pagado</span>':M.kind=='real'?(()=>{const dd=Math.round((Date.parse(M.R.vto)-Date.parse(TODAY))/864e5);return`<span class="pill dn">${dd<0?'vencido':dd==0?'vence hoy':'en '+dd+' d'}</span>`})():M.kind=='est'?'<span class="pill nt">estimado</span>':M.none?'':'<span class="pill nt">Gastos</span>';
  let h=TCIN.length?`<button class="card tcinb" data-tcin="1"><span><b>${TCIN.length==1?'Llegó 1 resumen':'Llegaron '+TCIN.length+' resúmenes'} desde Compartir</b><small>Tocá para revisarlo y cargarlo en Gastos</small></span><span class="pill up">Cargar</span></button>`:'';
  h+=`<div class="hero tch" style="margin-top:4px"><div class="k" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Tarjetas · ${MESL[mo]} ${yr}</span>${nT?`<span class="pill ${nP==nT?'up':'wr'}">${nP==nT?'Todas pagas':nP+' de '+nT+' pagas'}</span>`:''}</div><div class="big"><small>$</small>${HV(nfu.format(Math.round(totA)))}</div><div class="s">${totU?`+ US$ ${f2u(totU)} · `:''}${nR} resumen${nR==1?'':'es'}${nE?` + ${nE} estimad${nE==1?'a':'as'}`:''}${!nR&&!nE?' · valores de Gastos':''}</div>
-  <div class="tcsum">${ls.map(([C,M])=>`<button data-tcopen="${C.id}"${TCO==C.id?' class="on"':''}><span><b>${esc(C.n)}</b><small>${when(M)}</small></span><span class="r">${amt(M)}</span></button>`).join('')}</div></div>`;
+  <div class="tct">${ls.map(([C,M])=>{const B=tcBrand(C);return`<button data-tcopen="${C.id}" class="${TCO==C.id?'on':''}${M.paid&&M.row?' pd':''}"><span class="lg" style="--b:${B.bg}">${B.t}${B.net?`<i>${B.net}</i>`:''}</span><span class="nm">${esc(C.n)}</span><b>${M.a||M.u?money(M.a):'—'}</b>${M.u?`<span class="us">+ US$ ${f2u(M.u)}</span>`:''}<small>${when(M)}</small></button>`}).join('')}</div></div>`;
  ls.forEach(([C,M])=>{const op=TCO==C.id,R=M.R,P=M.P;
   h+=`<div class="card tcc${op?' open':''}" id="tc-${C.id}"><button class="tchd" data-tcopen="${C.id}" aria-expanded="${op}"><span class="chev">›</span><span class="nm"><b>${esc(C.n)}</b><small>${when(M)}${M.u?` · + US$ ${f2u(M.u)}`:''}</small></span><span class="r"><b>${M.a?money(M.a):'—'}</b>${pill(M)}</span></button>`;
   if(op){h+=`<div class="tcb">`;
@@ -2762,7 +2781,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126181000';
+const BUILD='20261126182000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
