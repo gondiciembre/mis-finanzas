@@ -2702,7 +2702,7 @@ document.addEventListener('click',e=>{
  if(d.bks)return openBackups();
  if(d.iol){if(d.iol=='open')return iolSheet();return iolAct(d.iol)}
  if(d.inbox)return openInbox();
- if(d.tcopen){const id=d.tcopen,fromSum=!!t.closest('.tcsum');TCO=TCO==id&&!fromSum?null:id;render();const el=$('#tc-'+id);if(el){const y=el.getBoundingClientRect().top+scrollY-90;if(fromSum||el.getBoundingClientRect().top<70)scrollTo({top:y,behavior:'smooth'})}return}
+ if(d.tcopen){const id=d.tcopen,fromSum=!!t.closest('.tcsum,.tct');TCO=TCO==id&&!fromSum?null:id;render();const el=$('#tc-'+id);if(el){const y=el.getBoundingClientRect().top+scrollY-90;if(fromSum||el.getBoundingClientRect().top<70)scrollTo({top:y,behavior:'smooth'})}return}
  if(d.tcup)return tcUpload(d.tcup);
  if(d.tcman)return tcConfirm(d.tcman,{iss:'gen',items:[],cuotas:{},usd:0,perc:0,ars:null,vto:null});
  if(d.tcsave)return tcSave();
@@ -2783,7 +2783,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126223000';
+const BUILD='20261126224000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
