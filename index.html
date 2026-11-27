@@ -2545,8 +2545,21 @@ function rsuFlows(since){since=since||TODAY;const R=S.inv.rsu,px=rsuPx(),nt=1-R.
   if(q)o.push({t:'XOM',d:pd,ty:'d',q,g:q*div,x:q*div*nt})}
  return o.sort((a,b)=>a.d<b.d?-1:1)}
 
+/* cobros ya ocurridos: historial público de flujos (rendimientos.co/config) escalado a tu nominal */
+let PCF=null,PCFrun=false;try{const c=JSON.parse(localStorage.getItem('fin-pcf')||'null');if(c&&Date.now()-c.ts<24*3600e3)PCF=c.d}catch(e){}
+async function pcfFetch(){if(PCF||PCFrun)return;PCFrun=true;try{const j=await fetch(API+'config').then(r=>r.json()),d={};
+ Object.values(j||{}).forEach(o=>{if(o&&typeof o=='object')Object.entries(o).forEach(([k,v])=>{if(v&&Array.isArray(v.flujos))d[k]=v.flujos.map(f=>[f.fecha,+f.monto])})});
+ PCF=d;try{localStorage.setItem('fin-pcf',JSON.stringify({ts:Date.now(),d}))}catch(e){}if(sec=='c')render()}catch(e){}PCFrun=false}
+const pcfKey=t=>PCF&&[t,t.slice(0,4),t.slice(0,-1)].find(x=>PCF[x]);
+const dNear=(a,b)=>Math.abs(Date.parse(a)-Date.parse(b))<=6*864e5;
+function pastFlows(since){if(!PCF){pcfFetch();return[]}const I=S.inv,o=[];
+ [...new Set(I.cf.map(c=>c.t))].forEach(t=>{const h=I.pos.find(x=>x.t==t),k=pcfKey(t);if(!h||!k)return;const F=PCF[k],fut=I.cf.filter(c=>c.t==t);let sc=null;
+  for(const c of fut){const m=F.find(f=>dNear(f[0],c.d));if(m&&m[1]){sc=((c.i||0)+(c.a||0))/m[1];break}}if(!sc)return;
+  const maxI=Math.max(0,...fut.map(c=>c.i||0));
+  F.forEach(([d,m])=>{if(d<since||d>=TODAY||!m||fut.some(c=>dNear(c.d,d)))return;const pc=m*sc;o.push({t:dtk(h),d,x:h.q*pc/100,ty:maxI&&pc>maxI*2.5?'k':'r',past:1})})});
+ return o}
 function vCash(){const I=S.inv;if(!I)return none('Todavía no hay datos de inversiones.');
- const m=mepE(),Y0=TODAY.slice(0,4)+'-01-01',AP=flows(Y0).concat(cr?rsuFlows(Y0).map(f=>({t:f.ty=='v'?'XOM vest':'XOM div',d:f.d,x:f.x,ty:f.ty})):[]),A=AP.filter(f=>f.d>=TODAY),lim=addY(TODAY,1);
+ const m=mepE(),Y0=TODAY.slice(0,4)+'-01-01',AP=flows(Y0).concat(pastFlows(Y0)).concat(cr?rsuFlows(Y0).map(f=>({t:f.ty=='v'?'XOM vest':'XOM div',d:f.d,x:f.x,ty:f.ty})):[]),A=AP.filter(f=>f.d>=TODAY),lim=addY(TODAY,1);
  const r12=A.filter(f=>(f.ty=='r'||f.ty=='d')&&f.d<=lim).reduce((a,f)=>a+f.x,0),cap=A.filter(f=>f.ty=='k').reduce((a,f)=>a+f.x,0),all=A.filter(f=>f.ty!='p'&&f.ty!='q').reduce((a,f)=>a+f.x,0);
  const nx=[...A].filter(f=>f.ty!='q').sort((a,b)=>a.d<b.d?-1:1)[0];
  const F=AP.filter(f=>cm=='all'||f.ty=='r'||f.ty=='p'||f.ty=='d'),ys=[...new Set(F.map(f=>+f.d.slice(0,4)))].sort();
@@ -2562,7 +2575,7 @@ function vCash(){const I=S.inv;if(!I)return none('Todavía no hay datos de inver
  h+=`<div class="sec" style="margin-top:18px"><div class="chips">${ys.map(y=>`<button class="chip${y==cy?' on':''}" data-cy="${y}">${y}</button>`).join('')}</div><div class="chips" style="padding-top:0"><button class="chip${cm=='all'?' on':''}" data-cm="all">Renta + capital</button><button class="chip${cm=='r'?' on':''}" data-cm="r">Solo renta</button><button class="chip${cr?' on':''}" data-cr="1">+ RSU XOM neto</button></div></div>`;
  h+=`<div class="chart"><h3>Cobros ${cy}</h3><div class="cs">US$ por mes · ${usd(tots.reduce((a,b)=>a+b,0))} en el año${cy==+TODAY.slice(0,4)?` · ya cobrado ${usd(fy.filter(f=>f.d<TODAY).reduce((a,f)=>a+f.x,0))}`:''} · tenue = condicional</div>${chart}${legend(tk.map(g=>[g=='Otros'?'var(--lq)':SER[top.indexOf(g)],g]))}</div>`;
  h+=mt.map((a,k)=>{if(!a.length)return'';return `<div class="list" style="margin-top:12px"><div class="mh"><span>${MESL[k]} ${cy}${a.every(f=>f.d<TODAY)?' <em class="tcp">✓ cobrado</em>':''}</span><span>${usd(tots[k])}</span></div>`+a.sort((p,q)=>p.d<q.d?-1:p.d>q.d?1:0).map(f=>`<div class="li"><i class="sw" style="background:${col(f.t)}"></i><div class="l1"><b>${esc(f.t)}${I.nv.some(n=>f.t.startsWith(n.slice(0,4)))&&(f.ty=='r'||f.ty=='k')?' ≈':''}</b><small>${TY[f.ty]} · ${fd(f.d)}${f.d<TODAY?(f.ty=='p'?' · <em class="mutc" style="font-style:normal">si se cumplió la barrera</em>':' · <em class="tcp">cobrado</em>'):''}</small></div><div class="r1"><b>${usd(f.x)}</b><small>${money(f.x*m)}</small></div></div>`).join('')+'</div>'}).join('');
- return h+'<div class="note">Montos en USD sobre tu nominal; pesos al MEP. ≈ = cronograma estimado. Los cupones de los estructurados se cobran solo si se cumple la barrera. RSU: neto de la retención, con el precio actual de XOM. Lo ya cobrado de este año se calcula con tu tenencia actual: si compraste o vendiste en el año, puede no coincidir exacto.</div>'}
+ return h+'<div class="note">Montos en USD sobre tu nominal; pesos al MEP. ≈ = cronograma estimado. Los cupones de los estructurados se cobran solo si se cumple la barrera. RSU: neto de la retención, con el precio actual de XOM. Lo ya cobrado de este año se calcula con tu tenencia actual: si compraste o vendiste en el año, puede no coincidir exacto.'+(()=>{const n=[...new Set(S.inv.cf.map(c=>c.t))].filter(t=>PCF&&!pcfKey(t));return n.length?' Sin historial público de pagos pasados: '+n.join(', ')+'.':''})()+'</div>'}
 
 /* ---------- vista RSU ---------- */
 function vRsu(){const I=S.inv,R=I&&I.rsu;if(!R)return none('Todavía no hay datos de RSU.');
@@ -2766,7 +2779,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261127001000';
+const BUILD='20261127002000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
