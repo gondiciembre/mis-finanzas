@@ -1324,7 +1324,7 @@ function toast(m){let el=$('#toast');if(!el){el=document.createElement('div');el
 
 /* ---------- bloqueo con Face ID / Touch ID (WebAuthn, por dispositivo) ---------- */
 const LK='fin-lock';const lockAfter=()=>{try{const v=localStorage.getItem('fin-lockafter');return v==null?3*60e3:+v}catch(e){return 3*60e3}};
-let LOCKED=false,hiddenAt=0;
+let LOCKED=false,hiddenAt=0,UNLK=false,unlAt=0,updPend=null;
 const lockCfg=()=>{try{return JSON.parse(localStorage.getItem(LK)||'null')}catch(e){return null}};
 const b64=a=>btoa(String.fromCharCode(...new Uint8Array(a))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const ub64=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),c=>c.charCodeAt(0))};
@@ -1338,11 +1338,12 @@ async function lockEnable(){
   localStorage.setItem(LK,JSON.stringify({id:b64(c.rawId),on:true}));toast('Bloqueo activado en este dispositivo');return true}
  catch(e){toast(e&&e.name=='NotAllowedError'?'Activación cancelada.':'No se pudo activar: '+(e&&e.message||e));return false}}
 function lockDisable(){try{localStorage.removeItem(LK)}catch(e){}LOCKED=false;drawLock();toast('Bloqueo desactivado en este dispositivo')}
-async function unlock(){const c=lockCfg();if(!c){LOCKED=false;drawLock();return}
+async function unlock(){const c=lockCfg();if(!c){LOCKED=false;drawLock();return}if(UNLK)return;UNLK=true;
  const msg=$('#lkmsg');if(msg)msg.textContent='';
  try{await navigator.credentials.get({publicKey:{challenge:rnd(32),rpId:location.hostname,allowCredentials:[{type:'public-key',id:ub64(c.id)}],userVerification:'required',timeout:60000}});
-  LOCKED=false;drawLock()}
- catch(e){if(msg)msg.textContent=e&&e.name=='NotAllowedError'?'No se pudo verificar. Probá de nuevo.':'Error: '+(e&&e.message||e)}}
+  unlAt=Date.now();try{sessionStorage.setItem('fin-unl',unlAt)}catch(x){}LOCKED=false;drawLock();if(updPend){const u=updPend;updPend=null;location.replace(u)}}
+ catch(e){if(msg)msg.textContent=e&&e.name=='NotAllowedError'?'No se pudo verificar. Probá de nuevo.':'Error: '+(e&&e.message||e)}
+ finally{UNLK=false}}
 function lockNow(){if(lockCfg()&&SESSION){LOCKED=true;hideTip&&hideTip();closeSheet&&closeSheet();drawLock()}}
 function drawLock(){let el=$('#lock');
  if(!LOCKED){if(el)el.remove();document.documentElement.classList.remove('locked');return}
@@ -1351,7 +1352,8 @@ function drawLock(){let el=$('#lock');
  el.innerHTML=`<div class="lkbox"><svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
  <h2>Finanzas Gonzo</h2><p>Bloqueada en este dispositivo</p><button class="lkbtn" data-unlock="1">Desbloquear con Face ID / Touch ID</button><p class="lkm" id="lkmsg" role="status"></p>
  <button class="lklink" data-logout="1">Cerrar sesión</button></div>`}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='hidden'){hiddenAt=Date.now()}else if(lockCfg()&&SESSION&&hiddenAt&&Date.now()-hiddenAt>=lockAfter()){lockNow();unlock()}});
+/* el Face ID del iPhone oculta y vuelve a mostrar la página: eso no cuenta como salir de la app */
+document.addEventListener('visibilitychange',()=>{const fid=UNLK||Date.now()-unlAt<5000;if(document.visibilityState=='hidden'){if(!fid)hiddenAt=Date.now()}else if(!fid&&!LOCKED&&lockCfg()&&SESSION&&hiddenAt&&Date.now()-hiddenAt>=lockAfter()){hiddenAt=0;lockNow();unlock()}});
 
 /* ---------- sin zoom en el iPhone (pellizco y doble toque) ---------- */
 ['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
@@ -2785,9 +2787,9 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261127003000';
+const BUILD='20261127004000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
- if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
+ if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}const u=location.pathname+'?v='+m[1]+location.hash;if(LOCKED||UNLK)updPend=u;else{try{sessionStorage.setItem('fin-unl',unlAt||0)}catch(e){}location.replace(u)}}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
 async function boot(){
  checkUpdate();
@@ -2803,7 +2805,9 @@ async function boot(){
  // sin conexión y con la sesión vencida: abrir igual con los datos guardados en el teléfono
  if(SB&&!SESSION&&navigator.onLine===false&&S){try{const k=Object.keys(localStorage).find(k=>/^sb-.+-auth-token$/.test(k));const v=k&&JSON.parse(localStorage.getItem(k));if(v&&v.user)SESSION={user:v.user,offline:true}}catch(e){}}
  SYNC=SESSION?(SESSION.offline?'err':'wait'):'local';
- if(SESSION&&lockCfg()){LOCKED=true;drawLock();unlock()}
+ /* recién desbloqueada (recarga por versión nueva): no pedir Face ID otra vez */
+ let ju=0;try{ju=+sessionStorage.getItem('fin-unl')||0}catch(e){}
+ if(SESSION&&lockCfg()&&!(ju&&Date.now()-ju<120e3)){LOCKED=true;drawLock();unlock()}else if(ju)unlAt=ju;
  render();liveFetch(true);liveLoop();
  if(SESSION&&!SESSION.offline)await loadRemote()}
 boot();
