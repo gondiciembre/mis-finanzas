@@ -1,15 +1,17 @@
-{"date":"2026-11-26","gen":"2026-11-26T08:48:00-03:00","title":"Wall Street cerrado hoy por el feriado de Acción de Gracias: el mercado vuelve mañana en una rueda corta, después de un miércoles de mucho susto por la IA y una inflación más alta de lo esperado.",
+{"date":"2026-11-27","gen":"2026-11-27T08:49:00-03:00","title":"Wall Street vuelve del feriado en una rueda corta (cierra a las 15 de Argentina) y los futuros anticipan un fuerte rebote de las tecnológicas y los chips, después de un noviembre muy castigado.",
 "bullets":[
-{"h":"Hoy no hay mercado en EE.UU.","t":"La bolsa de Nueva York no opera este jueves por Acción de Gracias. Mañana viernes abre en horario normal pero cierra temprano, a las 13 de Nueva York (15 de Argentina)."},
-{"h":"Cierre mixto el miércoles.","t":"El S&P 500 bajó 0,25% (7.182,78) y el Nasdaq cayó 0,62% (23.585,80), su segunda baja seguida, mientras el Dow subió 0,33% hasta 50.182,95 puntos. Durante la rueda las caídas habían sido mucho más fuertes y se recuperaron casi todo antes del cierre."},
-{"h":"Otro golpe a Nvidia y a los chips.","t":"Nvidia llegó a caer más de 9% y cerró con una baja de casi 4%, después de que S&P Global pusiera su calificación AA en revisión negativa por temas de gobierno corporativo. Micron perdió 4,5% y Ambarella se hundió 19,8%; en cambio, HP subió 11,5%."},
-{"h":"Inflación más alta, suba de tasas casi segura.","t":"La inflación PCE de octubre dio 3,8% anual y la núcleo 3,3%, por encima del 3,2% esperado, y el PIB del tercer trimestre se corrigió al alza a 4,3%. El mercado da entre 94% y 98% de chances a una suba de tasas de 0,25 punto en la reunión de la Fed del 8 y 9 de diciembre."},
-{"h":"Petróleo arriba, bitcoin abajo.","t":"El WTI subió 2% a US$ 83,68 y el Brent 3,5% a US$ 94,61. El oro perforó los US$ 3.500 durante el día y cerró cerca de US$ 3.583; el bitcoin bajó a la zona de US$ 57.500, con salidas de fondos por sexta rueda seguida."},
-{"h":"Lo que viene.","t":"Mañana viernes, rueda corta y de poco volumen. La semana próxima llegan el JOLTS (martes 1/12) y el informe de empleo de noviembre (viernes 4/12); después, la decisión de la Fed (9/12) y la inflación CPI de noviembre (10/12)."}
+{"h":"Rueda corta y con poco volumen.","t":"Ayer jueves no hubo mercado por Acción de Gracias. Hoy la bolsa abre a la hora de siempre (11:30 de Argentina) pero cierra a las 13 de Nueva York, o sea a las 15 de Argentina."},
+{"h":"Futuros en fuerte suba.","t":"Temprano, los futuros del Nasdaq 100 subían 2,35% (26.714,5), los del S&P 500 alrededor de 1,8% (7.323,5) y los del Dow 1,2% (50.807). El miércoles el S&P 500 había cerrado en 7.182,78 (-0,25%), el Nasdaq en 23.585,80 (-0,62%) y el Dow en 50.182,95 (+0,33%)."},
+{"h":"Rebote de la IA y los chips.","t":"Antes de la apertura Nvidia subía cerca de 4% (US$ 155,20), AMD 5%, Micron 6,4% y Sandisk casi 11%; Anthropic ganaba 3,6% y volvía a superar su precio de salida a la bolsa. Aun así, el Nasdaq 100 lleva una caída de alrededor de 8% en noviembre, su peor mes desde diciembre de 2022."},
+{"h":"El mundo también sube.","t":"En Asia el Kospi coreano saltó 4,3%, Shanghái 3,7% (con promesas del gobierno chino de sostener la bolsa), y el Nikkei y Hang Seng 2,1%. En Europa, el DAX sube 0,7% y el FTSE 100 cerca de 0,7%."},
+{"h":"Tasas arriba, oro y petróleo firmes.","t":"La tasa del bono del Tesoro a 10 años sube a 4,92% (desde 4,85%) y el mercado da 99% de chances a una suba de tasas de la Fed el 9 de diciembre. El oro rebota más de 2% a unos US$ 3.650, el WTI sube 2,8% a US$ 86,05, el Brent 1,1% a US$ 97,62 y el bitcoin ronda los US$ 61.500."},
+{"h":"Lo que viene.","t":"El lunes 30 es el último día hábil de noviembre. La semana próxima llegan el JOLTS (martes 1/12) y el informe de empleo de noviembre (viernes 4/12); después, la decisión de la Fed (9/12) y la inflación CPI de noviembre (10/12)."}
 ],
 "src":[
+{"n":"Forbes","u":"https://www.forbes.com/sites/siladityaray/2026/11/27/stock-futures-surge-as-battered-ai-shares-rebound-ahead-of-shorterned-friday-trading/"},
+{"n":"AP vía BNN Bloomberg","u":"https://www.bnnbloomberg.ca/markets/2026/11/27/global-shares-mostly-rise-ahead-of-wall-streets-reopening-after-thanksgiving/"},
+{"n":"FinanceFeeds","u":"https://financefeeds.com/gold-price-today-3650-friday-rebound-from-15-month-low-silver-up-6-percent-bull-3742-bear-3567/"},
+{"n":"CryptoTicker","u":"https://cryptoticker.io/en/crypto-news-gold-jumps-2-7-percent-3662/"},
 {"n":"TradingKey","u":"https://www.tradingkey.com/analysis/stocks/us-stocks/262322956-market-recap-sp-nasdaq-nvidia-pce-gold-breaks-3500-tradingkey"},
-{"n":"ForexCrunch","u":"https://www.forexcrunch.com/blog/2026/11/26/core-pce-tariffs-december-fed-hike-bitcoin-57500/"},
-{"n":"FinScans","u":"https://finscans.com/news/2026/11/25/us-core-pce-inflation-hits-33-as-fed-rate-hike-odds-reach"},
 {"n":"U.S. Bureau of Labor Statistics","u":"https://www.bls.gov/schedule/2026/12_sched_list.htm"}
 ]}
