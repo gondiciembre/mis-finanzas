@@ -2531,25 +2531,25 @@ const addY=(s,n)=>(+s.slice(0,4)+n)+s.slice(4);
 const yrs=d=>(Date.parse(d)-Date.parse(TODAY))/(365.25*864e5);
 
 /* ---------- flujos ---------- */
-function flows(){const I=S.inv,o=[];
- I.cf.forEach(c=>{const h=I.pos.find(x=>x.t==c.t);if(!h||c.d<TODAY)return;const t=dtk(h);if(c.i)o.push({t,d:c.d,x:h.q*c.i/100,ty:'r'});if(c.a)o.push({t,d:c.d,x:h.q*c.a/100,ty:'k'})});
- I.est.forEach(e=>{const h=I.pos.find(x=>x.t==e.t);if(!h)return;e.cp.forEach(c=>{if(c[1]>=TODAY)o.push({t:e.t,d:c[1],x:h.q*e.rate/100,ty:'p'})});if(e.mat>=TODAY)o.push({t:e.t,d:e.mat,x:h.q,ty:'q'})});
+function flows(since){since=since||TODAY;const I=S.inv,o=[];
+ I.cf.forEach(c=>{const h=I.pos.find(x=>x.t==c.t);if(!h||c.d<since)return;const t=dtk(h);if(c.i)o.push({t,d:c.d,x:h.q*c.i/100,ty:'r'});if(c.a)o.push({t,d:c.d,x:h.q*c.a/100,ty:'k'})});
+ I.est.forEach(e=>{const h=I.pos.find(x=>x.t==e.t);if(!h)return;e.cp.forEach(c=>{if(c[1]>=since)o.push({t:e.t,d:c[1],x:h.q*e.rate/100,ty:'p'})});if(e.mat>=since)o.push({t:e.t,d:e.mat,x:h.q,ty:'q'})});
  return o}
 /* RSU: vestings y dividendos netos de retención */
 const DIVM=[3,6,9,12];
-function rsuFlows(){const R=S.inv.rsu,px=rsuPx(),nt=1-R.tax/100,div=R.div||1.07,o=[];
- R.g.forEach((g,gi)=>{if(g.vd>=TODAY)o.push({t:'XOM',d:g.vd,ty:'v',q:g.q,g:g.q*px,x:g.q*px*nt,gi})});
- const last=R.g.reduce((a,g)=>g.vd>a?g.vd:a,TODAY);let y=+TODAY.slice(0,4);
- for(;y<=+last.slice(0,4);y++)for(const m of DIVM){const pd=y+'-'+String(m).padStart(2,'0')+'-10';if(pd<TODAY)continue;
+function rsuFlows(since){since=since||TODAY;const R=S.inv.rsu,px=rsuPx(),nt=1-R.tax/100,div=R.div||1.07,o=[];
+ R.g.forEach((g,gi)=>{if(g.vd>=since)o.push({t:'XOM',d:g.vd,ty:'v',q:g.q,g:g.q*px,x:g.q*px*nt,gi})});
+ const last=R.g.reduce((a,g)=>g.vd>a?g.vd:a,TODAY);let y=+since.slice(0,4);
+ for(;y<=+last.slice(0,4);y++)for(const m of DIVM){const pd=y+'-'+String(m).padStart(2,'0')+'-10';if(pd<since)continue;
   const rd=new Date(Date.parse(pd)-25*864e5).toISOString().slice(0,10),q=R.g.filter(g=>g.vd>rd).reduce((a,g)=>a+g.q,0);
   if(q)o.push({t:'XOM',d:pd,ty:'d',q,g:q*div,x:q*div*nt})}
  return o.sort((a,b)=>a.d<b.d?-1:1)}
 
 function vCash(){const I=S.inv;if(!I)return none('Todavía no hay datos de inversiones.');
- const m=mepE(),A=flows().concat(cr?rsuFlows().map(f=>({t:f.ty=='v'?'XOM vest':'XOM div',d:f.d,x:f.x,ty:f.ty})):[]),lim=addY(TODAY,1);
+ const m=mepE(),Y0=TODAY.slice(0,4)+'-01-01',AP=flows(Y0).concat(cr?rsuFlows(Y0).map(f=>({t:f.ty=='v'?'XOM vest':'XOM div',d:f.d,x:f.x,ty:f.ty})):[]),A=AP.filter(f=>f.d>=TODAY),lim=addY(TODAY,1);
  const r12=A.filter(f=>(f.ty=='r'||f.ty=='d')&&f.d<=lim).reduce((a,f)=>a+f.x,0),cap=A.filter(f=>f.ty=='k').reduce((a,f)=>a+f.x,0),all=A.filter(f=>f.ty!='p'&&f.ty!='q').reduce((a,f)=>a+f.x,0);
  const nx=[...A].filter(f=>f.ty!='q').sort((a,b)=>a.d<b.d?-1:1)[0];
- const F=A.filter(f=>cm=='all'||f.ty=='r'||f.ty=='p'||f.ty=='d'),ys=[...new Set(F.map(f=>+f.d.slice(0,4)))].sort();
+ const F=AP.filter(f=>cm=='all'||f.ty=='r'||f.ty=='p'||f.ty=='d'),ys=[...new Set(F.map(f=>+f.d.slice(0,4)))].sort();
  if(!ys.includes(cy))cy=ys.includes(+TODAY.slice(0,4))?+TODAY.slice(0,4):ys[0];
  const tt={};F.forEach(f=>tt[f.t]=(tt[f.t]||0)+f.x);const rk=Object.keys(tt).sort((a,b)=>tt[b]-tt[a]),top=rk.slice(0,rk.length>8?7:8),grp=x=>top.includes(x)?x:'Otros';
  const tk=top.concat(rk.length>8?['Otros']:[]),col=x=>{const g=grp(x);return g=='Otros'?'var(--lq)':SER[top.indexOf(g)]};
@@ -2560,9 +2560,9 @@ function vCash(){const I=S.inv;if(!I)return none('Todavía no hay datos de inver
   tip:k=>({t:MESL[k]+' '+cy,r:mt[k].slice().sort((a,b)=>b.x-a.x).slice(0,7).map(f=>[col(f.t),f.t,usd(f.x)]).concat(mt[k].length>7?[['','+'+(mt[k].length-7)+' más','']]:[]).concat([['','Total',usd(tots[k])]])})});
  let h=`<div class="grid g3"><div class="card kpi"><div class="k">Renta próx. 12 meses</div><div class="v">${usd(r12)}</div><div class="s">${money(r12*m)}</div></div><div class="card kpi"><div class="k">Capital a cobrar</div><div class="v">${usd(cap)}</div><div class="s">bonos y ONs al vencimiento</div></div><div class="card kpi"><div class="k">Próximo cobro</div><div class="v">${nx?usd(nx.x):'—'}</div><div class="s">${nx?esc(nx.t)+' · '+fds(nx.d):''}</div></div></div>`;
  h+=`<div class="sec" style="margin-top:18px"><div class="chips">${ys.map(y=>`<button class="chip${y==cy?' on':''}" data-cy="${y}">${y}</button>`).join('')}</div><div class="chips" style="padding-top:0"><button class="chip${cm=='all'?' on':''}" data-cm="all">Renta + capital</button><button class="chip${cm=='r'?' on':''}" data-cm="r">Solo renta</button><button class="chip${cr?' on':''}" data-cr="1">+ RSU XOM neto</button></div></div>`;
- h+=`<div class="chart"><h3>Cobros ${cy}</h3><div class="cs">US$ por mes · ${usd(tots.reduce((a,b)=>a+b,0))} en el año · tenue = condicional</div>${chart}${legend(tk.map(g=>[g=='Otros'?'var(--lq)':SER[top.indexOf(g)],g]))}</div>`;
- h+=mt.map((a,k)=>{if(!a.length)return'';return `<div class="list" style="margin-top:12px"><div class="mh"><span>${MESL[k]} ${cy}</span><span>${usd(tots[k])}</span></div>`+a.sort((p,q)=>p.d<q.d?-1:p.d>q.d?1:0).map(f=>`<div class="li"><i class="sw" style="background:${col(f.t)}"></i><div class="l1"><b>${esc(f.t)}${I.nv.some(n=>f.t.startsWith(n.slice(0,4)))&&(f.ty=='r'||f.ty=='k')?' ≈':''}</b><small>${TY[f.ty]} · ${fd(f.d)}</small></div><div class="r1"><b>${usd(f.x)}</b><small>${money(f.x*m)}</small></div></div>`).join('')+'</div>'}).join('');
- return h+'<div class="note">Montos en USD sobre tu nominal; pesos al MEP. ≈ = cronograma estimado. Los cupones de los estructurados se cobran solo si se cumple la barrera. RSU: neto de la retención, con el precio actual de XOM.</div>'}
+ h+=`<div class="chart"><h3>Cobros ${cy}</h3><div class="cs">US$ por mes · ${usd(tots.reduce((a,b)=>a+b,0))} en el año${cy==+TODAY.slice(0,4)?` · ya cobrado ${usd(fy.filter(f=>f.d<TODAY).reduce((a,f)=>a+f.x,0))}`:''} · tenue = condicional</div>${chart}${legend(tk.map(g=>[g=='Otros'?'var(--lq)':SER[top.indexOf(g)],g]))}</div>`;
+ h+=mt.map((a,k)=>{if(!a.length)return'';return `<div class="list" style="margin-top:12px"><div class="mh"><span>${MESL[k]} ${cy}${a.every(f=>f.d<TODAY)?' <em class="tcp">✓ cobrado</em>':''}</span><span>${usd(tots[k])}</span></div>`+a.sort((p,q)=>p.d<q.d?-1:p.d>q.d?1:0).map(f=>`<div class="li"><i class="sw" style="background:${col(f.t)}"></i><div class="l1"><b>${esc(f.t)}${I.nv.some(n=>f.t.startsWith(n.slice(0,4)))&&(f.ty=='r'||f.ty=='k')?' ≈':''}</b><small>${TY[f.ty]} · ${fd(f.d)}${f.d<TODAY?(f.ty=='p'?' · <em class="mutc" style="font-style:normal">si se cumplió la barrera</em>':' · <em class="tcp">cobrado</em>'):''}</small></div><div class="r1"><b>${usd(f.x)}</b><small>${money(f.x*m)}</small></div></div>`).join('')+'</div>'}).join('');
+ return h+'<div class="note">Montos en USD sobre tu nominal; pesos al MEP. ≈ = cronograma estimado. Los cupones de los estructurados se cobran solo si se cumple la barrera. RSU: neto de la retención, con el precio actual de XOM. Lo ya cobrado de este año se calcula con tu tenencia actual: si compraste o vendiste en el año, puede no coincidir exacto.</div>'}
 
 /* ---------- vista RSU ---------- */
 function vRsu(){const I=S.inv,R=I&&I.rsu;if(!R)return none('Todavía no hay datos de RSU.');
@@ -2766,7 +2766,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261126226000';
+const BUILD='20261127001000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}location.replace(location.pathname+'?v='+m[1]+location.hash)}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
