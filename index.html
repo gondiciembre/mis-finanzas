@@ -703,11 +703,12 @@ function bilAuto(){const B=bilCfg();if(!B.on||!B.name)return false;let ch=false;
    if(bx&&!(bx.end!=null&&m>=bx.end)){const k=ymK(y,m);if(k>=B.from&&!bx.p[m]){const v=Math.max(0,Math.round(run));if((bx.a[m]||0)!=v){bx.a[m]=v;ch=true}bx.bil=1}run-=bx.a[m]||0}}
   carry=run}
  return ch}
-/* RSU: vestings y dividendos netos (35%) en pesos al MEP, desde el mes actual */
+/* RSU: vestings y dividendos netos (35%) en pesos al CCL (cobran en el exterior), desde el mes actual. Entran como ingreso en Gastos → suman al dinero en cuenta, no a la cartera */
+const cclE=()=>(Q&&Q.ccl)||(S&&S.inv&&S.inv.cable)||mepE();
 const RSU_ROWS={d:{n:'Dividendo RSU XOM',c:'ren'},v:{n:'Vesting RSU XOM',c:'ext'}},RSU_V=['Vesting RSU XOM (1)','Vesting RSU XOM (2)'];
 const isVest=x=>x.n==RSU_ROWS.v.n||RSU_V.includes(x.n);
 function rsuAuto(){const I=S.inv;if(!I||!I.rsu||!I.rsu.g||!I.rsu.g.length)return false;let F;try{F=rsuFlows()}catch(e){return false}
- const m=mepE();if(!m)return false;let ch=false;
+ const m=cclE();if(!m)return false;let ch=false;
  // quitar la fila única anterior (la reemplazan las dos cuotas)
  Object.keys(S.y).forEach(y=>{const i=S.y[y].findIndex(z=>z.n==RSU_ROWS.v.n&&z.rsu&&!z.a.some((v,k)=>v&&z.p[k]&&ymK(+y,k)<NOWK));if(i>=0){S.y[y].splice(i,1);ch=true}});
  const want={};[RSU_ROWS.d.n,...RSU_V].forEach(n=>want[n]={});const dates={};
@@ -721,6 +722,8 @@ function rsuAuto(){const I=S.inv;if(!I||!I.rsu||!I.rsu.g||!I.rsu.g.length)return
   for(let mm=0;mm<12;mm++){const k=ymK(+y,mm),cur=x.a[mm]||0;
    if(k<NOWK){if(!cur&&!x.p[mm]){x.p[mm]=1;ch=true}continue}
    if(x.p[mm]&&cur)continue;const v=Math.round(want[n][k]||0),pz=v?0:1;
+   /* ya vesteó / se pagó el dividendo: queda cobrado (suma al banco) con el CCL de ese día */
+   const dd=x.vd&&x.vd[k];x.ap=x.ap||{};if(v&&dd&&dd<=TODAY&&!x.ap[k]){x.a[mm]=v;x.p[mm]=1;x.ap[k]=1;ch=true;continue}if(x.ap[k])continue;
    /* tolerancia 0,5%: el MEP y XOM en vivo varían entre dispositivos; sin esto se pisan entre sí */
    if((!!cur!=!!v||Math.abs(cur-v)>Math.max(1,Math.abs(v)*.005))||(x.p[mm]?1:0)!=pz){x.a[mm]=v;x.p[mm]=pz;ch=true}}})});
  return ch}
@@ -1023,7 +1026,7 @@ function vMes(){
    <div class="gpb"><i style="width:${sum?dn/sum*100:0}%;background:${cc}"></i></div>`;
   if(!closed){h+=`<div class="list">`;
    for(const [x,i] of rs){const a=x.a[mo]||0,d=x.p[mo],lab=isIn||x.s=='in'?['Cobrado','Estimado']:['Pagado','Estimado'];
-    h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${x.src&&x.src[mo]?(d?lab[0]+' · ':'')+'Suma: '+x.src[mo].r.join(' + ')+(x.src[mo].x?' + '+money(x.src[mo].x):''):d?lab[0]:!d&&x.bil&&bilCfg().on&&ymK(yr,mo)>=bilCfg().from?'Estimado · lo que queda disponible':!d&&x.a[mo]&&x.sac?'Estimado · 50% del mejor sueldo '+(mo<6?'ene–jun':'jul–dic'):!d&&x.a[mo]&&x.pat&&ymK(yr,mo)>=NOWK&&carOps().some(o=>o.patG)?'Estimado · patente PBA del auto nuevo':!d&&x.a[mo]&&x.rsu&&ymK(yr,mo)>=NOWK?'Estimado · '+(x.vd&&x.vd[ymK(yr,mo)]?fd(x.vd[ymK(yr,mo)]).slice(0,5)+' · ':'')+'neto 35% × MEP '+f2u(mepE()):!d&&x.a[mo]&&x.uva&&LD?'Estimado · UVA en vivo + inflación':!d&&x.a[mo]&&x.alq&&contractFor(x.n,ymK(yr,mo))?'Estimado · contrato':!d&&x.dom&&S.dom&&S.dom.emps&&S.dom.emps.some(e=>ymK(yr,mo)>=e.from)?domDesc(ymK(yr,mo)):!d&&x.tc&&tcDesc(x,ymK(yr,mo))?tcDesc(x,ymK(yr,mo)):lab[1]}${(()=>{const g=autoGo(x);return g?` · <button class="lnk alnk" data-goto="${g[0]}|${g[1]}">ver en ${g[2]} ›</button>`:''})()}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
+    h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${x.src&&x.src[mo]?(d?lab[0]+' · ':'')+'Suma: '+x.src[mo].r.join(' + ')+(x.src[mo].x?' + '+money(x.src[mo].x):''):d?lab[0]:!d&&x.bil&&bilCfg().on&&ymK(yr,mo)>=bilCfg().from?'Estimado · lo que queda disponible':!d&&x.a[mo]&&x.sac?'Estimado · 50% del mejor sueldo '+(mo<6?'ene–jun':'jul–dic'):!d&&x.a[mo]&&x.pat&&ymK(yr,mo)>=NOWK&&carOps().some(o=>o.patG)?'Estimado · patente PBA del auto nuevo':!d&&x.a[mo]&&x.rsu&&ymK(yr,mo)>=NOWK?'Estimado · '+(x.vd&&x.vd[ymK(yr,mo)]?fd(x.vd[ymK(yr,mo)]).slice(0,5)+' · ':'')+'neto 35% × CCL '+f2u(cclE()):!d&&x.a[mo]&&x.uva&&LD?'Estimado · UVA en vivo + inflación':!d&&x.a[mo]&&x.alq&&contractFor(x.n,ymK(yr,mo))?'Estimado · contrato':!d&&x.dom&&S.dom&&S.dom.emps&&S.dom.emps.some(e=>ymK(yr,mo)>=e.from)?domDesc(ymK(yr,mo)):!d&&x.tc&&tcDesc(x,ymK(yr,mo))?tcDesc(x,ymK(yr,mo)):lab[1]}${(()=>{const g=autoGo(x);return g?` · <button class="lnk alnk" data-goto="${g[0]}|${g[1]}">ver en ${g[2]} ›</button>`:''})()}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
    h+=`<button class="add" data-add="${secFor(c,rs)}" data-addc="${esc(c.id)}">+ Agregar en ${esc(c.n)}</button></div>`}
   h+=`</div>`}
  if(curSec)h+=`</div>`;
@@ -2594,7 +2597,7 @@ function vCash(){const I=S.inv;if(!I)return none('Todavía no hay datos de inver
  const mk=k=>cy+'-'+String(k+1).padStart(2,'0'),isOp=k=>CMX[mk(k)]!=null?CMX[mk(k)]:mk(k)>=NOWK,ks=mt.map((a,k)=>a.length?k:-1).filter(k=>k>=0);
  if(ks.length)h+=`<div class="hrow2" style="margin-top:14px;justify-content:flex-end"><button class="btn" data-cmx="1">Expandir todo</button><button class="btn" data-cmx="0">Colapsar todo</button></div>`;
  h+=mt.map((a,k)=>{if(!a.length)return'';return `<details class="list cmh" style="margin-top:12px"${isOp(k)?' open':''}><summary class="mh" data-cmk="${mk(k)}"><span><i class="chv">›</i>${MESL[k]} ${cy}${a.every(f=>f.d<TODAY)?' <em class="tcp">✓ cobrado</em>':''}</span><span>${usd(tots[k])}</span></summary>`+a.sort((p,q)=>p.d<q.d?-1:p.d>q.d?1:0).map(f=>`<div class="li"><i class="sw" style="background:${col(f.t)}"></i><div class="l1"><b>${esc(f.t)}${I.nv.some(n=>f.t.startsWith(n.slice(0,4)))&&(f.ty=='r'||f.ty=='k')?' ≈':''}</b><small>${TY[f.ty]} · ${fd(f.d)}${f.d<=TODAY&&I.rc&&I.rc.done&&I.rc.done[f.t+'|'+f.d]!=null?' · <em class="tcp">sumado a liquidez</em>':f.d<TODAY?(f.ty=='p'?' · <em class="mutc" style="font-style:normal">si se cumplió la barrera</em>':' · <em class="tcp">cobrado</em>'):''}</small></div><div class="r1"><b>${usd(f.x)}</b><small>${money(f.x*m)}</small></div></div>`).join('')+'</details>'}).join('');
- return h+'<div class="note">Montos en USD sobre tu nominal; pesos al MEP. ≈ = cronograma estimado. Los cupones de los estructurados se cobran solo si se cumple la barrera. RSU: neto de la retención, con el precio actual de XOM. Lo ya cobrado de este año se calcula con tu tenencia actual: si compraste o vendiste en el año, puede no coincidir exacto.'+(()=>{const n=[...new Set(S.inv.cf.map(c=>c.t))].filter(t=>PCF&&!pcfKey(t));return n.length?' Sin historial público de pagos pasados: '+n.join(', ')+'.':''})()+'</div>'}
+ return h+'<div class="note">Montos en USD sobre tu nominal; pesos al MEP. ≈ = cronograma estimado. Los cupones de los estructurados se cobran solo si se cumple la barrera. RSU: neto de la retención, con el precio actual de XOM (en Gastos se pasan a pesos al CCL y suman al banco, no a la cartera). Lo ya cobrado de este año se calcula con tu tenencia actual: si compraste o vendiste en el año, puede no coincidir exacto.'+(()=>{const n=[...new Set(S.inv.cf.map(c=>c.t))].filter(t=>PCF&&!pcfKey(t));return n.length?' Sin historial público de pagos pasados: '+n.join(', ')+'.':''})()+'</div>'}
 
 /* ---------- vista RSU ---------- */
 function vRsu(){const I=S.inv,R=I&&I.rsu;if(!R)return none('Todavía no hay datos de RSU.');
@@ -2802,7 +2805,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261127110000';
+const BUILD='20261127131500';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}const u=location.pathname+'?v='+m[1]+location.hash;if(LOCKED||UNLK)updPend=u;else{try{if(lockCfg()&&SESSION)sessionStorage.setItem('fin-unl',Date.now())}catch(e){}location.replace(u)}}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
