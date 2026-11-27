@@ -2787,9 +2787,9 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261127004000';
+const BUILD='20261127004100';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
- if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}const u=location.pathname+'?v='+m[1]+location.hash;if(LOCKED||UNLK)updPend=u;else{try{sessionStorage.setItem('fin-unl',unlAt||0)}catch(e){}location.replace(u)}}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
+ if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}const u=location.pathname+'?v='+m[1]+location.hash;if(LOCKED||UNLK)updPend=u;else{try{if(lockCfg()&&SESSION)sessionStorage.setItem('fin-unl',Date.now())}catch(e){}location.replace(u)}}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
 async function boot(){
  checkUpdate();
