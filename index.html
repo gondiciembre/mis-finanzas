@@ -707,7 +707,7 @@ function bilAuto(){const B=bilCfg();if(!B.on||!B.name)return false;let ch=false;
 const cclE=()=>(Q&&Q.ccl)||(S&&S.inv&&S.inv.cable)||mepE();
 const RSU_ROWS={d:{n:'Dividendo RSU XOM',c:'ren'},v:{n:'Vesting RSU XOM',c:'ext'}},RSU_V=['Vesting RSU XOM (1)','Vesting RSU XOM (2)'];
 const isVest=x=>x.n==RSU_ROWS.v.n||RSU_V.includes(x.n);
-function rsuAuto(){const I=S.inv;if(!I||!I.rsu||!I.rsu.g||!I.rsu.g.length)return false;let F;try{F=rsuFlows()}catch(e){return false}
+function rsuAuto(){const I=S.inv;if(!I||!I.rsu||!I.rsu.g||!I.rsu.g.length)return false;let F;try{F=rsuFlows(NOWK+'-01')}catch(e){return false}/* desde el 1° del mes: un vesting de ayer sigue siendo de este mes */
  const m=cclE();if(!m)return false;let ch=false;
  // quitar la fila única anterior (la reemplazan las dos cuotas)
  Object.keys(S.y).forEach(y=>{const i=S.y[y].findIndex(z=>z.n==RSU_ROWS.v.n&&z.rsu&&!z.a.some((v,k)=>v&&z.p[k]&&ymK(+y,k)<NOWK));if(i>=0){S.y[y].splice(i,1);ch=true}});
@@ -2805,7 +2805,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261127131500';
+const BUILD='20261127153000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}const u=location.pathname+'?v='+m[1]+location.hash;if(LOCKED||UNLK)updPend=u;else{try{if(lockCfg()&&SESSION)sessionStorage.setItem('fin-unl',Date.now())}catch(e){}location.replace(u)}}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
