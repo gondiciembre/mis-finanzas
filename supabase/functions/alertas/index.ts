@@ -97,7 +97,7 @@ function rentAt(S: Any, C: Any, k: string) { if (k < C.start || (C.end && k > C.
 
 // ---------- reglas ----------
 type Alert = { key: string; cat: string; title: string; body: string; tag?: string; url?: string };
-const DEF = { on: { mv: true, fx: true, uva: true, cob: true, rot: true, crd: true, res: true, tc: true }, mv: 5, pm: 2, fx: 2, conc: 20, liq: 10, priv: true };
+const DEF = { on: { mv: true, fx: true, uva: true, cob: true, rot: true, crd: true, res: true, tc: true, bill: true }, mv: 5, pm: 2, fx: 2, conc: 20, liq: 10, priv: true };
 function rules(S: Any, cfg: Any, M: Any, st: Any): Alert[] {
   const A: Alert[] = [], now = nowART(), today = dISO(now), hh = now.getUTCHours() + now.getUTCMinutes() / 60, wd = now.getUTCDay(), mkt = wd >= 1 && wd <= 5 && hh >= 11 && hh <= 17.2;
   const on = { ...DEF.on, ...(cfg.on || {}) }, priv = cfg.priv !== false, money = (n: number) => priv ? "" : " (US$ " + nf(Math.round(n)) + ")", ars = (n: number) => priv ? "" : " · $ " + nf(Math.round(n));
@@ -183,6 +183,20 @@ function rules(S: Any, cfg: Any, M: Any, st: Any): Alert[] {
         body: `Pagá el resumen${amt}.${R.min && !priv ? " Mínimo $ " + nf(Math.round(R.min)) + "." : ""} Marcalo pagado en Gastos y no te aviso más.`, tag: "tc-" + C.id, url: "#tarjetas" });
     });
   }
+  // 9) vencimiento de facturas de servicios (la fila de Gastos sin marcar pagada)
+  if (on.bill && S.bills && hh >= 9) {
+    const NM: Any = { gabsa: "Expensas San Matías" };
+    (S.bills.list || []).forEach((b: Any) => {
+      const c = Object.assign({ pick: 1, row: "Expensas" }, (S.bills.cfg || {})[b.prov] || {});
+      const d = c.pick == 2 && b.v2 ? b.v2 : b.v1, a = c.pick == 2 && b.v2 ? b.a2 : b.a1; if (!d || d < today) return;
+      const dd = Math.round((Date.parse(d) - Date.parse(today)) / 864e5); if (dd > 3) return;
+      const yr = S.y && S.y[d.slice(0, 4)], row = yr && yr.find((x: Any) => x.n == c.row), mi = +d.slice(5, 7) - 1;
+      if (row && row.p && row.p[mi]) return;
+      const n = NM[b.prov] || "Factura", step = dd >= 2 ? "3" : String(dd);
+      A.push({ key: `bill:${b.id}:${d}:${step}`, cat: "bill", title: dd == 0 ? `Hoy vence ${n}` : dd == 1 ? `Mañana vence ${n}` : `${n} vence el ${fd(d)}`,
+        body: `${priv ? "Pagala" : "Pagá $ " + nf(Math.round(a))}. Marcala pagada en Gastos y no te aviso más.`, tag: "bill-" + b.id, url: "#gastos" });
+    });
+  }
   return A;
 }
 
@@ -259,7 +273,7 @@ Deno.serve(async (req) => {
       const id = "tcin:" + Date.now(), nm = String(body.n || "resumen.pdf").slice(0, 120);
       await SB.from("docs").insert({ user_id: kr.user_id, id, data: { at: Date.now(), n: nm, f: b64 }, updated_at: new Date().toISOString() });
       const { data: p } = await SB.from("docs").select("data").eq("user_id", kr.user_id).eq("id", "push").maybeSingle();
-      if (p && (p.data.subs || []).length) { try { await sendTo(kr.user_id, p.data, [{ key: id, cat: "tc", title: "Llegó un resumen de tarjeta", body: "Tocá para revisarlo y cargarlo en Gastos.", tag: "tcin", url: "#tarjetas~in" }], await vapid()); } catch (_) { /* sin aviso */ } }
+      if (p && (p.data.subs || []).length) { try { await sendTo(kr.user_id, p.data, [{ key: id, cat: "tc", title: "Llegó un archivo desde Compartir", body: "Resumen o factura: tocá para revisarlo y cargarlo en Gastos.", tag: "tcin", url: "#tarjetas~in" }], await vapid()); } catch (_) { /* sin aviso */ } }
       return json({ ok: true, msg: "Resumen enviado. Abrí Finanzas Gonzo para cargarlo." });
     }
     if (op == "test" || op == "preview" || op == "res" || op == "news") {
