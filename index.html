@@ -2438,6 +2438,7 @@ function tcSave(){const R=tcRead();if(!R)return toast('Faltan el vencimiento o e
 /* ---------- resúmenes recibidos desde Compartir (Atajo del iPhone) ---------- */
 /* ---------- Facturas de servicios (PDF): monto y vencimiento → fila de Gastos ---------- */
 const BILLP={gabsa:{n:'Expensas San Matías',row:'Expensas',sec:'sm',c:'sm352',det:/Gesti[oó]n de Barrios|BARRIO CERRADO SAN MATIAS/i,lg:{bg:'#2e7d5b',t:'SM'},l1:'1º vencimiento',l2:'2º vencimiento',pk:'Siempre pago en el 1º vencimiento'},
+ edenor:{n:'Luz Edenor',row:'Edenor',sec:'sm',c:'sm352',det:/edenor/i,lg:{bg:'#00a651',t:'LUZ'},l1:'1º vencimiento',l2:'2º vencimiento',pk:'Siempre pago en el 1º vencimiento'},
  naturgy:{n:'Gas Naturgy',row:'Naturgy',sec:'sm',c:'sm352',det:/naturgy\.com\.ar|FonoGas/i,lg:{bg:'#e87722',t:'GAS'},l1:'Vencimiento',l2:'Vencimiento',pk:'Pago al vencimiento'},
  northfield:{n:'Cuota Northfield',row:'Cuota Northfield Mandy',sec:'gv',c:'chicos',det:/CARGOS ARANCELARIOS[\s\S]*(SEDE PUERTOS|Northfield)|ARANCEL EDUCATIVO/i,lg:{bg:'#1d3f7a',t:'NF'},l1:'Pronto pago',l2:'1er vencimiento',pk:'Siempre pago con pronto pago'}};
 const billS=()=>{if(!S.bills)S.bills={list:[],cfg:{}};S.bills.list=S.bills.list||[];S.bills.cfg=S.bills.cfg||{};return S.bills};
@@ -2445,6 +2446,15 @@ const billCfg=pv=>Object.assign({pick:1,row:BILLP[pv].row},(S.bills&&S.bills.cfg
 function billDetect(L){const T=L.join('\n');return Object.keys(BILLP).find(k=>BILLP[k].det.test(T))||null}
 function billParse(L,pv){const T=L.join('\n'),num=x=>x?+x.replace(/\./g,'').replace(',','.'):null,dt=x=>{const m=/(\d{2})\/(\d{2})\/(\d{4})/.exec(x||'');return m?`${m[3]}-${m[2]}-${m[1]}`:null};
  const B={prov:pv,parts:[]};
+ if(pv=='edenor'){const dt2=x=>{const m=/(\d{2})\/(\d{2})\/(\d{4})/.exec(x||'');return m?`${m[3]}-${m[2]}-${m[1]}`:null};
+  const v1=/Total AL VENCIMIENTO\s+(\d{2}\/\d{2}\/\d{4})\s+\$\s*([\d.]+,\d{2})/i.exec(T),v2=/Total AL 2do\.?\s*VENCIMIENTO\s+(\d{2}\/\d{2}\/\d{4})\s+\$\s*([\d.]+,\d{2})/i.exec(T);
+  if(v1){B.v1=dt2(v1[1]);B.a1=num(v1[2])}if(v2){B.v2=dt2(v2[1]);B.a2=num(v2[2])}
+  if(!B.a1){const t=/TOTAL A PAGAR\s+\$\s*([\d.]+,\d{2})/i.exec(T),h=/Hasta el (\d{2}\/\d{2}\/\d{4})/.exec(T);if(t)B.a1=num(t[1]);if(h)B.v1=dt2(h[1])}
+  const nr=/Liquidaci[oó]n de Servicio P[uú]blico N[°º]\s*([\d-]+)/i.exec(T);B.per=nr?'E'+nr[1]:(B.v1?'V'+B.v1:null);
+  const pc=/Per[ií]odo de consumo:\s*(\d{2})\/(\d{2})\/\d{4}\s+AL\s+(\d{2})\/(\d{2})\/\d{4}/i.exec(T),kw=/Total Consumo\s+([\d.]+)\s*kWh/i.exec(T);
+  B.pl=(pc?`Consumo ${pc[1]}/${pc[2]} al ${pc[3]}/${pc[4]}`:'')+(kw?(pc?' · ':'')+kw[1]+' kWh':'');
+  [['Energía',/^Conceptos El[eé]ctricos\s+\$\s*(-?[\d.]+,\d{2})/m],['Impuestos y contribuciones',/^Impuestos y Contribuciones(?:\s*\(\d\))?\s+\$\s*(-?[\d.]+,\d{2})/m],['Ajustes',/^Ajustes y otros conceptos\s+\$\s*(-?[\d.]+,\d{2})/m]].forEach(([n,re])=>{const m=re.exec(T);if(m&&num(m[1]))B.parts.push([n,num(m[1])])});
+  const sa=/^Saldo anterior\s+\$\s*(-?[\d.]+,\d{2})/m.exec(T);B.deuda=sa?num(sa[1]):0;return B}
  if(pv=='naturgy'){const v=/Vencimiento\s+(\d{2})\/(\d{2})\/(\d{2})\b/.exec(T),t=/TOTAL A PAGAR\s+\$\s*([\d.]+,\d{2})/i.exec(T),nr=/\b(\d{9})\s+\d{2}\/\d{2}\/\d{2}\s+(\d{2})\/(\d{2})-\d+\s+Mensual\s+\S+\s+(\d)\/(\d)/.exec(T);
   if(v){B.v1=`20${v[3]}-${v[2]}-${v[1]}`}if(t)B.a1=num(t[1]);if(nr){B.per='N'+nr[1];B.pl=`Bimestre ${nr[3]}/20${nr[2]} · cuota ${nr[4]}/${nr[5]}`}else if(B.v1)B.per='V'+B.v1;
   const m3=/\(\s*([\d.]+,\d{2})\s*m3/.exec(T);if(m3)B.pl=(B.pl?B.pl+' · ':'')+m3[1]+' m³';
@@ -2942,7 +2952,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261128034000';
+const BUILD='20261128100000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}const u=location.pathname+'?v='+m[1]+location.hash;if(LOCKED||UNLK)updPend=u;else{try{if(lockCfg()&&SESSION)sessionStorage.setItem('fin-unl',Date.now())}catch(e){}location.replace(u)}}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});

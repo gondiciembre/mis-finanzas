@@ -185,9 +185,9 @@ function rules(S: Any, cfg: Any, M: Any, st: Any): Alert[] {
   }
   // 9) vencimiento de facturas de servicios (la fila de Gastos sin marcar pagada)
   if (on.bill && S.bills && hh >= 9) {
-    const NM: Any = { gabsa: "Expensas San Matías", northfield: "Cuota Northfield", naturgy: "Gas Naturgy" };
+    const NM: Any = { gabsa: "Expensas San Matías", northfield: "Cuota Northfield", naturgy: "Gas Naturgy", edenor: "Luz Edenor" };
     (S.bills.list || []).forEach((b: Any) => {
-      const c = Object.assign({ pick: 1, row: ({ gabsa: "Expensas", northfield: "Cuota Northfield Mandy", naturgy: "Naturgy" } as Any)[b.prov] || "Expensas" }, (S.bills.cfg || {})[b.prov] || {});
+      const c = Object.assign({ pick: 1, row: ({ gabsa: "Expensas", northfield: "Cuota Northfield Mandy", naturgy: "Naturgy", edenor: "Edenor" } as Any)[b.prov] || "Expensas" }, (S.bills.cfg || {})[b.prov] || {});
       const d = c.pick == 2 && b.v2 ? b.v2 : b.v1, a = c.pick == 2 && b.v2 ? b.a2 : b.a1; if (!d || d < today) return;
       const dd = Math.round((Date.parse(d) - Date.parse(today)) / 864e5); if (dd > 3) return;
       const yr = S.y && S.y[d.slice(0, 4)], row = yr && yr.find((x: Any) => x.n == c.row), mi = +d.slice(5, 7) - 1;
