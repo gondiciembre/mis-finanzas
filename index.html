@@ -2499,7 +2499,7 @@ function billSave(){const {B,inb}=BLUP||{};if(!B)return;const n=x=>retNum(x);B.v
  if(inb)tcInDel(inb).then(()=>toast(TCIN.length?'Guardada. Quedan '+TCIN.length+' por cargar':'Factura guardada: Gastos actualizado'));else toast('Factura guardada: Gastos actualizado')}
 function vFac(){mchDraw();const L=billS().list,k=ymK(yr,mo),M=L.filter(b=>{const P=billPay(b);return P.d&&P.d.slice(0,7)==k}),tot=M.reduce((a,b)=>a+(billPay(b).a||0),0);
  const paid=b=>{const c=billCfg(b.prov),P=billPay(b),x=S.y[P.d.slice(0,4)]&&S.y[P.d.slice(0,4)].find(z=>z.n==c.row);return!!(x&&x.p[+P.d.slice(5,7)-1])};
- let h=TCIN.length?`<button class="card tcinb" data-tcin="1"><span><b>${TCIN.length==1?'Llegó 1 archivo':'Llegaron '+TCIN.length+' archivos'} desde Compartir</b><small>Tocá para revisarlo y cargarlo en Gastos</small></span><span class="pill up">Cargar</span></button>`:'';
+ const TI=tcInOf('tc');let h=TI.length?`<button class="card tcinb" data-tcin="tc"><span><b>${TI.length==1?'Llegó 1 resumen':'Llegaron '+TI.length+' resúmenes'} desde Compartir</b><small>Tocá para revisarlo y cargarlo en Gastos</small></span><span class="pill up">Cargar</span></button>`:'';
  h+=`<div class="hero" style="margin-top:4px"><div class="k" style="display:flex;justify-content:space-between;gap:10px"><span>Facturas · ${MESL[mo]} ${yr}</span>${M.length?`<span class="pill ${M.every(paid)?'up':'wr'}">${M.filter(paid).length} de ${M.length} pagas</span>`:''}</div><div class="big"><small>$</small>${HV(nfu.format(Math.round(tot)))}</div><div class="s">${M.length?M.length+(M.length==1?' factura':' facturas'):'Sin facturas cargadas para este mes'}</div></div>`;
  M.forEach(b=>{const pv=BILLP[b.prov],P=billPay(b),pd=paid(b),c=billCfg(b.prov);
   h+=`<div class="card" style="margin-top:10px"><div style="display:flex;gap:10px;align-items:center"><span class="tlg" style="--b:${pv.lg.bg};width:34px;height:34px;border-radius:10px;background:var(--b);color:#fff;display:flex;align-items:center;justify-content:center;font:800 11px var(--sans);flex:none">${pv.lg.t}</span><div style="flex:1;min-width:0"><b>${esc(pv.n)}${b.who?' · '+esc(b.who):''}</b><div class="mutc" style="font:500 12px var(--mono)">${billPer(b)?billPer(b)+' · ':''}${pd?'<em class="tcp">pagada</em>':`<em class="tcv">vence ${fd(P.d).slice(0,5)}</em>`}</div></div><b style="font:700 15px var(--mono)">${money(P.a)}</b></div>
@@ -2510,12 +2510,19 @@ function vFac(){mchDraw();const L=billS().list,k=ymK(yr,mo),M=L.filter(b=>{const
  h+=`<div class="hrow2" style="margin-top:12px"><button class="btn" data-blup="1">Subir factura (PDF)</button><button class="btn" data-tcshare="1">Compartir desde el iPhone</button></div>
  <p class="note">Formatos que reconoce: ${Object.values(BILLP).map(x=>x.n).join(', ')}. El mismo atajo de “Compartir” sirve para resúmenes de tarjeta y facturas: la app se da cuenta sola de qué es. ¿Pagás otro servicio? Mandame una factura y lo agrego.</p>`;return h}
 let TCIN=[];
-async function tcInList(){if(!SB||!SESSION||SESSION.offline)return;try{const {data}=await SB.from('docs').select('id').like('id','tcin:%').order('id');const n=(data||[]).map(r=>r.id);if(n.join()!=TCIN.join()){TCIN=n;tcInBadge();if(sec=='g'&&tab=='tc'&&!$('#ov').innerHTML)render()}}catch(e){}}
-function tcInBadge(){const b=document.querySelector('#tabs [data-tab="tc"]');if(b)b.classList.toggle('dot',TCIN.length>0)}
+/* cada archivo recibido se clasifica una vez (resumen de tarjeta o factura) para avisar en la solapa que corresponde */
+let TCK={};try{TCK=JSON.parse(localStorage.getItem('fin-tck')||'{}')}catch(e){}
+const tcInOf=k=>TCIN.filter(id=>TCK[id]==k);
+async function tcInKind(id){try{const {data}=await SB.from('docs').select('data').eq('id',id).maybeSingle();if(!data)return;const bin=atob(data.data.f),u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+ let k='tc';try{const L=await pdfLines(u8.buffer);if(billDetect(L))k='fac'}catch(e){}TCK[id]=k;try{localStorage.setItem('fin-tck',JSON.stringify(TCK))}catch(e){}}catch(e){}}
+async function tcInList(){if(!SB||!SESSION||SESSION.offline)return;try{const {data}=await SB.from('docs').select('id').like('id','tcin:%').order('id');const n=(data||[]).map(r=>r.id);
+ for(const id of n)if(!TCK[id])await tcInKind(id);Object.keys(TCK).forEach(id=>{if(!n.includes(id))delete TCK[id]});
+ const sig=n.map(id=>id+TCK[id]).join();if(sig!=tcInList.sig){tcInList.sig=sig;TCIN=n;tcInBadge();if(sec=='g'&&(tab=='tc'||tab=='fac')&&!$('#ov').innerHTML)render()}}catch(e){}}
+function tcInBadge(){[['tc','tc'],['fac','fac']].forEach(([t,k])=>{const b=document.querySelector('#tabs [data-tab="'+t+'"]');if(b)b.classList.toggle('dot',tcInOf(k).length>0)})}
 async function tcInDel(id){try{await SB.from('docs').delete().eq('id',id)}catch(e){}TCIN=TCIN.filter(x=>x!=id);tcInBadge();render()}
 function tcGuess(R){const T=tcCfg();if(R.iss&&R.iss!='gen'){const by=T.cards.find(C=>{const L=T.res[C.id]||[];return L.length&&L[L.length-1].iss==R.iss});if(by)return by.id}
  const re={visa:/visa/i,master:/master/i,mp:/meli|mercado/i,bru:/bru|burbank/i,uala:/uala|ualá/i}[R.iss];const c=re&&T.cards.find(C=>re.test(C.n));return(c||T.cards[0]).id}
-async function tcInLoad(){if(!TCIN.length)return toast('No hay resúmenes nuevos');const id=TCIN[0];toast('Leyendo el resumen…');
+async function tcInLoad(kind){const Lq=kind?tcInOf(kind):TCIN;if(!Lq.length)return toast('No hay archivos nuevos');const id=Lq[0];toast('Leyendo el archivo…');
  try{const {data,error}=await SB.from('docs').select('data').eq('id',id).maybeSingle();if(error||!data)throw new Error('no lo encontré');const bin=atob(data.data.f),u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
   {let L0=null;try{L0=await pdfLines(u8.buffer.slice(0))}catch(e){}const bp=L0&&billDetect(L0);if(bp){const B=billParse(L0,bp);B.file=data.data.n||'factura.pdf';return billConfirm(B,id)}}
   let R;try{R=tcParse(await pdfLines(u8.buffer),TODAY);if(R.vto)tcNorm(R)}catch(e){R={iss:'gen',items:[],cuotas:{},usd:0,perc:0,ars:null,vto:null}}R.file=data.data.n||'resumen.pdf';tcConfirm(tcGuess(R),R,id)}
@@ -2568,7 +2575,7 @@ function vTc(){const T=tcCfg();if(!T.cards.length)return`<div class="card"><p cl
  const amt=M=>M.a||M.u?`${money(M.a)}${M.u?`<i>+ US$ ${f2u(M.u)}</i>`:''}`:'<span class="mutc">—</span>';
  const when=M=>M.kind=='real'?(M.paid?`<em class="tcp">pagado</em> · venció ${fd(M.R.vto).slice(0,5)}`:M.R.vto<TODAY?`<em class="tcv">venció ${fd(M.R.vto).slice(0,5)}</em>`:`<em class="tcv">vence ${fd(M.R.vto).slice(0,5)}</em>`):M.kind=='est'?(M.paid?'<em class="tcp">pagado</em>':'estimado'):M.paid?'<em class="tcp">pagado</em>':M.none?'sin pagos':'según Gastos';
  const pill=M=>M.paid?'<span class="pill up">pagado</span>':M.kind=='real'?(()=>{const dd=Math.round((Date.parse(M.R.vto)-Date.parse(TODAY))/864e5);return`<span class="pill dn">${dd<0?'vencido':dd==0?'vence hoy':'en '+dd+' d'}</span>`})():M.kind=='est'?'<span class="pill nt">estimado</span>':M.none?'':'<span class="pill nt">Gastos</span>';
- let h=TCIN.length?`<button class="card tcinb" data-tcin="1"><span><b>${TCIN.length==1?'Llegó 1 archivo':'Llegaron '+TCIN.length+' archivos'} desde Compartir</b><small>Tocá para revisarlo y cargarlo en Gastos</small></span><span class="pill up">Cargar</span></button>`:'';
+ const FI=tcInOf('fac');let h=FI.length?`<button class="card tcinb" data-tcin="fac"><span><b>${FI.length==1?'Llegó 1 factura':'Llegaron '+FI.length+' facturas'} desde Compartir</b><small>Tocá para revisarla y cargarla en Gastos</small></span><span class="pill up">Cargar</span></button>`:'';
  h+=`<div class="hero tch" style="margin-top:4px"><div class="k" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span>Tarjetas · ${MESL[mo]} ${yr}</span>${nT?`<span class="pill ${nP==nT?'up':'wr'}">${nP==nT?'Todas pagas':nP+' de '+nT+' pagas'}</span>`:''}</div><div class="big"><small>$</small>${HV(nfu.format(Math.round(totA)))}</div><div class="s">${totU?`+ US$ ${f2u(totU)} · `:''}${nR} resumen${nR==1?'':'es'}${nE?` + ${nE} estimad${nE==1?'a':'as'}`:''}${!nR&&!nE?' · valores de Gastos':''}</div>
   <div class="tct">${ls.map(([C,M])=>{const B=tcBrand(C);return`<button data-tcopen="${C.id}" class="${TCO==C.id?'on':''}${M.paid?' pd':''}"><span class="lg" style="--b:${B.bg}">${B.t}${B.net?`<i>${B.net}</i>`:''}</span><span class="nm">${esc(C.n)}</span><b>${M.a||M.u?money(M.a):'—'}</b>${M.u?`<span class="us">+ US$ ${f2u(M.u)}</span>`:''}<small>${when(M)}</small></button>`}).join('')}</div></div>`;
  h+=tcChart();
@@ -2875,7 +2882,7 @@ document.addEventListener('click',e=>{
  if(d.tcup)return tcUpload(d.tcup);
  if(d.tcman)return tcConfirm(d.tcman,{iss:'gen',items:[],cuotas:{},usd:0,perc:0,ars:null,vto:null});
  if(d.tcsave)return tcSave();
- if(d.tcin)return tcInLoad();
+ if(d.tcin)return tcInLoad(d.tcin=='tc'||d.tcin=='fac'?d.tcin:null);
  if(d.tcindel){const id=TCPEND&&TCPEND.inb;TCPEND=null;closeSheet();if(id)tcInDel(id).then(()=>toast('Resumen descartado'));return}
  if(d.tcshare)return tcShareSheet();
  if(d.tckey)return tcKeyGen();
@@ -2952,7 +2959,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261128100000';
+const BUILD='20261128101000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}const u=location.pathname+'?v='+m[1]+location.hash;if(LOCKED||UNLK)updPend=u;else{try{if(lockCfg()&&SESSION)sessionStorage.setItem('fin-unl',Date.now())}catch(e){}location.replace(u)}}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
