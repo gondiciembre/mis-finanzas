@@ -1,6 +1,6 @@
 /* Finanzas Gonzo · service worker: avisos push, número en el ícono y uso sin conexión.
    Nunca guarda nada de Supabase (tus datos y tu sesión): solo la app, la librería, los íconos y los logos de las acciones. */
-const V = 'fin-app-3', META = 'fin-meta';
+const V = 'fin-app-4', META = 'fin-meta';
 const CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';
 const SHELL = ['./', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'favicon-32.png', CDN];
 const STATIC_HOSTS = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com', 'static.svvytrdr.com'];
@@ -22,6 +22,16 @@ self.addEventListener('fetch', e => {
   const same = u.origin === self.location.origin;
   // la app: primero la red (para recibir versiones nuevas), si no hay conexión la última copia
   if (req.mode === 'navigate') {
+    // abrir rápido: si ya hay una copia, se muestra al instante y se actualiza en segundo plano
+    // (la app detecta la versión nueva y recarga con ?v=…, que sí va directo a la red)
+    if (!u.searchParams.has('v')) {
+      e.respondWith(caches.match('./').then(c => {
+        const net = timeout(fetch(req), 8000).then(r => { if (r.ok) caches.open(V).then(x => x.put('./', r.clone())).catch(() => {}); return r; });
+        if (c) { e.waitUntil(net.catch(() => {})); return c; }
+        return net.catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || Response.error()));
+      }));
+      return;
+    }
     e.respondWith(timeout(fetch(req), 6000).then(r => { if (r.ok) caches.open(V).then(c => c.put('./', r.clone())).catch(() => {}); return r; })
       .catch(() => caches.match('./').then(r => r || caches.match(req, { ignoreSearch: true })).then(r => r || Response.error())));
     return;

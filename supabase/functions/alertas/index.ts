@@ -237,7 +237,8 @@ async function sendTo(uid: string, push: Any, list: Alert[], keys: Any) {
   await SB.from("docs").upsert({ user_id: uid, id: "alerts", data: { items, u: Date.now() }, updated_at: new Date().toISOString() }, { onConflict: "user_id,id" });
 }
 
-async function runAll(dry = false) {
+const FNVER = "2026-11-28";
+async function runAll(dry = false, secOk = false) {
   const keys = await vapid(), M = await market(), out: Any[] = [];
   const { data: rows } = await SB.from("docs").select("user_id,data").eq("id", "push");
   for (const row of rows || []) {
@@ -249,6 +250,7 @@ async function runAll(dry = false) {
     fresh.forEach((a) => st.sent[a.key] = Date.now());
     if (fresh.length && !dry && (push.subs || []).length) await sendTo(row.user_id, push, fresh, keys);
     await setState(sid, st); out.push({ n: fresh.length, t: fresh.map((a) => a.title) });
+    if (!dry) await SB.from("docs").upsert({ user_id: row.user_id, id: "fnstat", data: { at: Date.now(), v: FNVER, sec: secOk, n: fresh.length }, updated_at: new Date().toISOString() }, { onConflict: "user_id,id" });
   }
   return out;
 }
@@ -290,6 +292,9 @@ Deno.serve(async (req) => {
       await sendTo(u.user.id, p.data, [{ key: "test", cat: "test", title: "Notificaciones activadas", body: "Finanzas Gonzo te va a avisar de movimientos fuertes, el crédito UVA y decisiones pendientes.", tag: "test", url: "#" }], await vapid());
       return json({ ok: true, devices: p.data.subs.length });
     }
-    return json({ ok: true, users: await runAll(!!body.dry) });
+    // la revisión programada trae un secreto guardado en la base (tabla app_secret, solo accesible por el servidor)
+    const { data: sec, error: se } = await SB.from("app_secret").select("v").eq("k", "cron").maybeSingle();
+    if (!se && sec && body.s !== sec.v) return json({ error: "No autorizado" }, 401);
+    return json({ ok: true, v: FNVER, users: await runAll(!!body.dry, !se && !!sec) });
   } catch (e) { return json({ error: String((e as Error).message || e) }, 500); }
 });
