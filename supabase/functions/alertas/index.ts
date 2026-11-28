@@ -185,9 +185,9 @@ function rules(S: Any, cfg: Any, M: Any, st: Any): Alert[] {
   }
   // 9) vencimiento de facturas de servicios (la fila de Gastos sin marcar pagada)
   if (on.bill && S.bills && hh >= 9) {
-    const NM: Any = { gabsa: "Expensas San Matías" };
+    const NM: Any = { gabsa: "Expensas San Matías", northfield: "Cuota Northfield" };
     (S.bills.list || []).forEach((b: Any) => {
-      const c = Object.assign({ pick: 1, row: "Expensas" }, (S.bills.cfg || {})[b.prov] || {});
+      const c = Object.assign({ pick: 1, row: ({ gabsa: "Expensas", northfield: "Cuota Northfield Mandy" } as Any)[b.prov] || "Expensas" }, (S.bills.cfg || {})[b.prov] || {});
       const d = c.pick == 2 && b.v2 ? b.v2 : b.v1, a = c.pick == 2 && b.v2 ? b.a2 : b.a1; if (!d || d < today) return;
       const dd = Math.round((Date.parse(d) - Date.parse(today)) / 864e5); if (dd > 3) return;
       const yr = S.y && S.y[d.slice(0, 4)], row = yr && yr.find((x: Any) => x.n == c.row), mi = +d.slice(5, 7) - 1;
@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
       const id = "tcin:" + Date.now(), nm = String(body.n || "resumen.pdf").slice(0, 120);
       await SB.from("docs").insert({ user_id: kr.user_id, id, data: { at: Date.now(), n: nm, f: b64 }, updated_at: new Date().toISOString() });
       const { data: p } = await SB.from("docs").select("data").eq("user_id", kr.user_id).eq("id", "push").maybeSingle();
-      if (p && (p.data.subs || []).length) { try { await sendTo(kr.user_id, p.data, [{ key: id, cat: "tc", title: "Llegó un archivo desde Compartir", body: "Resumen o factura: tocá para revisarlo y cargarlo en Gastos.", tag: "tcin", url: "#tarjetas~in" }], await vapid()); } catch (_) { /* sin aviso */ } }
+      if (p && (p.data.subs || []).length) { try { await sendTo(kr.user_id, p.data, [{ key: id, cat: "tc", title: "Llegó un archivo desde Compartir", body: "Resumen o factura: tocá para revisarlo y cargarlo en Gastos.", tag: "tcin", url: "#gastos~in" }], await vapid()); } catch (_) { /* sin aviso */ } }
       return json({ ok: true, msg: "Resumen enviado. Abrí Finanzas Gonzo para cargarlo." });
     }
     if (op == "test" || op == "preview" || op == "res" || op == "news") {
