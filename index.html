@@ -509,7 +509,7 @@ tr.ss td{font-size:11.5px}tr.ss.in td{color:var(--up)}tr.ss.eg td{color:var(--c2
 .shlg{width:42px;height:42px;border-radius:12px;background:var(--b);color:#fff;display:flex;align-items:center;justify-content:center;font:800 11.5px var(--sans);flex:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 2px 6px rgba(0,0,0,.18)}
 .shbig{display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-radius:14px;background:var(--bg);border:1px solid var(--line);margin-bottom:6px}
 .shbig small{font:600 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}.shbig b{font:700 30px/1.1 var(--mono);letter-spacing:-.01em}.shbig span{font:500 12.5px var(--mono);color:var(--mut)}
-.toast{display:flex;align-items:center;gap:10px;padding:10px 10px 10px 12px!important;border-radius:14px!important;box-shadow:0 10px 30px rgba(0,0,0,.28);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.toast{display:flex;align-items:center;gap:10px;width:max-content;min-width:min(300px,90vw);max-width:min(440px,92vw)!important;padding:10px 10px 10px 12px!important;border-radius:14px!important;box-shadow:0 10px 30px rgba(0,0,0,.28);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
 .toast .tic{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;background:var(--acc)}
 .toast .tic svg{width:13px;height:13px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .toast.t-ok .tic{background:var(--up)}.toast.t-warn .tic{background:#d99a1e}.toast.t-err .tic{background:var(--dn)}
@@ -3016,7 +3016,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261128110000';
+const BUILD='20261128111000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}const u=location.pathname+'?v='+m[1]+location.hash;if(LOCKED||UNLK)updPend=u;else{try{if(lockCfg()&&SESSION)sessionStorage.setItem('fin-unl',Date.now())}catch(e){}location.replace(u)}}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
