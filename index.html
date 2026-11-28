@@ -750,7 +750,7 @@ function msumAuto(){const nm=NOWM();let ch=false;S.msum=S.msum||{};
   if(k==-1&&+TODAY.slice(8,10)>=3)v.fin=1;
   const sk=o=>o?JSON.stringify(Object.keys(o).filter(k=>k!='mep').sort().map(k=>[k,o[k]])):'';if(sk(old)!=sk(v)){S.msum[key]=v;ch=true}}
  Object.keys(S.msum).sort().slice(0,-14).forEach(k=>{delete S.msum[k];ch=true});return ch}
-function loanAuto(){if(!S||!S.y)return false;let ch=false;try{ch=bilFix()}catch(e){}try{ch=rentAuto()||ch}catch(e){}try{ch=loanAutoQ()||ch}catch(e){}try{ch=rsuAuto()||ch}catch(e){}try{ch=sacAuto()||ch}catch(e){}try{ch=patAuto()||ch}catch(e){}try{ch=srcAuto()||ch}catch(e){}try{ch=bilAuto()||ch}catch(e){}try{ch=domAuto()||ch}catch(e){}try{ch=tcAuto()||ch}catch(e){}try{ch=rcAuto()||ch}catch(e){}try{ch=msumAuto()||ch}catch(e){}if(ch)save();return ch}
+function loanAuto(){if(!S||!S.y)return false;let ch=false;try{ch=bilFix()}catch(e){}try{ch=rentAuto()||ch}catch(e){}try{ch=loanAutoQ()||ch}catch(e){}try{ch=rsuAuto()||ch}catch(e){}try{ch=sacAuto()||ch}catch(e){}try{ch=patAuto()||ch}catch(e){}try{ch=srcAuto()||ch}catch(e){}try{ch=bilAuto()||ch}catch(e){}try{ch=domAuto()||ch}catch(e){}try{ch=tcAuto()||ch}catch(e){}try{ch=rcAuto()||ch}catch(e){}try{ch=fxAuto()||ch}catch(e){}try{ch=msumAuto()||ch}catch(e){}if(ch)save();return ch}
 function loanMath(L,uva){const r=L.tna/1200,n=L.n,P=L.uva0,c=P*r/(1-Math.pow(1+r,-n));
  let k=0;const d0=new Date(L.first+'T12:00:00');for(let i=0;i<n;i++){const d=new Date(d0);d.setMonth(d0.getMonth()+i);if(d.toISOString().slice(0,10)<=TODAY)k++;else break}
  const g=Math.pow(1+r,k),bal=P*g-c*(g-1)/r,intRest=c*(n-k)-bal;
@@ -1026,14 +1026,14 @@ function vMes(){
    <div class="gpb"><i style="width:${sum?dn/sum*100:0}%;background:${cc}"></i></div>`;
   if(!closed){h+=`<div class="list">`;
    for(const [x,i] of rs){const a=x.a[mo]||0,d=x.p[mo],lab=isIn||x.s=='in'?['Cobrado','Estimado']:['Pagado','Estimado'];
-    h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${x.src&&x.src[mo]?(d?lab[0]+' · ':'')+'Suma: '+x.src[mo].r.join(' + ')+(x.src[mo].x?' + '+money(x.src[mo].x):''):d?lab[0]:!d&&x.bil&&bilCfg().on&&ymK(yr,mo)>=bilCfg().from?'Estimado · lo que queda disponible':!d&&x.a[mo]&&x.sac?'Estimado · 50% del mejor sueldo '+(mo<6?'ene–jun':'jul–dic'):!d&&x.a[mo]&&x.pat&&ymK(yr,mo)>=NOWK&&carOps().some(o=>o.patG)?'Estimado · patente PBA del auto nuevo':!d&&x.a[mo]&&x.rsu&&ymK(yr,mo)>=NOWK?'Estimado · '+(x.vd&&x.vd[ymK(yr,mo)]?fd(x.vd[ymK(yr,mo)]).slice(0,5)+' · ':'')+'neto 35% × CCL '+f2u(cclE()):!d&&x.a[mo]&&x.uva&&LD?'Estimado · UVA en vivo + inflación':!d&&x.a[mo]&&x.alq&&contractFor(x.n,ymK(yr,mo))?'Estimado · contrato':!d&&x.dom&&S.dom&&S.dom.emps&&S.dom.emps.some(e=>ymK(yr,mo)>=e.from)?domDesc(ymK(yr,mo)):!d&&x.tc&&tcDesc(x,ymK(yr,mo))?tcDesc(x,ymK(yr,mo)):lab[1]}${(()=>{const g=autoGo(x);return g?` · <button class="lnk alnk" data-goto="${g[0]}|${g[1]}">ver en ${g[2]} ›</button>`:''})()}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
+    h+=`<div class="row${d?' d':''}"><button class="ck" data-chk="${i}" aria-label="Marcar ${esc(x.n)}"><b>✓</b></button><div class="nm"><div>${esc(x.n)}</div><small>${x.src&&x.src[mo]?(d?lab[0]+' · ':'')+'Suma: '+x.src[mo].r.join(' + ')+(x.src[mo].x?' + '+money(x.src[mo].x):''):d?lab[0]:!d&&x.bil&&bilCfg().on&&ymK(yr,mo)>=bilCfg().from?'Estimado · lo que queda disponible':!d&&x.a[mo]&&x.sac?'Estimado · 50% del mejor sueldo '+(mo<6?'ene–jun':'jul–dic'):!d&&x.a[mo]&&x.pat&&ymK(yr,mo)>=NOWK&&carOps().some(o=>o.patG)?'Estimado · patente PBA del auto nuevo':!d&&x.a[mo]&&x.fxo&&x.fxo[ymK(yr,mo)]?fxDesc(x,ymK(yr,mo)):x.rsu&&ymK(yr,mo)>=NOWK?'Estimado · '+(x.vd&&x.vd[ymK(yr,mo)]?fd(x.vd[ymK(yr,mo)]).slice(0,5)+' · ':'')+'neto 35% × CCL '+f2u(cclE()):!d&&x.a[mo]&&x.uva&&LD?'Estimado · UVA en vivo + inflación':!d&&x.a[mo]&&x.alq&&contractFor(x.n,ymK(yr,mo))?'Estimado · contrato':!d&&x.dom&&S.dom&&S.dom.emps&&S.dom.emps.some(e=>ymK(yr,mo)>=e.from)?domDesc(ymK(yr,mo)):!d&&x.tc&&tcDesc(x,ymK(yr,mo))?tcDesc(x,ymK(yr,mo)):lab[1]}${(()=>{const g=autoGo(x);return g?` · <button class="lnk alnk" data-goto="${g[0]}|${g[1]}">ver en ${g[2]} ›</button>`:''})()}</small></div><button class="am${a?'':' z'}" data-ed="${i}">${a?money(a):'—'}</button></div>`}
    h+=`<button class="add" data-add="${secFor(c,rs)}" data-addc="${esc(c.id)}">+ Agregar en ${esc(c.n)}</button></div>`}
   h+=`</div>`}
  if(curSec)h+=`</div>`;
  return h}
 /* conceptos calculados solos: de dónde salen y adónde ir a ver el cálculo */
 const isLoanRow=x=>{try{const L=loan();return !!(x.uva||(L&&L.costs&&L.costs.includes(x.n)))}catch(e){return !!x.uva}};
-function autoGo(x){return x.tc?['g','tc','Tarjetas']:x.dom?['g','dom','Personal']:isLoanRow(x)?['g','uva','Crédito']:x.alq?['g','alq','Alquiler']:x.pat?['g','auto','Autos']:x.rsu?['r','','RSU']:null}
+function autoGo(x){return x.fxo&&x.fxo[ymK(yr,mo)]?['d','','Dólar']:x.tc?['g','tc','Tarjetas']:x.dom?['g','dom','Personal']:isLoanRow(x)?['g','uva','Crédito']:x.alq?['g','alq','Alquiler']:x.pat?['g','auto','Autos']:x.rsu?['r','','RSU']:null}
 function domDesc(k){const D=S.dom;if(!D||!D.emps)return'Estimado';const A=D.emps.filter(e=>domAct(e,k));if(!A.length)return'Estimado · sin personal vigente';
  return'Estimado según el empleado vigente · '+A.map(e=>{const r=domRate(e,k);return esc(e.n.split(' ')[0])+(r?`: ${String(r.hd).replace('.',',')} h × ${String(r.dw).replace('.',',')} días · ${money(r.ph)}/h${r.vd?' + viático '+money(r.vd)+'/día':''}`:'')}).join(' · ')}
 function vAnio(){
@@ -1730,12 +1730,61 @@ function dq(k,side){const A=arbS(),o=A.ov&&A.ov[k+'_'+side];if(o!=null&&o!=='')r
 function arbCalc(sell,buy,amt,fee){const a=dq(sell,'c').p,b=dq(buy,'v').p;if(!a||!b)return null;const f=1-(fee||0)/100;
  const ars=amt*a*f,back=ars/b*f,g=back-amt;return{a,b,ars,back,g,pc:g/amt*100}}
 function selDol(id,val,lab){return `<label class="lab" for="${id}">${lab}</label><select class="inp" id="${id}" data-arbsel="${id}">${Object.keys(DOLK).map(k=>`<option value="${k}"${k==val?' selected':''}>${DOLK[k][0]}</option>`).join('')}</select>`}
+/* ---------- Mis operaciones con dólares: compras y ventas → Gastos ("Compra Dolares" / "Venta Moneda Extranjera") ---------- */
+const FXROW={c:{n:'Compra Dolares',s:'iv',c:'aho'},v:{n:'Venta Moneda Extranjera',s:'in',c:'uso'}};
+const fxS=()=>{if(!S.fx)S.fx={ops:[]};S.fx.ops=S.fx.ops||[];return S.fx};
+let FXM=null;
+function fxAuto(){if(!S||!S.fx||!S.fx.ops)return false;let ch=false;const by={};
+ S.fx.ops.forEach(o=>{const k=o.d.slice(0,7);(by[k]=by[k]||{c:[],v:[]})[o.t].push(o)});
+ const keys=new Set(Object.keys(by));Object.keys(S.y).forEach(y=>S.y[y].forEach(x=>{if(x.fxo)for(let m=0;m<12;m++){const k=ymK(+y,m);if(x.fxo[k])keys.add(k)}}));
+ keys.forEach(k=>{const y=k.slice(0,4),m=+k.slice(5,7)-1;if(!S.y[y])return;['c','v'].forEach(t=>{const L=(by[k]||{c:[],v:[]})[t],v=Math.round(L.reduce((a,o)=>a+o.ars,0)),R=FXROW[t];
+  let [x,nw]=rowIn(y,R.n,{s:R.s,c:R.c});if(!x)return;if(nw)ch=true;x.fxo=x.fxo||{};
+  if(!L.length){if(x.fxo[k]){x.a[m]=0;x.p[m]=1;delete x.fxo[k];ch=true}return}
+  const pd=L.every(o=>o.d<=TODAY)?1:0;if((x.a[m]||0)!=v||(x.p[m]?1:0)!=pd||!x.fxo[k]){x.a[m]=v;x.p[m]=pd;x.fxo[k]=1;ch=true}})});
+ return ch}
+function fxDesc(x,k){const t=x.n==FXROW.c.n?'c':'v',L=((S.fx&&S.fx.ops)||[]).filter(o=>o.t==t&&o.d.slice(0,7)==k);if(!L.length)return'';const u=L.reduce((a,o)=>a+o.usd,0),a=L.reduce((a,o)=>a+o.ars,0);
+ return`${L.length} ${L.length==1?'operación':'operaciones'} · US$ ${nfu.format(Math.round(u*100)/100)} a ${f2u(a/u)} promedio`}
+function fxOpsView(){const F=fxS(),k=FXM||NOWK,y=+k.slice(0,4),mi=+k.slice(5,7)-1,L=F.ops.filter(o=>o.d.slice(0,7)==k).sort((a,b)=>a.d<b.d?-1:1),
+ C=L.filter(o=>o.t=='c'),V=L.filter(o=>o.t=='v'),su=a=>a.reduce((s,o)=>s+o.usd,0),sa=a=>a.reduce((s,o)=>s+o.ars,0),uc=su(C),ac=sa(C),uv=su(V),av=sa(V),
+ cnt=i=>F.ops.filter(o=>o.d.slice(0,7)==ymK(y,i)).length,res=uc&&uv?Math.min(uc,uv)*(av/uv-ac/uc):null;
+ let h=`<div class="sec"><div class="sh"><h2>Mis operaciones</h2><span class="m">compras y ventas de dólares · se suman solas en Gastos</span></div>
+ <div class="hrow2" style="margin:0 0 8px;align-items:center"><button class="btn" data-fxy="${y-1}" aria-label="Año anterior">‹</button><b style="font:700 14px var(--mono)">${y}</b><button class="btn" data-fxy="${y+1}" aria-label="Año siguiente">›</button></div>
+ <div class="chips fxch" style="overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none">${MES.map((x,i)=>{const n=cnt(i);return`<button class="chip${i==mi?' on':''}${n?' done':''}" style="--p:${n?100:0}%" data-fxm="${ymK(y,i)}">${x}${n?` <small>${n}</small>`:''}</button>`}).join('')}</div>
+ <div class="card" style="margin-top:10px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><b>${mFull(k)}</b><button class="btn pr" data-fxadd="1">+ Cargar operación</button></div>
+ ${L.length?`<div class="grid g2" style="gap:10px;margin-top:12px"><div class="card kpi" style="padding:12px"><div class="k">Compraste</div><div class="v" style="font-size:20px">US$ ${f2u(uc)}</div><div class="s">${uc?money(ac)+' · a '+f2u(ac/uc):'—'}</div></div><div class="card kpi" style="padding:12px"><div class="k">Vendiste</div><div class="v" style="font-size:20px">US$ ${f2u(uv)}</div><div class="s">${uv?money(av)+' · a '+f2u(av/uv):'—'}</div></div></div>
+ <div class="stat" style="margin-top:10px"><span>Pesos del mes (ventas − compras)</span><b class="${av-ac<0?'neg':'pos'}">${av-ac<0?'−':'+'}${money(Math.abs(av-ac))}</b></div>
+ ${res!=null?`<div class="stat"><span>Resultado del arbitraje (US$ ${f2u(Math.min(uc,uv))} ida y vuelta)</span><b class="${res<0?'neg':'pos'}">${res<0?'−':'+'}${money(Math.abs(res))}</b></div>`:''}
+ <div class="list" style="margin-top:8px;border:0">${L.map(o=>`<div class="li" data-fxed="${o.id}" style="cursor:pointer"><div class="l1"><b><span class="pill ${o.t=='c'?'dn':'up'}" style="margin-right:6px">${o.t=='c'?'Compra':'Venta'}</span>US$ ${f2u(o.usd)}</b><small>${fd(o.d)} · ${(DOLK[o.tc]||['Otro'])[0]} a ${f2u(o.px)}${o.n?' · '+esc(o.n):''}</small></div><div class="r1"><b>${o.t=='c'?'−':'+'}${money(o.ars)}</b><small>${o.t=='c'?'Gastos · Compra Dolares':'Gastos · Venta M. Extranjera'}</small></div></div>`).join('')}</div>`
+ :`<p class="note" style="margin:10px 0 0">No cargaste operaciones en ${MESL[mi].toLowerCase()}. Cada venta suma pesos en Ingresos (“Venta Moneda Extranjera”) y cada compra los resta en “Compra Dolares”.</p>`}</div></div>`;
+ return h}
+function fxEdit(id){const F=fxS(),o=F.ops.find(x=>x.id==id)||{t:'c',d:TODAY,usd:'',tc:'mep',px:null,ars:null,n:''};const nw=!id;
+ const px0=t=>{const q=dq(o.tc||'mep',t=='c'?'v':'c').p;return q?Math.round(q*100)/100:''};
+ mfn=null;$('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true"><h2>${nw?'Cargar operación':'Editar operación'}</h2>
+ <div class="seg" style="margin-bottom:10px"><button data-fxt="c"${o.t=='c'?' class="on"':''}>Compré dólares</button><button data-fxt="v"${o.t=='v'?' class="on"':''}>Vendí dólares</button></div>
+ <div class="grid g2" style="gap:10px"><div><label class="lab" for="fx1">Fecha</label><input class="inp" type="date" id="fx1" value="${o.d}"></div>
+ <div><label class="lab" for="fx2">Dólares</label><input class="inp" inputmode="decimal" id="fx2" value="${o.usd?String(o.usd).replace('.',','):''}" placeholder="0"></div>
+ <div><label class="lab" for="fx3">Tipo de cambio</label><select class="inp" id="fx3">${Object.keys(DOLK).map(k=>`<option value="${k}"${(o.tc||'mep')==k?' selected':''}>${DOLK[k][0]}</option>`).join('')}<option value="otro"${o.tc=='otro'?' selected':''}>Otro</option></select></div>
+ <div><label class="lab" for="fx4">Precio por dólar $</label><input class="inp" inputmode="decimal" id="fx4" value="${o.px!=null?String(o.px).replace('.',','):px0(o.t)}"></div>
+ <div><label class="lab" for="fx5">Pesos (con comisiones)</label><input class="inp" inputmode="decimal" id="fx5" value="${o.ars!=null?String(Math.round(o.ars*100)/100).replace('.',','):''}" placeholder="se calcula solo"></div>
+ <div><label class="lab" for="fx6">Nota</label><input class="inp" id="fx6" value="${esc(o.n||'')}" placeholder="p. ej. arbitraje MEP/CCL"></div></div>
+ <div class="stat" id="fxpv" style="margin-top:10px"></div>
+ <div class="btns">${nw?'':`<button data-fxdel="${o.id}">Borrar</button>`}<button data-close="1">Cancelar</button><button class="pr" data-fxsave="${o.id||''}">Guardar</button></div></div></div>`;
+ let T=o.t,ed=o.ars!=null;const pv=()=>{const u=retNum($('#fx2').value)||0,p=retNum($('#fx4').value)||0,a=ed?retNum($('#fx5').value)||0:u*p;if(!ed)$('#fx5').value=a?String(Math.round(a*100)/100).replace('.',','):'';
+  $('#fxpv').innerHTML=u&&a?`<span>${T=='c'?'Te salen':'Recibís'}</span><b>${money(a)} · ${T=='c'?'resta en Compra Dolares':'suma en Venta Moneda Extranjera'}</b>`:''};
+ fxEdit.T=()=>T;fxEdit.setT=t=>{T=t;document.querySelectorAll('[data-fxt]').forEach(b=>b.classList.toggle('on',b.dataset.fxt==t));if(!ed&&$('#fx3').value!='otro'){const q=dq($('#fx3').value,t=='c'?'v':'c').p;if(q)$('#fx4').value=String(Math.round(q*100)/100).replace('.',',')}pv()};
+ $('#fx3').addEventListener('change',()=>{const k=$('#fx3').value;if(k!='otro'){const q=dq(k,T=='c'?'v':'c').p;if(q)$('#fx4').value=String(Math.round(q*100)/100).replace('.',',')}pv()});
+ ['fx2','fx4'].forEach(i=>$('#'+i).addEventListener('input',pv));$('#fx5').addEventListener('input',()=>{ed=$('#fx5').value.trim()!='';pv()});pv()}
+function fxSave(id){const F=fxS(),d=$('#fx1').value,u=retNum($('#fx2').value),px=retNum($('#fx4').value),a=retNum($('#fx5').value)||(u&&px?u*px:null);
+ if(!d||!u||!a)return toast('Faltan la fecha, los dólares o el precio');
+ const o={id:id||('x'+Date.now().toString(36)),t:fxEdit.T(),d,usd:Math.round(u*100)/100,tc:$('#fx3').value,px:px||Math.round(a/u*100)/100,ars:Math.round(a*100)/100,n:$('#fx6').value.trim()};
+ const i=F.ops.findIndex(x=>x.id==o.id);if(i>=0)F.ops[i]=o;else F.ops.push(o);FXM=d.slice(0,7);loanAuto();save();closeSheet();render();toast('Operación guardada · Gastos actualizado')}
 function vDol(){const A=arbS(),r=arbCalc(A.sell,A.buy,A.amt,A.fee),f2=n=>n==null?'—':n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
  let h=`<div class="hrow2" style="margin-top:0;margin-bottom:12px"><span class="pill ${DOL?'up':'nt'}">${DOL?'En vivo · '+hhmm(DOL.ts):'Sin cotización'}</span><button class="btn" data-dolref="1">↻ Actualizar</button><span class="mutc" style="font:500 12px var(--mono)">DolarAPI</span></div>`;
  h+='<div class="grid g3 dcards">'+Object.keys(DOLK).map(k=>{const c=dq(k,'c'),v=dq(k,'v'),sp=c.p&&v.p?(v.p/c.p-1)*100:null,src=DOL&&DOL.t[DOLK[k][1]];
   return `<div class="card kpi"><div class="k"><span>${DOLK[k][0]}</span><span>${src&&src.f?fds(src.f.slice(0,10))+' '+new Date(src.f).toTimeString().slice(0,5):''}</span></div>
   <div class="dq"><button data-arbov="${k}_c"><small>Compra</small><b>${f2(c.p)}</b>${c.man?'<span class="src w">MAN</span>':''}</button><button data-arbov="${k}_v"><small>Venta</small><b>${f2(v.p)}</b>${v.man?'<span class="src w">MAN</span>':''}</button></div>
   <div class="s">spread ${sp==null?'—':pc0(sp)}</div></div>`}).join('')+'</div>';
+ h+=fxOpsView();
  h+=`<div class="sec"><div class="sh"><h2>Arranco con dólares</h2><span class="m">vendo dólares en un mercado y los recompro en otro</span></div><div class="grid g2c">
  <div class="card"><div class="arbf">${selDol('arbsell',A.sell,'Vendo USD a (tipo comprador)')}<div class="s mutc" style="margin-top:6px">Te pagan ${f2(dq(A.sell,'c').p)} por dólar</div>
  ${selDol('arbbuy',A.buy,'Compro USD a (tipo vendedor)')}<div class="s mutc" style="margin-top:6px">Te cobran ${f2(dq(A.buy,'v').p)} por dólar</div>
@@ -2672,8 +2721,15 @@ function render(){drawEye();badgeSet();{const v=sec+'|'+tab,a=$('#app');if(a&&v!
  const c=document.querySelector('#mch:not([hidden]) .chip.on')||app.querySelector('.chip.on');if(c){const pr=c.parentElement,ck=sec+tab+yr+'|'+mo+'|'+innerWidth+'|'+(pr&&pr.id);if(pr&&pr.scrollWidth>pr.clientWidth&&pr.dataset.ck!=ck){pr.dataset.ck=ck;pr.scrollLeft=c.offsetLeft-pr.offsetLeft-pr.clientWidth/2+c.offsetWidth/2}}
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest('[data-rc],[data-rcto],[data-cmk],[data-cmx],[data-anag],[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff],[data-newsf],[data-newsr],[data-domed],[data-domsave],[data-domdel],[data-dombaja],[data-domre],[data-domraise],[data-domrsave],[data-domrdel],[data-goto],[data-tcup],[data-tcman],[data-tccfg],[data-tccsave],[data-tcsave],[data-tcfix],[data-tcopen],[data-tcin],[data-tcindel],[data-tcshare],[data-tckey],[data-tccopy]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
+ const t=e.target.closest('[data-fxy],[data-fxm],[data-fxadd],[data-fxed],[data-fxt],[data-fxsave],[data-fxdel],[data-rc],[data-rcto],[data-cmk],[data-cmx],[data-anag],[data-chk],[data-ed],[data-add],[data-gtg],[data-gcol],[data-mo],[data-tab],[data-yr],[data-close],[data-save],[data-del],[data-open],[data-start],[data-sec],[data-msave],[data-hp],[data-mep],[data-cy],[data-cm],[data-cr],[data-rp],[data-up],[data-ex],[data-refresh],[data-addtk],[data-pick],[data-delpos],[data-cash],[data-hr],[data-mrow],[data-sbsave],[data-copysql],[data-login],[data-signup],[data-sbreset],[data-export],[data-logout],[data-acct],[data-dolref],[data-arbov],[data-arbpick],[data-rsuadd],[data-rsued],[data-rsudel],[data-grp],[data-cost],[data-unlock],[data-locktoggle],[data-cats],[data-catsave],[data-catdel],[data-loanref],[data-loancfg],[data-loansave],[data-lrate],[data-lh],[data-rented],[data-rentsave],[data-rentdel],[data-hide],[data-notif],[data-npush],[data-gsel],[data-gpick],[data-car],[data-carsc],[data-itg],[data-icol],[data-on],[data-onf],[data-onref],[data-onley],[data-iol],[data-nwgo],[data-nwed],[data-nwsave],[data-nwdel],[data-bk],[data-bkr],[data-bks],[data-lockafter],[data-privtoggle],[data-badge],[data-goh],[data-retcfg],[data-retsave],[data-inbox],[data-oncond],[data-oncsave],[data-oncdel],[data-oncmode],[data-wx],[data-wxcfg],[data-wxpick],[data-wxoff],[data-newsf],[data-newsr],[data-domed],[data-domsave],[data-domdel],[data-dombaja],[data-domre],[data-domraise],[data-domrsave],[data-domrdel],[data-goto],[data-tcup],[data-tcman],[data-tccfg],[data-tccsave],[data-tcsave],[data-tcfix],[data-tcopen],[data-tcin],[data-tcindel],[data-tcshare],[data-tckey],[data-tccopy]');if(!t)return;{const q=t.dataset;if(!S&&!(q.hide||q.start||q.sbsave||q.copysql||q.login||q.signup||q.sbreset||q.close||q.acct||q.logout||q.unlock))return;if(LOCKED&&!(q.unlock||q.logout))return}
  const d=t.dataset;
+ if(d.fxy){FXM=d.fxy+'-'+(FXM||NOWK).slice(5,7);return render()}
+ if(d.fxm){FXM=d.fxm;return render()}
+ if(d.fxadd)return fxEdit(null);
+ if(d.fxed)return fxEdit(d.fxed);
+ if(d.fxt)return fxEdit.setT(d.fxt);
+ if(d.fxsave!=null)return fxSave(d.fxsave);
+ if(d.fxdel){const F=fxS();F.ops=F.ops.filter(o=>o.id!=d.fxdel);loanAuto();save();closeSheet();render();return toast('Operación borrada')}
  if(d.rc){const I=S.inv;if(d.rc=='on'){I.rc={on:true,from:TODAY,to:(I.rc&&I.rc.to)||'mep',done:(I.rc&&I.rc.done)||{}};loanAuto();toast('Listo: desde hoy cada cupón se suma a tu liquidez')}else{I.rc=Object.assign(I.rc||{},{on:false});toast('Ya no se suman los cupones a la liquidez')}save();return render()}
  if(d.rcto){S.inv.rc.to=d.rcto;save();return render()}
  if(d.cmk){e.preventDefault();const dt=t.parentElement;CMX[d.cmk]=!dt.open;dt.open=!dt.open;return}
@@ -2805,7 +2861,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261127153000';
+const BUILD='20261128010000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}const u=location.pathname+'?v='+m[1]+location.hash;if(LOCKED||UNLK)updPend=u;else{try{if(lockCfg()&&SESSION)sessionStorage.setItem('fin-unl',Date.now())}catch(e){}location.replace(u)}}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
