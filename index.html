@@ -2902,8 +2902,9 @@ async function importEnc(file,pw){const j=JSON.parse(await file.text());if(j.app
 let IMPF=null;
 
 /* ---------- Estado y seguridad ---------- */
-async function openStatus(){const fs=await SB.from('docs').select('data,updated_at').eq('id','fnstat').maybeSingle().catch(()=>({}));const F=fs&&fs.data&&fs.data.data;
- const el=await SB.from('docs').select('data').eq('id','errlog').maybeSingle().catch(()=>({}));const E=((el&&el.data&&el.data.data&&el.data.data.items)||[]).slice(0,8);
+const qs=async p=>{try{return await p}catch(e){return {}}};
+async function openStatus(){const fs=await qs(SB.from('docs').select('data,updated_at').eq('id','fnstat').maybeSingle());const F=fs&&fs.data&&fs.data.data;
+ const el=await qs(SB.from('docs').select('data').eq('id','errlog').maybeSingle());const E=((el&&el.data&&el.data.data&&el.data.data.items)||[]).slice(0,8);
  const sub=await mySub().catch(()=>null);let CR=[];try{CR=JSON.parse(localStorage.getItem('fin-chkr')||'[]')}catch(e){}let lc=0;try{lc=+localStorage.getItem('fin-chk')||0}catch(e){}
  const ok=(b,t,f)=>`<div class="stat"><span>${b?'<b class="pos">✓</b>':'<b class="neg">!</b>'} ${t}</span><b class="mutc" style="font-weight:500">${f||''}</b></div>`;
  const fnOk=F&&F.v==FNVER,secOk=F&&F.sec,ago=t=>{if(!t)return'nunca';const m=Math.round((Date.now()-t)/6e4);return m<1?'recién':m<60?'hace '+m+' min':m<1440?'hace '+Math.round(m/60)+' h':'hace '+Math.round(m/1440)+' d'};
@@ -3110,7 +3111,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261128120000';
+const BUILD='20261128121000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}const u=location.pathname+'?v='+m[1]+location.hash;if(LOCKED||UNLK)updPend=u;else{try{if(lockCfg()&&SESSION)sessionStorage.setItem('fin-unl',Date.now())}catch(e){}location.replace(u)}}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
