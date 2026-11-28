@@ -2920,7 +2920,7 @@ async function openStatus(){fnLoad();const fs=await qs(SB.from('docs').select('d
  ${ok(secOk,'Revisión automática protegida',secOk?'con clave secreta':'falta correr el SQL de seguridad')}
  ${ok(secOk,'Bloqueo de versiones viejas',secOk?'activo':'falta correr el SQL de seguridad')}
  ${ok(!!lockCfg(),'Bloqueo con Face ID / huella',lockCfg()?'activo':'apagado')}
- ${!fnOk||!secOk?`<ol class="nsteps" style="margin-top:10px">${!fnOk?'<li><b>Actualizá la función.</b> Supabase → Edge Functions → alertas → pegá el código → <b>Deploy</b>.<br><button class="btn" data-stx="fn">Copiar código de la función</button></li>':''}${!secOk?'<li><b>Corré el SQL de seguridad.</b> Supabase → SQL Editor → pegá → <b>Run</b>. Protege la revisión automática y bloquea versiones viejas.<br><button class="btn" data-stx="sql">Copiar SQL de seguridad</button></li>':''}</ol>`:''}
+ ${!fnOk||!secOk?`<ol class="nsteps" style="margin-top:10px">${!fnOk?'<li><b>Actualizá la función.</b> Supabase → Edge Functions → alertas → pegá el código → <b>Deploy</b>.<br><button class="btn" data-stx="fn">Copiar código de la función</button> <button class="btn" data-stx="fnv">Ver código</button></li>':''}${!secOk?'<li><b>Corré el SQL de seguridad.</b> Supabase → SQL Editor → pegá → <b>Run</b>. Protege la revisión automática y bloquea versiones viejas.<br><button class="btn" data-stx="sql">Copiar SQL de seguridad</button></li>':''}</ol>`:''}
  <h3 class="sth">Chequeo semanal</h3>
  ${CR.length?CR.map(x=>`<div class="stat"><span><b class="neg">!</b> ${esc(x)}</span></div>`).join(''):`<div class="stat"><span><b class="pos">✓</b> Todo cierra</span><b class="mutc" style="font-weight:500">${ago(lc)}</b></div>`}
  <button class="btn" data-stx="chk" style="margin-top:6px">Revisar ahora</button>
@@ -2932,7 +2932,10 @@ async function openStatus(){fnLoad();const fs=await qs(SB.from('docs').select('d
  <div class="hrow2" style="margin-top:8px"><button class="btn" data-stx="exp">Descargar copia cifrada</button><button class="btn" data-stx="imp">Restaurar desde archivo</button></div>
  <div class="btns"><button data-stx="upd">Actualizar la app ahora</button><button class="pr" data-close="1">Listo</button></div></div></div>`}
 async function stAction(k){const pw=()=>($('#stpw')||{}).value||'';
- if(k=='fn')return copyTxt(await fnLoad(),'Código');if(k=='sql')return copyTxt(secSQL(),'SQL de seguridad');
+ if(k=='fn'){if(FNCODE)return copyTxt(FNCODE,'Código');toast('Cargando el código… tocá de nuevo en un segundo');fnLoad();return}
+ if(k=='fnv'){const c=FNCODE||await fnLoad();$('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true"><h2>Código de la función alertas</h2><div class="m">Tocá el texto, elegí Seleccionar todo y Copiar. O usá el botón.</div><textarea id="fntx" readonly style="width:100%;height:46vh;font:11px/1.35 var(--mono);border-radius:10px;border:1px solid var(--line2);background:var(--bg);color:var(--fg);padding:10px">${esc(c)}</textarea><div class="btns"><button data-stx="back">Volver</button><button class="pr" data-stx="fnc">Copiar todo</button></div></div></div>`;setTimeout(()=>{const t=$('#fntx');if(t){t.focus();t.select();t.setSelectionRange(0,t.value.length)}},100);return}
+ if(k=='fnc'){const t=$('#fntx');if(t){t.focus();t.select();t.setSelectionRange(0,t.value.length)}let ok=false;try{ok=document.execCommand('copy')}catch(e){}if(ok)return toast('Código copiado');if(navigator.clipboard)return navigator.clipboard.writeText(FNCODE).then(()=>toast('Código copiado'),()=>toast('No pude copiar: con el texto seleccionado, tocá Copiar'));return}
+ if(k=='back')return openStatus();if(k=='sql')return copyTxt(secSQL(),'SQL de seguridad');
  if(k=='chk'){await weeklyCheck(true);return openStatus()}
  if(k=='exp'){if(pw().length<8)return toast('Falta una contraseña de al menos 8 caracteres');try{await exportEnc(pw());toast('Copia cifrada descargada: guardala junto con la contraseña')}catch(e){toast('No pude crear la copia: '+(e.message||e))}return}
  if(k=='imp'){if(pw().length<8)return toast('Falta la contraseña con la que la cifraste');let f=$('#impf');if(!f){f=document.createElement('input');f.type='file';f.id='impf';f.hidden=true;document.body.appendChild(f)}
@@ -3112,7 +3115,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261128122000';
+const BUILD='20261128123000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}const u=location.pathname+'?v='+m[1]+location.hash;if(LOCKED||UNLK)updPend=u;else{try{if(lockCfg()&&SESSION)sessionStorage.setItem('fin-unl',Date.now())}catch(e){}location.replace(u)}}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
