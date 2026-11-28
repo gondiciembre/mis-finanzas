@@ -1758,7 +1758,7 @@ function fxOpsView(){const F=fxS(),k=FXM||NOWK,y=+k.slice(0,4),mi=+k.slice(5,7)-
  :`<p class="note" style="margin:10px 0 0">No cargaste operaciones en ${MESL[mi].toLowerCase()}. Cada venta suma pesos en Ingresos (“Venta Moneda Extranjera”) y cada compra los resta en “Compra Dolares”.</p>`}</div></div>`;
  return h}
 function fxEdit(id){const F=fxS(),o=F.ops.find(x=>x.id==id)||{t:'c',d:TODAY,usd:'',tc:'mep',px:null,ars:null,n:''};const nw=!id;
- const px0=t=>{const q=dq(o.tc||'mep',t=='c'?'v':'c').p;return q?Math.round(q*100)/100:''};
+ const px0=t=>{const q=dq(o.tc||'mep',t=='c'?'v':'c').p;return q?String(Math.round(q*100)/100).replace('.',','):''};
  mfn=null;$('#ov').innerHTML=`<div class="ov" data-close="1"><div class="sheet" role="dialog" aria-modal="true"><h2>${nw?'Cargar operación':'Editar operación'}</h2>
  <div class="seg" style="margin-bottom:10px"><button data-fxt="c"${o.t=='c'?' class="on"':''}>Compré dólares</button><button data-fxt="v"${o.t=='v'?' class="on"':''}>Vendí dólares</button></div>
  <div class="grid g2" style="gap:10px"><div><label class="lab" for="fx1">Fecha</label><input class="inp" type="date" id="fx1" value="${o.d}"></div>
@@ -2861,7 +2861,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261128010000';
+const BUILD='20261128011000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}const u=location.pathname+'?v='+m[1]+location.hash;if(LOCKED||UNLK)updPend=u;else{try{if(lockCfg()&&SESSION)sessionStorage.setItem('fin-unl',Date.now())}catch(e){}location.replace(u)}}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
