@@ -2903,7 +2903,8 @@ let IMPF=null;
 
 /* ---------- Estado y seguridad ---------- */
 const qs=async p=>{try{return await p}catch(e){return {}}};
-async function openStatus(){const fs=await qs(SB.from('docs').select('data,updated_at').eq('id','fnstat').maybeSingle());const F=fs&&fs.data&&fs.data.data;
+const fnLoad=async()=>{if(!FNCODE)try{FNCODE=await fetch('./supabase/functions/alertas/index.ts',{cache:'no-store'}).then(r=>r.ok?r.text():'')}catch(e){}return FNCODE};
+async function openStatus(){fnLoad();const fs=await qs(SB.from('docs').select('data,updated_at').eq('id','fnstat').maybeSingle());const F=fs&&fs.data&&fs.data.data;
  const el=await qs(SB.from('docs').select('data').eq('id','errlog').maybeSingle());const E=((el&&el.data&&el.data.data&&el.data.data.items)||[]).slice(0,8);
  const sub=await mySub().catch(()=>null);let CR=[];try{CR=JSON.parse(localStorage.getItem('fin-chkr')||'[]')}catch(e){}let lc=0;try{lc=+localStorage.getItem('fin-chk')||0}catch(e){}
  const ok=(b,t,f)=>`<div class="stat"><span>${b?'<b class="pos">✓</b>':'<b class="neg">!</b>'} ${t}</span><b class="mutc" style="font-weight:500">${f||''}</b></div>`;
@@ -2931,7 +2932,7 @@ async function openStatus(){const fs=await qs(SB.from('docs').select('data,updat
  <div class="hrow2" style="margin-top:8px"><button class="btn" data-stx="exp">Descargar copia cifrada</button><button class="btn" data-stx="imp">Restaurar desde archivo</button></div>
  <div class="btns"><button data-stx="upd">Actualizar la app ahora</button><button class="pr" data-close="1">Listo</button></div></div></div>`}
 async function stAction(k){const pw=()=>($('#stpw')||{}).value||'';
- if(k=='fn')return copyTxt(FNCODE,'Código');if(k=='sql')return copyTxt(secSQL(),'SQL de seguridad');
+ if(k=='fn')return copyTxt(await fnLoad(),'Código');if(k=='sql')return copyTxt(secSQL(),'SQL de seguridad');
  if(k=='chk'){await weeklyCheck(true);return openStatus()}
  if(k=='exp'){if(pw().length<8)return toast('Falta una contraseña de al menos 8 caracteres');try{await exportEnc(pw());toast('Copia cifrada descargada: guardala junto con la contraseña')}catch(e){toast('No pude crear la copia: '+(e.message||e))}return}
  if(k=='imp'){if(pw().length<8)return toast('Falta la contraseña con la que la cifraste');let f=$('#impf');if(!f){f=document.createElement('input');f.type='file';f.id='impf';f.hidden=true;document.body.appendChild(f)}
@@ -3111,7 +3112,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(mfn){if(e.key=='Enter')runM();if(e.key=='Escape')closeSheet();return}if(!sh)return;if(e.key=='Escape')closeSheet();if(e.key=='Enter')saveSheet()});
 
 let SYNC_=0;
-const BUILD='20261128121000';
+const BUILD='20261128122000';
 async function checkUpdate(){try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const x=await r.text(),m=/const BUILD='(\d+)'/.exec(x);
  if(m&&m[1]!==BUILD){let n=0;try{n=+sessionStorage.getItem('fin-upd')||0}catch(e){}if(n<2){try{sessionStorage.setItem('fin-upd',n+1)}catch(e){}const u=location.pathname+'?v='+m[1]+location.hash;if(LOCKED||UNLK)updPend=u;else{try{if(lockCfg()&&SESSION)sessionStorage.setItem('fin-unl',Date.now())}catch(e){}location.replace(u)}}}else if(m){try{sessionStorage.removeItem('fin-upd')}catch(e){}}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate()});
